@@ -1,0 +1,60 @@
+/* Dark theme for the embedded old-portal pages (portals-embed.veracross.au), e.g. the assignment planner.
+   Theme comes from early.js (the top frame sends its choice by postMessage). */
+:root[data-ppui-theme="dark"] {
+  color-scheme: dark;
+  --e-bg: #0c0e0d;
+  --e-surface: #1c1c1e;
+  --e-text: #f5f5f7;
+  --e-muted: #a1a1a6;
+  --e-accent: #5b93f0;
+  --e-line: rgba(255, 255, 255, 0.12);
+  --e-today: rgba(91, 147, 240, 0.16);
+}
+
+:root[data-ppui-theme="dark"],
+:root[data-ppui-theme="dark"] body {
+  background: var(--e-bg) !important;
+  color: var(--e-text) !important;
+}
+
+:root[data-ppui-theme="dark"] .content,
+:root[data-ppui-theme="dark"] .timeline-header-intersect,
+:root[data-ppui-theme="dark"] .timeline-row,
+:root[data-ppui-theme="dark"] .timeline-header-x,
+:root[data-ppui-theme="dark"] .timeline-header-y,
+:root[data-ppui-theme="dark"] .timeline-records,
+:root[data-ppui-theme="dark"] .timeline-cell,
+:root[data-ppui-theme="dark"] span.count {
+  background: var(--e-surface) !important;
+  color: var(--e-text) !important;
+  border-color: var(--e-line) !important;
+}
+
+:root[data-ppui-theme="dark"] .timeline-cell.current {
+  background: var(--e-today) !important;
+}
+
+:root[data-ppui-theme="dark"] h1,
+:root[data-ppui-theme="dark"] h2,
+:root[data-ppui-theme="dark"] h3,
+:root[data-ppui-theme="dark"] h4,
+:root[data-ppui-theme="dark"] a.toggle-rows,
+:root[data-ppui-theme="dark"] .assignment-type {
+  color: var(--e-text) !important;
+}
+
+:root[data-ppui-theme="dark"] .assignment-type {
+  background: var(--e-line) !important;
+}
+
+:root[data-ppui-theme="dark"] a,
+:root[data-ppui-theme="dark"] a.title,
+:root[data-ppui-theme="dark"] a.direction {
+  color: var(--e-accent) !important;
+}
+
+:root[data-ppui-theme="dark"] a.open-website,
+:root[data-ppui-theme="dark"] .future-date,
+:root[data-ppui-theme="dark"] .timeline-header-y a {
+  color: var(--e-muted) !important;
+}

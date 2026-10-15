@@ -1,0 +1,190 @@
+/* Pinehurst Dashboard: restyle of the Veracross login page (accounts.veracross.au).
+   Tokens mirror styles.css; the two pages live on different hosts so they can't share a file. */
+
+@font-face {
+  font-family: "Lora";
+  src: url("chrome-extension://__MSG_@@extension_id__/fonts/Lora-700.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("chrome-extension://__MSG_@@extension_id__/fonts/InterVariable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --ppui-bg: #f3f5f4;
+  --ppui-surface: #ffffff;
+  --ppui-text: #1d1d1f;
+  --ppui-muted: #6e6e73;
+  --ppui-accent: #1557c0;
+  --ppui-accent-soft: rgba(21, 87, 192, 0.1);
+  --ppui-hairline: rgba(0, 0, 0, 0.08);
+  --ppui-hover: rgba(0, 0, 0, 0.05);
+  --ppui-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 12px 40px rgba(0, 0, 0, 0.06);
+  --ppui-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --ppui-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+
+:root[data-ppui-theme="dark"] {
+  --ppui-bg: #0c0e0d;
+  --ppui-surface: #1c1c1e;
+  --ppui-text: #f5f5f7;
+  --ppui-muted: #a1a1a6;
+  --ppui-accent: #5b93f0;
+  --ppui-accent-soft: rgba(91, 147, 240, 0.16);
+  --ppui-hairline: rgba(255, 255, 255, 0.1);
+  --ppui-hover: rgba(255, 255, 255, 0.08);
+  --ppui-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 40px rgba(0, 0, 0, 0.4);
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--ppui-bg) !important;
+  color: var(--ppui-text) !important;
+  font-family: var(--ppui-font) !important;
+  font-feature-settings: "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+.ae-container {
+  background: transparent !important;
+}
+
+/* Card */
+.ae-grid .card {
+  background: var(--ppui-surface) !important;
+  color: var(--ppui-text) !important;
+  border: 1px solid var(--ppui-hairline) !important;
+  border-radius: 22px !important;
+  box-shadow: var(--ppui-card-shadow) !important;
+  animation: ppui-enter 0.5s var(--ppui-ease) both;
+}
+
+@keyframes ppui-enter {
+  from { opacity: 0; transform: translateY(10px); }
+}
+
+/* Crest badge: ring matches the page so it reads as a cut-out in the card */
+.banner.round {
+  background: transparent !important;
+}
+
+.banner.round .school-image {
+  border: 6px solid var(--ppui-surface) !important;
+  box-shadow: none !important;
+}
+
+/* Text */
+.card-header-title {
+  color: var(--ppui-text) !important;
+  font-family: "Lora", Georgia, serif !important;
+  font-size: 28px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.028em;
+}
+
+.ae-grid .card p,
+.ae-grid .card li {
+  color: var(--ppui-muted) !important;
+  font-family: var(--ppui-font) !important;
+  font-size: 14px !important;
+  line-height: 1.5;
+}
+
+.ae-grid .card a {
+  color: var(--ppui-accent) !important;
+  text-decoration: none !important;
+  font-weight: 500;
+}
+
+.ae-grid .card a:hover {
+  text-decoration: underline !important;
+}
+
+/* Form */
+.vx-FormLabel {
+  color: var(--ppui-muted) !important;
+  font-family: var(--ppui-font) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.vx-TextField_Input {
+  box-sizing: border-box;
+  height: 40px;
+  padding: 0 12px !important;
+  background: var(--ppui-bg) !important;
+  color: var(--ppui-text) !important;
+  border: 1px solid var(--ppui-hairline) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  font-family: var(--ppui-font) !important;
+  font-size: 15px !important;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.vx-TextField_Input:focus {
+  background: var(--ppui-surface) !important;
+  border-color: var(--ppui-accent) !important;
+  outline: 2px solid var(--ppui-accent) !important;
+  outline-offset: 2px;
+}
+
+.vx-Button {
+  height: 40px;
+  padding: 0 22px !important;
+  background: var(--ppui-accent) !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  font-family: var(--ppui-font) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.vx-Button:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.vx-Button:focus-visible {
+  outline: 2px solid var(--ppui-accent) !important;
+  outline-offset: 2px;
+}
+
+.vx-Button:disabled,
+.vx-Button[disabled] {
+  background: var(--ppui-hover) !important;
+  color: var(--ppui-muted) !important;
+  cursor: default;
+  opacity: 0.8;
+}
+
+/* Footer */
+.card-footer,
+.card-footer a {
+  color: var(--ppui-muted) !important;
+  font-size: 12px !important;
+}
+
+@media (max-width: 640px) {
+  .ae-grid .card {
+    border-radius: 18px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ae-grid .card { animation: none; }
+}

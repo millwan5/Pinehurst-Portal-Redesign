@@ -1,0 +1,53 @@
+{
+  "manifest_version": 3,
+  "name": "Pinehurst Dashboard",
+  "version": "1.4",
+  "description": "Pinehurst Dashboard for the Student Portal: today's timetable, classes and news at a glance, every link in one Apps launcher.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Pinehurst Dashboard",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://portals.veracross.au/pinehurst/*"],
+      "css": ["styles.css"],
+      "js": ["early.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["*://portals-embed.veracross.au/pinehurst/*"],
+      "css": ["embed.css"],
+      "js": ["early.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": ["*://portals.veracross.au/pinehurst/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://accounts.veracross.au/pinehurst/*"],
+      "css": ["login.css"],
+      "js": ["login-early.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["fonts/*"],
+      "matches": ["*://portals.veracross.au/*", "*://accounts.veracross.au/*"]
+    }
+  ]
+}
