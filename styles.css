@@ -28,10 +28,10 @@
   --ppui-accent: #1446a0;
   --ppui-accent-soft: rgba(20, 70, 160, 0.09);
   --ppui-hairline: rgba(11, 30, 69, 0.09);
-  --ppui-shadow: 0 1px 0 rgba(11, 30, 69, 0.03), 0 14px 32px -18px rgba(11, 30, 69, 0.28);
   --ppui-logo-grey: #a7a9ac;
   --ppui-logo-blue: #1446a0;
   --ppui-ridge-mid: #123a86;
+  --ppui-ridge-near: #0b1e45;
   --ppui-radius-card: 20px;
   --ppui-radius-pop: 16px;
   --ppui-radius-row: 12px;
@@ -54,10 +54,10 @@
   --ppui-accent: #79a7ff;
   --ppui-accent-soft: rgba(121, 167, 255, 0.14);
   --ppui-hairline: rgba(167, 169, 172, 0.14);
-  --ppui-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 18px 40px -20px rgba(0, 0, 0, 0.7);
   --ppui-logo-grey: #b4b6ba;
   --ppui-logo-blue: #2f63c4;
   --ppui-ridge-mid: #0c2557;
+  --ppui-ridge-near: #030817;
 }
 
 :root[data-ppui-theme="light"] {
@@ -103,9 +103,17 @@ html body textarea {
 }
 
 html body {
+  margin: 0 !important;
+  padding-top: 0 !important;
   background: var(--ppui-bg) !important;
   color: var(--ppui-text);
   overflow-x: clip;
+}
+
+/* The portal's page-title strip (white in light theme) sits flat on the page. */
+html .screen-toolbar {
+  background: transparent !important;
+  border-color: transparent !important;
 }
 
 html .portal-background {
@@ -121,6 +129,15 @@ html .vx-nav {
 html .app-container {
   background: transparent !important;
   box-shadow: none !important;
+}
+
+/* No shadows anywhere, the portal's own cards, buttons and headings included.
+   (Focus rings are outlines, so they survive.) */
+html body .app-container *,
+html body .app-container *::before,
+html body .app-container *::after {
+  box-shadow: none !important;
+  text-shadow: none !important;
 }
 
 html :focus-visible {
@@ -160,16 +177,11 @@ html :focus-visible {
   color: #fff;
 }
 
+/* Slim header on every other page: first thing in <body>, trees kept below the wordmark. */
 .ppui-header.is-compact,
 .ppui-header.is-standalone {
-  margin: 0 0 8px;
-  padding: 14px var(--ppui-gutter) 44px;
-}
-
-/* Pages where the header sits inside the narrow app column still need full width. */
-html:not(.ppui-home) .app-container > .ppui-header.is-compact {
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
+  margin: 0 0 12px;
+  padding: 14px var(--ppui-gutter) 62px;
 }
 
 .ppui-scene {
@@ -208,41 +220,30 @@ html:not(.ppui-home) .app-container > .ppui-header.is-compact {
   margin: -15px 0 0 -15px;
   border-radius: 50%;
   background: #f4f6fa;
-  box-shadow: 0 0 0 10px rgba(244, 246, 250, 0.1), 0 0 0 22px rgba(244, 246, 250, 0.05);
 }
 
-/* Flat cloud bands: long rounded strips, drifting slowly sideways. */
+/* Clouds: a real photograph (assets/clouds.jpg, public domain), greyed and pushed to high contrast
+   so the blue sky drops to black, then screened on, so only the clouds show, and only faintly. */
 .ppui-clouds {
   position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg, #000 30%, transparent 80%);
+  mask-image: linear-gradient(180deg, #000 30%, transparent 80%);
 }
 
-.ppui-cloud {
+.ppui-cloud-photo {
   position: absolute;
-  height: 9px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
+  inset: 0 -12% 0 0;
+  background: url("chrome-extension://__MSG_@@extension_id__/assets/clouds.jpg") 30% 18% / cover no-repeat;
+  filter: grayscale(1) contrast(2.6) brightness(0.72);
+  mix-blend-mode: screen;
+  opacity: 0.24;
 }
 
-.ppui-cloud::after {
-  content: "";
-  position: absolute;
-  left: 18%;
-  top: -7px;
-  width: 46%;
-  height: 9px;
-  border-radius: 999px;
-  background: inherit;
-}
-
-.ppui-cloud:nth-child(1) { top: 26%; left: 12%; width: 150px; }
-.ppui-cloud:nth-child(2) { top: 40%; left: 58%; width: 220px; opacity: 0.7; }
-.ppui-cloud:nth-child(3) { top: 18%; left: 84%; width: 110px; opacity: 0.5; }
-
-.ppui-scene[data-sky="night"] .ppui-cloud { background: rgba(167, 169, 172, 0.08); }
-.ppui-header.is-compact .ppui-clouds { display: none; }
+.ppui-scene[data-sky="night"] .ppui-cloud-photo { opacity: 0.07; }
+.ppui-header.is-compact .ppui-cloud-photo { opacity: 0.16; }
 
 /* Film grain on the sky, so the flat shapes read as print rather than vector. */
 .ppui-grain {
@@ -259,7 +260,7 @@ html:not(.ppui-home) .app-container > .ppui-header.is-compact {
   height: 34px;
   margin: -17px 0 0 -17px;
   background: #dfe3ea;
-  box-shadow: inset -9px -3px 0 0 #b9bec7, 0 0 24px 4px rgba(223, 227, 234, 0.25);
+  box-shadow: inset -9px -3px 0 0 #b9bec7; /* the crescent's shade */
 }
 
 .ppui-header.is-compact .ppui-orb {
@@ -296,7 +297,7 @@ html:not(.ppui-home) .app-container > .ppui-header.is-compact {
 }
 
 .ppui-header.is-compact .ppui-forest {
-  height: 64px;
+  height: 56px;
 }
 
 .ppui-header.is-compact .ppui-ridge-far {
@@ -305,11 +306,12 @@ html:not(.ppui-home) .app-container > .ppui-header.is-compact {
 
 .ppui-ridge-far { fill: rgba(199, 204, 214, 0.2); }
 .ppui-ridge-mid { fill: var(--ppui-ridge-mid); }
-/* The nearest ridge is the page itself, so the forest cuts straight into the dashboard. */
-.ppui-ridge-near { fill: var(--ppui-bg); }
+/* The nearest ridge is solid ink, so the forest stops at the header's bottom edge. */
+.ppui-ridge-near { fill: var(--ppui-ridge-near); }
 
 .ppui-scene[data-sky="night"] .ppui-ridge-far { fill: rgba(167, 169, 172, 0.14); }
 .ppui-scene[data-sky="night"] .ppui-ridge-mid { fill: #081a40; }
+.ppui-scene[data-sky="night"] .ppui-ridge-near { fill: #030817; }
 
 /* Header content */
 .ppui-header-top {
@@ -321,7 +323,6 @@ html:not(.ppui-home) .app-container > .ppui-header.is-compact {
 }
 
 .ppui-brand {
-  text-shadow: 0 1px 8px rgba(4, 10, 26, 0.45);
   display: inline-flex;
   align-items: center;
   gap: 12px;
@@ -338,7 +339,6 @@ html:not(.ppui-home) .app-container > .ppui-header.is-compact {
   flex: none;
   border-radius: 12px;
   background: #fff;
-  box-shadow: 0 6px 18px -8px rgba(4, 10, 26, 0.6);
 }
 
 .ppui-logo {
@@ -453,7 +453,7 @@ html:not(.ppui-home) .app-container > .ppui-header.is-compact {
 
 .ppui-bar-button.ppui-avatar:hover {
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+  outline: 3px solid rgba(255, 255, 255, 0.3);
 }
 
 .ppui-count {
@@ -501,7 +501,6 @@ html:not(.ppui-home) .app-container > .ppui-header.is-compact {
   border-radius: var(--ppui-radius-pop);
   background: var(--ppui-surface);
   color: var(--ppui-text);
-  box-shadow: 0 24px 60px -24px rgba(11, 30, 69, 0.45);
   font-family: var(--ppui-font);
   overflow: auto;
   max-height: calc(100vh - 80px);
@@ -728,7 +727,6 @@ html.ppui-home .app-container {
   background: var(--ppui-surface);
   border: 1px solid var(--ppui-hairline);
   border-radius: var(--ppui-radius-card);
-  box-shadow: var(--ppui-shadow);
 }
 
 .ppui-panel {
@@ -1168,8 +1166,7 @@ a.ppui-class:hover {
   border-radius: 16px;
   background: var(--ppui-surface);
   border: 1px solid var(--ppui-hairline);
-  box-shadow: 0 1px 0 rgba(11, 30, 69, 0.04), 0 12px 24px -16px rgba(11, 30, 69, 0.45);
-  transition: transform 0.5s var(--ppui-ease), box-shadow 0.5s var(--ppui-ease);
+  transition: transform 0.5s var(--ppui-ease);
 }
 
 .ppui-photo::after {
@@ -1232,7 +1229,6 @@ a.ppui-class:hover {
 
 .ppui-story-link:hover .ppui-photo {
   transform: translateY(-2px) rotate(-0.6deg);
-  box-shadow: 0 1px 0 rgba(11, 30, 69, 0.04), 0 18px 30px -16px rgba(11, 30, 69, 0.5);
 }
 
 .ppui-story-link:hover .ppui-photo-image,
@@ -1389,7 +1385,6 @@ html.ppui-home .component-my-events-student {
   overflow: hidden;
   background: var(--ppui-surface) !important;
   border: 1px solid var(--ppui-hairline);
-  box-shadow: var(--ppui-shadow);
 }
 
 /* Portal hard-codes light colors here; map them to the theme tokens. */
@@ -1430,7 +1425,6 @@ html.ppui-newspage .article {
   background: var(--ppui-surface) !important;
   border: 1px solid var(--ppui-hairline) !important;
   border-radius: var(--ppui-radius-card) !important;
-  box-shadow: var(--ppui-shadow) !important;
   color: var(--ppui-text);
 }
 
@@ -1582,8 +1576,7 @@ html body .app-container :where(h1, h2, h3, h4) {
 
 /* Tab bars and page tabs */
 :root[data-ppui-theme="dark"] .vx-tab-bar,
-:root[data-ppui-theme="dark"] .vx-page-tabs,
-:root[data-ppui-theme="dark"] .screen-toolbar {
+:root[data-ppui-theme="dark"] .vx-page-tabs {
   background: var(--ppui-surface) !important;
   border-color: var(--ppui-hairline) !important;
 }
@@ -1804,20 +1797,17 @@ html body .app-container :where(h1, h2, h3, h4) {
     animation: ppui-bar 0.6s var(--ppui-ease) 0.6s both;
   }
 
-  .ppui-cloud {
-    animation: ppui-drift 70s linear infinite alternate;
+  .ppui-cloud-photo {
+    animation: ppui-drift 90s ease-in-out infinite alternate;
   }
-  .ppui-cloud:nth-child(2) { animation-duration: 95s; animation-direction: alternate-reverse; }
-  .ppui-cloud:nth-child(3) { animation-duration: 120s; }
 
   /* Pointer and press */
   .ppui-card {
-    transition: translate 0.35s var(--ppui-ease), box-shadow 0.35s var(--ppui-ease), border-color 0.35s;
+    transition: translate 0.35s var(--ppui-ease), border-color 0.35s;
   }
   .ppui-card:hover {
     translate: 0 -2px;
-    border-color: rgba(20, 70, 160, 0.16);
-    box-shadow: 0 1px 0 rgba(11, 30, 69, 0.03), 0 22px 40px -22px rgba(11, 30, 69, 0.38);
+    border-color: rgba(20, 70, 160, 0.22);
   }
 
   .ppui-subject,
@@ -2004,7 +1994,7 @@ html body .app-container :where(h1, h2, h3, h4) {
 }
 
 @keyframes ppui-drift {
-  to { translate: -120px 0; }
+  to { translate: -10% 0; }
 }
 
 @keyframes ppui-par-far {

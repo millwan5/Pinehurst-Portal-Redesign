@@ -18,7 +18,7 @@
   --ppui-accent-soft: rgba(20, 70, 160, 0.09);
   --ppui-hairline: rgba(11, 30, 69, 0.09);
   --ppui-hover: rgba(11, 30, 69, 0.05);
-  --ppui-card-shadow: 0 1px 0 rgba(11, 30, 69, 0.03), 0 24px 48px -24px rgba(11, 30, 69, 0.35);
+  --ppui-card-shadow: none;
   --ppui-ease: cubic-bezier(0.32, 0.72, 0, 1);
   --ppui-font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   color-scheme: light;
@@ -33,7 +33,7 @@
   --ppui-accent-soft: rgba(121, 167, 255, 0.14);
   --ppui-hairline: rgba(167, 169, 172, 0.14);
   --ppui-hover: rgba(255, 255, 255, 0.08);
-  --ppui-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 40px rgba(0, 0, 0, 0.4);
+  --ppui-card-shadow: none;
   color-scheme: dark;
 }
 

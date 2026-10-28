@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Pinehurst Dashboard",
-  "version": "1.6",
+  "version": "1.7",
   "description": "Pinehurst Dashboard for the Student Portal: today's timetable, classes and news at a glance, every link in one Apps launcher.",
   "icons": {
     "16": "icons/icon16.png",
@@ -46,7 +46,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["fonts/*"],
+      "resources": ["fonts/*", "assets/clouds.jpg"],
       "matches": ["*://portals.veracross.au/*", "*://accounts.veracross.au/*"]
     }
   ]

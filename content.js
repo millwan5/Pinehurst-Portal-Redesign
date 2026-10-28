@@ -271,10 +271,10 @@
     scene.setAttribute("aria-hidden", "true");
     const stars = el("div", "ppui-stars");
     const orb = el("div", "ppui-orb");
-    // Flat cloud bands drifting slowly across, and film grain on the sky (not the forest: the
+    // A faint cloud photograph drifting slowly across, and film grain on the sky (not the forest: the
     // nearest ridge has to match the page exactly).
     const clouds = el("div", "ppui-clouds");
-    clouds.append(el("span", "ppui-cloud"), el("span", "ppui-cloud"), el("span", "ppui-cloud"));
+    clouds.appendChild(el("span", "ppui-cloud-photo"));
     scene.append(stars, orb, clouds, el("div", "ppui-grain"));
     const ns = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(ns, "svg");
@@ -782,10 +782,12 @@
       header.append(intro);
     }
 
+    // Home: the hero sits inside the page column. Elsewhere the slim header goes first in <body>,
+    // so nothing the portal puts above its column shows as a bar over it.
     const app = document.querySelector(SEL.app);
-    if (app) app.prepend(header);
+    if (app && home) app.prepend(header);
     else {
-      header.classList.add("is-standalone");
+      if (!app) header.classList.add("is-standalone");
       document.body.prepend(header);
     }
     return header;
