@@ -2,44 +2,36 @@
    Tokens mirror styles.css; the two pages live on different hosts so they can't share a file. */
 
 @font-face {
-  font-family: "Lora";
-  src: url("chrome-extension://__MSG_@@extension_id__/fonts/Lora-700.ttf") format("truetype");
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Inter";
-  src: url("chrome-extension://__MSG_@@extension_id__/fonts/InterVariable.woff2") format("woff2");
-  font-weight: 100 900;
+  font-family: "Plus Jakarta Sans";
+  src: url("chrome-extension://__MSG_@@extension_id__/fonts/PlusJakartaSans.ttf") format("truetype");
+  font-weight: 200 800;
   font-style: normal;
   font-display: swap;
 }
 
 :root {
-  --ppui-bg: #f3f5f4;
+  --ppui-bg: #eef1f6;
   --ppui-surface: #ffffff;
-  --ppui-text: #1d1d1f;
-  --ppui-muted: #6e6e73;
-  --ppui-accent: #1557c0;
-  --ppui-accent-soft: rgba(21, 87, 192, 0.1);
-  --ppui-hairline: rgba(0, 0, 0, 0.08);
-  --ppui-hover: rgba(0, 0, 0, 0.05);
-  --ppui-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 12px 40px rgba(0, 0, 0, 0.06);
+  --ppui-text: #0b1e45;
+  --ppui-muted: #5e6b82;
+  --ppui-accent: #1446a0;
+  --ppui-accent-soft: rgba(20, 70, 160, 0.09);
+  --ppui-hairline: rgba(11, 30, 69, 0.09);
+  --ppui-hover: rgba(11, 30, 69, 0.05);
+  --ppui-card-shadow: 0 1px 0 rgba(11, 30, 69, 0.03), 0 24px 48px -24px rgba(11, 30, 69, 0.35);
   --ppui-ease: cubic-bezier(0.32, 0.72, 0, 1);
-  --ppui-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --ppui-font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   color-scheme: light;
 }
 
 :root[data-ppui-theme="dark"] {
-  --ppui-bg: #0c0e0d;
-  --ppui-surface: #1c1c1e;
-  --ppui-text: #f5f5f7;
-  --ppui-muted: #a1a1a6;
-  --ppui-accent: #5b93f0;
-  --ppui-accent-soft: rgba(91, 147, 240, 0.16);
-  --ppui-hairline: rgba(255, 255, 255, 0.1);
+  --ppui-bg: #060e20;
+  --ppui-surface: #0d1a36;
+  --ppui-text: #e9eef8;
+  --ppui-muted: #8e9bb5;
+  --ppui-accent: #79a7ff;
+  --ppui-accent-soft: rgba(121, 167, 255, 0.14);
+  --ppui-hairline: rgba(167, 169, 172, 0.14);
   --ppui-hover: rgba(255, 255, 255, 0.08);
   --ppui-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 40px rgba(0, 0, 0, 0.4);
   color-scheme: dark;
@@ -50,7 +42,6 @@ body {
   background: var(--ppui-bg) !important;
   color: var(--ppui-text) !important;
   font-family: var(--ppui-font) !important;
-  font-feature-settings: "cv11";
   -webkit-font-smoothing: antialiased;
 }
 
@@ -85,10 +76,10 @@ body {
 /* Text */
 .card-header-title {
   color: var(--ppui-text) !important;
-  font-family: "Lora", Georgia, serif !important;
+  font-family: var(--ppui-font) !important;
   font-size: 28px !important;
-  font-weight: 700 !important;
-  letter-spacing: -0.028em;
+  font-weight: 800 !important;
+  letter-spacing: -0.035em;
 }
 
 .ae-grid .card p,

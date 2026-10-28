@@ -2,13 +2,13 @@
    Theme comes from early.js (the top frame sends its choice by postMessage). */
 :root[data-ppui-theme="dark"] {
   color-scheme: dark;
-  --e-bg: #0c0e0d;
-  --e-surface: #1c1c1e;
-  --e-text: #f5f5f7;
-  --e-muted: #a1a1a6;
-  --e-accent: #5b93f0;
-  --e-line: rgba(255, 255, 255, 0.12);
-  --e-today: rgba(91, 147, 240, 0.16);
+  --e-bg: #060e20;
+  --e-surface: #0d1a36;
+  --e-text: #e9eef8;
+  --e-muted: #8e9bb5;
+  --e-accent: #79a7ff;
+  --e-line: rgba(167, 169, 172, 0.14);
+  --e-today: rgba(121, 167, 255, 0.14);
 }
 
 :root[data-ppui-theme="dark"],

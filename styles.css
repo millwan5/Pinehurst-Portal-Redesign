@@ -1,54 +1,43 @@
-﻿/* Pinehurst Dashboard: quiet restyle with frosted glass over a soft pine-and-sky wash.
-   Tokens first, then global polish (header, pill, launcher, popovers), then the home dashboard (html.ppui-home). */
+﻿/* Pinehurst Dashboard: crest blue, ink navy and silver, set in Plus Jakarta Sans.
+   The header is a small scene (sky that follows the day, sun or moon, ridges of crest pines);
+   everything below it stays quiet. Tokens first, then global pieces, then the home dashboard
+   (html.ppui-home), the news page (html.ppui-newspage) and the dark remaps of native pages. */
 
-/* Lora, bundled (SIL OFL): serif for the big headings. */
+/* Plus Jakarta Sans, bundled (SIL OFL), variable weight. */
 @font-face {
-  font-family: "Lora";
-  src: url("chrome-extension://__MSG_@@extension_id__/fonts/Lora-600.ttf") format("truetype");
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Lora";
-  src: url("chrome-extension://__MSG_@@extension_id__/fonts/Lora-700.ttf") format("truetype");
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* Inter, bundled: the closest open match to Apple's San Francisco. Macs still get SF itself. */
-@font-face {
-  font-family: "Inter";
-  src: url("chrome-extension://__MSG_@@extension_id__/fonts/InterVariable.woff2") format("woff2");
-  font-weight: 100 900;
+  font-family: "Plus Jakarta Sans";
+  src: url("chrome-extension://__MSG_@@extension_id__/fonts/PlusJakartaSans.ttf") format("truetype");
+  font-weight: 200 800;
   font-style: normal;
   font-display: swap;
 }
 
 :root {
-  --ppui-bg: #f3f5f4;
+  /* From the crest */
+  --ppui-crest: #1446a0;
+  --ppui-ink: #0b1e45;
+  --ppui-silver: #a7a9ac;
+  --ppui-sky: #3d7be8;
+
+  --ppui-bg: #eef1f6;
   --ppui-surface: #ffffff;
-  --ppui-hover: rgba(0, 0, 0, 0.05);
-  --ppui-text: #1d1d1f;
-  --ppui-muted: #6e6e73;
-  --ppui-accent: #1557c0;
-  --ppui-accent-soft: rgba(21, 87, 192, 0.1);
-  --ppui-hairline: rgba(0, 0, 0, 0.08);
+  --ppui-raised: #f5f7fb;
+  --ppui-hover: rgba(11, 30, 69, 0.05);
+  --ppui-text: #0b1e45;
+  --ppui-muted: #5e6b82;
+  --ppui-accent: #1446a0;
+  --ppui-accent-soft: rgba(20, 70, 160, 0.09);
+  --ppui-hairline: rgba(11, 30, 69, 0.09);
+  --ppui-shadow: 0 1px 0 rgba(11, 30, 69, 0.03), 0 14px 32px -18px rgba(11, 30, 69, 0.28);
   --ppui-logo-grey: #a7a9ac;
-  --ppui-logo-blue: #0f47a1;
-  --ppui-wash: none;
-  --ppui-glass: rgba(255, 255, 255, 0.64);
-  --ppui-glass-strong: rgba(255, 255, 255, 0.84);
-  --ppui-glass-edge: rgba(255, 255, 255, 0.8);
-  --ppui-glass-shadow: none;
-  --ppui-blur: blur(22px) saturate(160%);
-  --ppui-radius-card: 22px;
+  --ppui-logo-blue: #1446a0;
+  --ppui-ridge-mid: #123a86;
+  --ppui-radius-card: 20px;
   --ppui-radius-pop: 16px;
   --ppui-radius-row: 12px;
   --ppui-radius-sm: 6px;
   --ppui-ease: cubic-bezier(0.32, 0.72, 0, 1);
-  --ppui-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI Variable Text",
+  --ppui-font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text",
     "Segoe UI", system-ui, sans-serif;
 }
 
@@ -56,21 +45,19 @@
    is only a fallback for the instant before the script runs. */
 :root[data-ppui-theme="dark"] {
   color-scheme: dark;
-  --ppui-bg: #0c0e0d;
-  --ppui-surface: #1c1c1e;
-  --ppui-hover: rgba(255, 255, 255, 0.08);
-  --ppui-text: #f5f5f7;
-  --ppui-muted: #a1a1a6;
-  --ppui-accent: #5b93f0;
-  --ppui-accent-soft: rgba(91, 147, 240, 0.16);
-  --ppui-hairline: rgba(255, 255, 255, 0.1);
+  --ppui-bg: #060e20;
+  --ppui-surface: #0d1a36;
+  --ppui-raised: #12224a;
+  --ppui-hover: rgba(255, 255, 255, 0.06);
+  --ppui-text: #e9eef8;
+  --ppui-muted: #8e9bb5;
+  --ppui-accent: #79a7ff;
+  --ppui-accent-soft: rgba(121, 167, 255, 0.14);
+  --ppui-hairline: rgba(167, 169, 172, 0.14);
+  --ppui-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 18px 40px -20px rgba(0, 0, 0, 0.7);
   --ppui-logo-grey: #b4b6ba;
   --ppui-logo-blue: #2f63c4;
-  --ppui-wash: none;
-  --ppui-glass: rgba(32, 33, 36, 0.56);
-  --ppui-glass-strong: rgba(38, 39, 42, 0.84);
-  --ppui-glass-edge: rgba(255, 255, 255, 0.08);
-  --ppui-glass-shadow: none;
+  --ppui-ridge-mid: #0c2557;
 }
 
 :root[data-ppui-theme="light"] {
@@ -79,29 +66,17 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-ppui-theme]) {
-    --ppui-bg: #0c0e0d;
-    --ppui-surface: #1c1c1e;
-    --ppui-hover: rgba(255, 255, 255, 0.08);
-    --ppui-text: #f5f5f7;
-    --ppui-muted: #a1a1a6;
-    --ppui-accent: #5b93f0;
-    --ppui-accent-soft: rgba(91, 147, 240, 0.16);
-    --ppui-hairline: rgba(255, 255, 255, 0.1);
-    --ppui-glass: rgba(32, 33, 36, 0.56);
-    --ppui-glass-strong: rgba(38, 39, 42, 0.84);
-    --ppui-glass-edge: rgba(255, 255, 255, 0.08);
-    --ppui-glass-shadow: none;
-    --ppui-logo-grey: #b4b6ba;
-    --ppui-logo-blue: #2f63c4;
-    --ppui-wash: none;
     color-scheme: dark;
+    --ppui-bg: #060e20;
+    --ppui-surface: #0d1a36;
+    --ppui-text: #e9eef8;
   }
 }
 
 /* early.js hides the native page until content.js has built our UI (a split second).
    The themed background stays visible so there is no white flash. */
 html.ppui-booting {
-  background: var(--ppui-wash), var(--ppui-bg) !important;
+  background: var(--ppui-bg) !important;
 }
 
 html.ppui-booting body {
@@ -109,29 +84,14 @@ html.ppui-booting body {
 }
 
 html:not(.ppui-booting) body {
-  animation: ppui-reveal 0.25s ease-out both;
+  animation: ppui-fade 0.25s ease-out both;
 }
 
-@keyframes ppui-reveal {
+@keyframes ppui-fade {
   from { opacity: 0; }
 }
 
-/* No blur available, or the person asked for less transparency: solid surfaces instead. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root {
-    --ppui-glass: var(--ppui-surface) !important;
-    --ppui-glass-strong: var(--ppui-surface) !important;
-  }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  :root {
-    --ppui-glass: var(--ppui-surface) !important;
-    --ppui-glass-strong: var(--ppui-surface) !important;
-  }
-}
-
-/* ---------- Global polish (every portal page) ---------- */
+/* ---------- Global (every portal page) ---------- */
 
 html body,
 html body button,
@@ -139,14 +99,13 @@ html body input,
 html body select,
 html body textarea {
   font-family: var(--ppui-font) !important;
-  font-feature-settings: "cv11";
   -webkit-font-smoothing: antialiased;
 }
 
 html body {
-  background: var(--ppui-wash), var(--ppui-bg) !important;
-  background-attachment: fixed !important;
+  background: var(--ppui-bg) !important;
   color: var(--ppui-text);
+  overflow-x: clip;
 }
 
 html .portal-background {
@@ -159,15 +118,14 @@ html .vx-nav {
   display: none !important;
 }
 
-/* Frosted glass, shared by cards, the control pill and popovers. */
-.ppui-card,
-.ppui-pill,
-.ppui-popover {
-  background: var(--ppui-glass);
-  -webkit-backdrop-filter: var(--ppui-blur);
-  backdrop-filter: var(--ppui-blur);
-  border: 1px solid var(--ppui-hairline);
-  box-shadow: none;
+html .app-container {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html :focus-visible {
+  outline: 2px solid var(--ppui-sky);
+  outline-offset: 2px;
 }
 
 .ppui-icon {
@@ -180,21 +138,182 @@ html .vx-nav {
   stroke-linejoin: round;
 }
 
-/* Header: brand left, control pill right, greeting below (home only). */
+.ppui-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Header scene ---------- */
+
+/* Full-bleed band; its content lines up with the 1200px page column. */
 .ppui-header {
-  padding: 4px 0 28px;
-  color: var(--ppui-text);
+  --ppui-gutter: max(20px, calc(50vw - 580px));
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin: 0 calc(50% - 50vw);
+  padding: 18px var(--ppui-gutter) 150px;
+  color: #fff;
 }
 
-html:not(.ppui-home) .ppui-header,
+.ppui-header.is-compact,
 .ppui-header.is-standalone {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 16px 20px;
-  box-sizing: border-box;
+  margin: 0 0 8px;
+  padding: 14px var(--ppui-gutter) 44px;
 }
 
+/* Pages where the header sits inside the narrow app column still need full width. */
+html:not(.ppui-home) .app-container > .ppui-header.is-compact {
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
+.ppui-scene {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  --orb-x: 70%;
+  --orb-y: 30%;
+  background: linear-gradient(180deg, #2a64cf 0%, #1446a0 58%, #10388a 100%);
+  transition: background 1.2s ease;
+}
+
+.ppui-scene[data-sky="dawn"] {
+  background: linear-gradient(180deg, #17336f 0%, #3f70c9 55%, #c3cde0 100%);
+}
+
+.ppui-scene[data-sky="dusk"] {
+  background: linear-gradient(180deg, #0e2862 0%, #2b59b2 55%, #a7a9ac 100%);
+}
+
+.ppui-scene[data-sky="night"] {
+  background: linear-gradient(180deg, #040a1a 0%, #0b1e45 60%, #142f69 100%);
+}
+
+:root[data-ppui-theme="dark"] .ppui-scene[data-sky="day"] {
+  background: linear-gradient(180deg, #13357c 0%, #0f2c69 60%, #0b2457 100%);
+}
+
+/* Sun by day, moon by night: a disc on the arc content.js computes. */
+.ppui-orb {
+  position: absolute;
+  left: var(--orb-x);
+  top: var(--orb-y);
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border-radius: 50%;
+  background: #f4f6fa;
+  box-shadow: 0 0 0 10px rgba(244, 246, 250, 0.1), 0 0 0 22px rgba(244, 246, 250, 0.05);
+}
+
+/* Flat cloud bands: long rounded strips, drifting slowly sideways. */
+.ppui-clouds {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ppui-cloud {
+  position: absolute;
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.ppui-cloud::after {
+  content: "";
+  position: absolute;
+  left: 18%;
+  top: -7px;
+  width: 46%;
+  height: 9px;
+  border-radius: 999px;
+  background: inherit;
+}
+
+.ppui-cloud:nth-child(1) { top: 26%; left: 12%; width: 150px; }
+.ppui-cloud:nth-child(2) { top: 40%; left: 58%; width: 220px; opacity: 0.7; }
+.ppui-cloud:nth-child(3) { top: 18%; left: 84%; width: 110px; opacity: 0.5; }
+
+.ppui-scene[data-sky="night"] .ppui-cloud { background: rgba(167, 169, 172, 0.08); }
+.ppui-header.is-compact .ppui-clouds { display: none; }
+
+/* Film grain on the sky, so the flat shapes read as print rather than vector. */
+.ppui-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.16;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.ppui-scene[data-sky="night"] .ppui-orb {
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  background: #dfe3ea;
+  box-shadow: inset -9px -3px 0 0 #b9bec7, 0 0 24px 4px rgba(223, 227, 234, 0.25);
+}
+
+.ppui-header.is-compact .ppui-orb {
+  transform: scale(0.55);
+}
+
+/* Stars only at night: two layers of dots from background gradients. */
+.ppui-stars {
+  position: absolute;
+  inset: 0 0 40% 0;
+  opacity: 0;
+  background-image:
+    radial-gradient(1.2px 1.2px at 12% 30%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 28% 12%, #fff 50%, transparent 51%),
+    radial-gradient(1.4px 1.4px at 46% 40%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 63% 18%, #fff 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 81% 34%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 92% 10%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 6% 8%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 37% 26%, #fff 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 72% 6%, #fff 50%, transparent 51%);
+}
+
+.ppui-scene[data-sky="night"] .ppui-stars {
+  opacity: 0.8;
+}
+
+.ppui-forest {
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 100%;
+  height: 254px;
+}
+
+.ppui-header.is-compact .ppui-forest {
+  height: 64px;
+}
+
+.ppui-header.is-compact .ppui-ridge-far {
+  display: none;
+}
+
+.ppui-ridge-far { fill: rgba(199, 204, 214, 0.2); }
+.ppui-ridge-mid { fill: var(--ppui-ridge-mid); }
+/* The nearest ridge is the page itself, so the forest cuts straight into the dashboard. */
+.ppui-ridge-near { fill: var(--ppui-bg); }
+
+.ppui-scene[data-sky="night"] .ppui-ridge-far { fill: rgba(167, 169, 172, 0.14); }
+.ppui-scene[data-sky="night"] .ppui-ridge-mid { fill: #081a40; }
+
+/* Header content */
 .ppui-header-top {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -202,72 +321,81 @@ html:not(.ppui-home) .ppui-header,
 }
 
 .ppui-brand {
+  text-shadow: 0 1px 8px rgba(4, 10, 26, 0.45);
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  color: var(--ppui-text) !important;
+  gap: 12px;
+  color: #fff !important;
   text-decoration: none !important;
 }
 
-.ppui-logo {
-  width: 28px;
-  height: 33px;
+.ppui-logo-plate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
   flex: none;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 6px 18px -8px rgba(4, 10, 26, 0.6);
+}
+
+.ppui-logo {
+  width: 24px;
+  height: 28px;
 }
 
 .ppui-logo-book,
 .ppui-logo-tree {
-  fill: var(--ppui-logo-grey);
+  fill: #a7a9ac;
 }
 
 .ppui-logo-pages {
-  fill: var(--ppui-logo-blue);
+  fill: #1446a0;
 }
 
-/* Wordmark: "Pinehurst" bold in school blue, "Dashboard" light beside it, one line. */
 .ppui-brand-name {
   display: flex;
-  align-items: center;
-  align-self: center;
-  gap: 6px;
-  height: 33px;
-  padding-top: 5px; /* optical: pushes the text down to the crest's visual centre */
-  font-size: 21px;
-  line-height: 1;
-  letter-spacing: -0.03em;
-}
-
-.ppui-brand-title,
-.ppui-brand-sub {
-  display: block;
+  flex-direction: column;
+  gap: 3px;
   line-height: 1;
 }
 
 .ppui-brand-title {
+  font-size: 18px;
   font-weight: 800;
-  color: var(--ppui-logo-blue);
+  letter-spacing: -0.02em;
 }
 
 .ppui-brand-sub {
-  font-weight: 400;
-  color: var(--ppui-text);
-  opacity: 0.7;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.ppui-intro {
+  position: relative;
+  margin-top: 40px;
+  max-width: 760px;
 }
 
 .ppui-greeting {
-  margin: 32px 0 4px !important;
-  font-family: "Lora", Georgia, serif !important;
-  font-size: clamp(30px, 4.2vw, 42px) !important;
-  font-weight: 700 !important;
-  line-height: 1.08 !important;
-  letter-spacing: -0.028em;
-  color: var(--ppui-text) !important;
+  margin: 0 0 8px !important;
+  font-family: var(--ppui-font) !important;
+  font-size: clamp(34px, 5.4vw, 56px) !important;
+  font-weight: 800 !important;
+  line-height: 1.02 !important;
+  letter-spacing: -0.04em;
+  color: #fff !important;
+  text-wrap: balance;
 }
 
 .ppui-date {
   margin: 0 !important;
   font-size: 16px;
-  color: var(--ppui-muted);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.78) !important;
 }
 
 /* Control pill: Messages, Apps, theme, account. */
@@ -277,6 +405,10 @@ html:not(.ppui-home) .ppui-header,
   gap: 2px;
   padding: 4px;
   border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
 
 .ppui-bar-button {
@@ -290,15 +422,19 @@ html:not(.ppui-home) .ppui-header,
   border: 0;
   border-radius: 50%;
   background: transparent;
-  color: var(--ppui-text) !important;
+  color: #fff !important;
   text-decoration: none !important;
   cursor: pointer;
-  transition: background-color 0.15s var(--ppui-ease);
+  transition: background-color 0.15s var(--ppui-ease), transform 0.15s var(--ppui-ease);
 }
 
 .ppui-bar-button:hover,
 .ppui-bar-button[aria-expanded="true"] {
-  background: var(--ppui-hover);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.ppui-bar-button:active {
+  transform: scale(0.92);
 }
 
 .ppui-theme-toggle .ppui-moon { display: none; }
@@ -309,16 +445,15 @@ html:not(.ppui-home) .ppui-header,
   width: 30px;
   height: 30px;
   margin: 0 3px 0 4px;
-  background: var(--ppui-accent);
-  color: #fff !important;
+  background: #fff;
+  color: var(--ppui-crest) !important;
   font-size: 12px;
-  font-weight: 650;
-  letter-spacing: 0.02em;
+  font-weight: 750;
 }
 
 .ppui-bar-button.ppui-avatar:hover {
-  background: var(--ppui-accent);
-  box-shadow: 0 0 0 3px var(--ppui-accent-soft);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
 }
 
 .ppui-count {
@@ -330,10 +465,11 @@ html:not(.ppui-home) .ppui-header,
   padding: 0 4px;
   box-sizing: border-box;
   border-radius: 999px;
-  background: #e5484d;
-  color: #fff;
+  background: #fff;
+  color: var(--ppui-crest);
+  box-shadow: 0 0 0 2px var(--ppui-crest);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 17px;
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -343,17 +479,29 @@ html:not(.ppui-home) .ppui-header,
   .ppui-brand-name {
     display: none;
   }
+  .ppui-header {
+    padding-bottom: 104px;
+  }
+  .ppui-forest {
+    height: 150px;
+  }
+  .ppui-intro {
+    margin-top: 28px;
+  }
 }
 
-/* Popovers (Apps launcher, class menus). Placed by content.js; bottom sheet on phones. */
+/* ---------- Popovers (Apps launcher, menus). Placed by content.js; bottom sheet on phones. ---------- */
+
 .ppui-popover {
   position: fixed;
   inset: auto;
   margin: 0;
   padding: 8px;
+  border: 1px solid var(--ppui-hairline);
   border-radius: var(--ppui-radius-pop);
-  background: var(--ppui-glass-strong);
+  background: var(--ppui-surface);
   color: var(--ppui-text);
+  box-shadow: 0 24px 60px -24px rgba(11, 30, 69, 0.45);
   font-family: var(--ppui-font);
   overflow: auto;
   max-height: calc(100vh - 80px);
@@ -361,16 +509,6 @@ html:not(.ppui-home) .ppui-header,
 
 .ppui-popover::backdrop {
   background: transparent;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .ppui-popover:popover-open {
-    animation: ppui-pop 0.18s var(--ppui-ease);
-  }
-}
-
-@keyframes ppui-pop {
-  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
 }
 
 @media (max-width: 640px) {
@@ -382,26 +520,28 @@ html:not(.ppui-home) .ppui-header,
     border-radius: var(--ppui-radius-card) var(--ppui-radius-card) 0 0;
     padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
+  .ppui-popover::backdrop {
+    background: rgba(4, 10, 26, 0.35);
+  }
 }
 
-/* Apps launcher */
 .ppui-apps {
-  width: min(640px, calc(100vw - 16px));
+  width: min(660px, calc(100vw - 16px));
   padding: 12px;
 }
 
 .ppui-apps-field {
   position: relative;
   display: block;
-  margin: 0 0 8px;
+  margin: 0 0 6px;
 }
 
 .ppui-apps-field .ppui-icon {
   position: absolute;
-  left: 12px;
+  left: 13px;
   top: 50%;
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
   transform: translateY(-50%);
   color: var(--ppui-muted);
   pointer-events: none;
@@ -411,12 +551,12 @@ html:not(.ppui-home) .ppui-header,
   display: block;
   width: 100%;
   box-sizing: border-box;
-  height: 40px;
+  height: 44px;
   margin: 0;
-  padding: 0 12px 0 36px;
+  padding: 0 12px 0 40px;
   border: 1px solid var(--ppui-hairline) !important;
   border-radius: var(--ppui-radius-row);
-  background: var(--ppui-hover) !important;
+  background: var(--ppui-raised) !important;
   color: var(--ppui-text) !important;
   font-size: 15px;
   outline: none;
@@ -425,26 +565,35 @@ html:not(.ppui-home) .ppui-header,
 .ppui-apps-search:focus,
 .ppui-apps-search:focus-visible {
   outline: none;
-  border-color: var(--ppui-accent) !important;
+  border-color: var(--ppui-sky) !important;
   box-shadow: 0 0 0 3px var(--ppui-accent-soft);
 }
 
 .ppui-apps-groups {
-  columns: 3 180px;
+  columns: 3 190px;
   column-gap: 12px;
 }
 
 .ppui-apps-group {
   break-inside: avoid;
-  padding: 6px 0 8px;
+  padding: 8px 0;
 }
 
 .ppui-apps-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
-  padding: 4px 8px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: 4px 8px 6px;
+  font-size: 12.5px;
+  font-weight: 700;
   color: var(--ppui-muted);
+}
+
+.ppui-apps-title .ppui-icon {
+  width: 15px;
+  height: 15px;
+  color: var(--ppui-accent);
 }
 
 .ppui-apps-list,
@@ -462,9 +611,10 @@ html:not(.ppui-home) .ppui-header,
   gap: 8px;
   min-height: 34px;
   padding: 0 8px;
-  border-radius: 8px;
+  border-radius: 9px;
   color: var(--ppui-text) !important;
   font-size: 14px;
+  font-weight: 500;
   text-decoration: none !important;
 }
 
@@ -491,40 +641,9 @@ html:not(.ppui-home) .ppui-header,
   font-size: 14px;
 }
 
-.ppui-sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
-/* Class row menu */
 .ppui-menu {
-  min-width: 180px;
+  min-width: 190px;
   padding: 6px;
-}
-
-/* One entrance for the dashboard, nothing else animates on load. */
-@media (prefers-reduced-motion: no-preference) {
-  .ppui-enter {
-    animation: ppui-enter 0.5s var(--ppui-ease) both;
-  }
-}
-
-@keyframes ppui-enter {
-  from { opacity: 0; transform: translateY(10px); }
-}
-
-html .app-container {
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-html :focus-visible {
-  outline: 2px solid var(--ppui-accent);
-  outline-offset: 2px;
 }
 
 /* ---------- Home dashboard ---------- */
@@ -550,17 +669,19 @@ html.ppui-home .portal-screen-region.item-md-9 {
 html.ppui-home .app-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px 20px 72px;
+  padding: 0 20px 72px;
   box-sizing: border-box;
 }
 
-/* Bento grid: a tall timetable, a squarer classes card, a narrow news column. */
+/* Bento grid: a tall timetable, a squarer classes card, a news column.
+   The cards rise into the forest's foot. */
 .ppui-dash {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 16px;
   align-items: start;
-  margin-bottom: 20px;
+  margin: -56px 0 20px;
 }
 
 .ppui-today { grid-column: span 5; }
@@ -582,6 +703,9 @@ html.ppui-home .app-container {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: 28px;
   }
+  .ppui-news .ppui-story.is-lead {
+    grid-row: span 4;
+  }
   .ppui-news .ppui-story:nth-child(2) {
     border-top: 0;
   }
@@ -601,12 +725,15 @@ html.ppui-home .app-container {
 }
 
 .ppui-card {
+  background: var(--ppui-surface);
+  border: 1px solid var(--ppui-hairline);
   border-radius: var(--ppui-radius-card);
+  box-shadow: var(--ppui-shadow);
 }
 
 .ppui-panel {
   min-width: 0;
-  padding: 18px 20px 10px;
+  padding: 18px 20px 12px;
 }
 
 .ppui-head {
@@ -614,37 +741,50 @@ html.ppui-home .app-container {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 6px;
+  padding-bottom: 8px;
 }
 
 .ppui-title {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin: 0 !important;
+  font-family: var(--ppui-font) !important;
   font-size: 17px !important;
   line-height: 1.2 !important;
-  font-weight: 650 !important;
-  letter-spacing: -0.012em;
+  font-weight: 750 !important;
+  letter-spacing: -0.015em;
   color: var(--ppui-text) !important;
 }
 
+/* Panel icons sit on a crest-blue tile. */
 .ppui-title-icon {
-  width: 18px;
-  height: 18px;
+  width: 30px;
+  height: 30px;
+  padding: 6px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  background: var(--ppui-crest);
+  color: #fff;
+  stroke-width: 2;
+}
+
+:root[data-ppui-theme="dark"] .ppui-title-icon {
+  background: var(--ppui-accent-soft);
   color: var(--ppui-accent);
 }
 
 .ppui-link {
   color: var(--ppui-accent) !important;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 650;
   text-decoration: none !important;
   white-space: nowrap;
 }
 
 .ppui-link:hover {
   text-decoration: underline !important;
+  text-underline-offset: 3px;
 }
 
 .ppui-meta {
@@ -658,10 +798,44 @@ html.ppui-home .app-container {
 }
 
 .ppui-empty {
-  padding: 18px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 0 18px;
   color: var(--ppui-muted);
   font-size: 14px;
+  text-align: center;
 }
+
+.ppui-empty-art {
+  width: 40px;
+  height: 46px;
+  opacity: 0.55;
+}
+
+/* Loading: placeholder rows with a light sweeping across them. */
+.ppui-skeleton {
+  display: grid;
+  gap: 7px;
+  padding: 13px 0;
+}
+
+.ppui-skeleton + .ppui-skeleton {
+  border-top: 1px solid var(--ppui-hairline);
+}
+
+.ppui-skel-a,
+.ppui-skel-b {
+  display: block;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--ppui-hover) 0 35%, var(--ppui-accent-soft) 50%, var(--ppui-hover) 65% 100%);
+  background-size: 300% 100%;
+}
+
+.ppui-skel-a { width: calc(78% - var(--i, 0) * 7%); }
+.ppui-skel-b { width: calc(44% + var(--i, 0) * 5%); height: 8px; opacity: 0.7; }
 
 .ppui-rows,
 .ppui-stories,
@@ -685,8 +859,8 @@ html.ppui-home .app-container {
   display: block;
   overflow: hidden;
   font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.005em;
+  font-weight: 650;
+  letter-spacing: -0.01em;
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--ppui-text) !important;
@@ -697,56 +871,187 @@ a.ppui-class:hover {
   color: var(--ppui-accent) !important;
 }
 
-/* Today: the class on now (or next) gets the one large type moment on the page. */
+/* Today: the class on now (or next) is the one solid crest-blue block on the page. */
 .ppui-feature {
+  position: relative;
+  overflow: hidden;
   display: grid;
-  gap: 2px;
-  margin: 8px 0 6px;
-  padding: 14px 16px;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  margin: 4px 0 12px;
+  padding: 16px;
   border-radius: 16px;
-  background: var(--ppui-accent-soft);
+  background: var(--ppui-crest);
+  color: #fff;
+}
+
+/* A large crest pine leaning out of the corner. */
+.ppui-feature::after {
+  content: "";
+  position: absolute;
+  right: -14px;
+  bottom: -26px;
+  width: 96px;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.1);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M11.9 2.2 18.9 18.5l-5.8 1.4v1.9l-4.4-1.2L5 19.7Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M11.9 2.2 18.9 18.5l-5.8 1.4v1.9l-4.4-1.2L5 19.7Z'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
 .ppui-feature[hidden] {
   display: none;
 }
 
+.ppui-feature-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.ppui-feature-icon .ppui-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.ppui-feature-text {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
 .ppui-feature-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--ppui-accent);
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.82);
   font-variant-numeric: tabular-nums;
 }
 
 .ppui-feature-class {
-  font-family: "Lora", Georgia, serif;
+  overflow: hidden;
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1.15;
-  letter-spacing: -0.02em;
-  color: var(--ppui-text);
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ppui-feature .ppui-meta {
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .ppui-feature.is-next {
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-text);
+}
+
+.ppui-feature.is-next::after {
+  background: var(--ppui-accent-soft);
+}
+
+.ppui-feature.is-next .ppui-feature-icon {
+  background: var(--ppui-surface);
+  color: var(--ppui-accent);
+}
+
+.ppui-feature.is-next .ppui-feature-label,
+.ppui-feature.is-next .ppui-meta {
+  color: var(--ppui-muted);
+}
+
+/* Live dot: a ring that keeps pulsing while a class is on. */
+.ppui-live {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.ppui-live::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  opacity: 0;
+}
+
+/* School-day progress */
+.ppui-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 6px;
+}
+
+.ppui-progress[hidden] {
+  display: none;
+}
+
+/* One segment per period, as wide as the period is long. */
+.ppui-progress-track {
+  display: flex;
+  flex: 1;
+  gap: 3px;
+}
+
+.ppui-progress-seg {
+  position: relative;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 2px;
   background: var(--ppui-hover);
 }
 
-.ppui-feature.is-next .ppui-feature-label {
+.ppui-progress-seg:first-child { border-radius: 999px 2px 2px 999px; }
+.ppui-progress-seg:last-child { border-radius: 2px 999px 999px 2px; }
+
+.ppui-progress-seg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--ppui-accent);
+  transform-origin: left;
+  transform: scaleX(var(--fill, 0));
+  transition: transform 0.8s var(--ppui-ease);
+}
+
+.ppui-progress-seg.is-now::after {
+  background: var(--ppui-sky);
+}
+
+.ppui-progress-label {
+  flex: none;
+  font-size: 12.5px;
+  font-weight: 650;
   color: var(--ppui-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .ppui-row {
   position: relative;
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
+  grid-template-columns: 52px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
-  min-height: 48px;
+  min-height: 50px;
   padding: 7px 0;
 }
 
 .ppui-time {
   font-size: 14px;
+  font-weight: 550;
   font-variant-numeric: tabular-nums;
   color: var(--ppui-muted);
 }
@@ -755,26 +1060,80 @@ a.ppui-class:hover {
   opacity: 0.45;
 }
 
-/* Current period: accent bar in the gutter and accent time. */
+/* Current period: crest-blue bar in the gutter and blue time. */
 .ppui-row.is-now::before {
   content: "";
   position: absolute;
   left: -20px;
-  top: 8px;
-  bottom: 8px;
-  width: 3px;
+  top: 9px;
+  bottom: 9px;
+  width: 4px;
   background: var(--ppui-accent);
-  border-radius: 0 2px 2px 0;
+  border-radius: 0 3px 3px 0;
 }
 
 .is-now .ppui-time {
   color: var(--ppui-accent);
-  font-weight: 600;
+  font-weight: 750;
 }
 
-/* News */
-.ppui-story {
-  padding: 10px 0;
+/* News card */
+.ppui-story-link {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  padding: 11px 0;
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+/* Calendar stub: a month strip over a big day number. Shared with the news page. */
+.ppui-stub {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  width: 44px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--ppui-raised);
+  border: 1px solid var(--ppui-hairline);
+  text-align: center;
+}
+
+.ppui-stub-month {
+  grid-row: 1;
+  padding: 2px 0;
+  background: var(--ppui-crest);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.ppui-stub-day {
+  grid-row: 2;
+  padding: 3px 0 4px;
+  color: var(--ppui-text);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ppui-stub > .ppui-icon {
+  grid-row: 1 / -1;
+  justify-self: center;
+  margin: 12px 0;
+  width: 18px;
+  height: 18px;
+  color: var(--ppui-muted);
+}
+
+.ppui-story-body {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
 }
 
 .ppui-headline {
@@ -783,14 +1142,124 @@ a.ppui-class:hover {
   -webkit-box-orient: vertical;
   overflow: hidden;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 650;
   line-height: 1.35;
-  color: var(--ppui-text) !important;
-  text-decoration: none !important;
+  color: var(--ppui-text);
+  transition: color 0.15s;
 }
 
-.ppui-headline:hover {
-  color: var(--ppui-accent) !important;
+.ppui-story-link:hover .ppui-headline {
+  color: var(--ppui-accent);
+}
+
+/* Lead story: picture on top, bigger headline, summary. */
+.ppui-story.is-lead .ppui-story-link {
+  padding-top: 2px;
+}
+
+/* Photo frame: the picture sits on a mount with a hairline keyline, like a print in a frame.
+   Shared by the dashboard's lead story and the news page. */
+.ppui-photo {
+  position: relative;
+  grid-column: 1 / -1;
+  display: block;
+  padding: 6px;
+  margin-bottom: 2px;
+  border-radius: 16px;
+  background: var(--ppui-surface);
+  border: 1px solid var(--ppui-hairline);
+  box-shadow: 0 1px 0 rgba(11, 30, 69, 0.04), 0 12px 24px -16px rgba(11, 30, 69, 0.45);
+  transition: transform 0.5s var(--ppui-ease), box-shadow 0.5s var(--ppui-ease);
+}
+
+.ppui-photo::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px rgba(11, 30, 69, 0.12);
+  pointer-events: none;
+}
+
+.ppui-photo-cover,
+.ppui-photo-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  object-fit: cover;
+  transition: transform 0.7s var(--ppui-ease);
+}
+
+.ppui-photo-image {
+  position: absolute;
+  inset: 6px;
+  width: calc(100% - 12px);
+  height: calc(100% - 12px);
+  opacity: 0;
+  transition: opacity 0.5s ease, transform 0.7s var(--ppui-ease);
+}
+
+.ppui-photo.has-image .ppui-photo-image {
+  opacity: 1;
+}
+
+/* Drawn cover for stories without a picture: crest pines on blue, with the date. */
+.ppui-photo-cover {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #2a64cf, var(--ppui-crest) 70%);
+}
+
+.ppui-cover-pines {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 80%;
+  fill: var(--ppui-ink);
+  opacity: 0.85;
+}
+
+.ppui-cover-date {
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.ppui-story-link:hover .ppui-photo {
+  transform: translateY(-2px) rotate(-0.6deg);
+  box-shadow: 0 1px 0 rgba(11, 30, 69, 0.04), 0 18px 30px -16px rgba(11, 30, 69, 0.5);
+}
+
+.ppui-story-link:hover .ppui-photo-image,
+.ppui-story-link:hover .ppui-photo-cover {
+  transform: scale(1.03);
+}
+
+.ppui-photo-cover,
+.ppui-photo {
+  overflow: hidden;
+}
+
+.ppui-story.is-lead .ppui-headline {
+  -webkit-line-clamp: 3;
+  font-size: 16px;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+}
+
+.ppui-summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ppui-muted);
 }
 
 /* Hidden iframe used to read the news page. */
@@ -805,31 +1274,40 @@ a.ppui-class:hover {
 /* Classes card */
 .ppui-course {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) auto 28px;
+  grid-template-columns: 34px minmax(0, 1fr) auto 28px;
   align-items: center;
-  gap: 10px;
-  min-height: 48px;
+  gap: 12px;
+  min-height: 50px;
   padding: 6px 0;
 }
 
+/* Subject tiles: six tones from the crest, picked per class in content.js. */
 .ppui-subject {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  background: hsl(var(--ppui-hue, 210) 50% 55% / 0.16);
-  color: hsl(var(--ppui-hue, 210) 50% 40%);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--tone-bg, var(--ppui-crest));
+  color: var(--tone-fg, #fff);
 }
+
+.ppui-subject[data-tone="0"] { --tone-bg: #1446a0; --tone-fg: #fff; }
+.ppui-subject[data-tone="1"] { --tone-bg: #3d7be8; --tone-fg: #fff; }
+.ppui-subject[data-tone="2"] { --tone-bg: #0b1e45; --tone-fg: #fff; }
+.ppui-subject[data-tone="3"] { --tone-bg: #e3e5e9; --tone-fg: #3f4652; }
+.ppui-subject[data-tone="4"] { --tone-bg: #dce8ff; --tone-fg: #1446a0; }
+.ppui-subject[data-tone="5"] { --tone-bg: #5a6b85; --tone-fg: #fff; }
+
+:root[data-ppui-theme="dark"] .ppui-subject[data-tone="2"] { --tone-bg: #22397a; }
+:root[data-ppui-theme="dark"] .ppui-subject[data-tone="3"] { --tone-bg: #3a4252; --tone-fg: #e3e5e9; }
+:root[data-ppui-theme="dark"] .ppui-subject[data-tone="4"] { --tone-bg: #1c3570; --tone-fg: #a9c6ff; }
 
 .ppui-subject .ppui-icon {
-  width: 17px;
-  height: 17px;
-}
-
-:root[data-ppui-theme="dark"] .ppui-subject {
-  color: hsl(var(--ppui-hue, 210) 60% 70%);
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
 }
 
 .ppui-badge {
@@ -838,10 +1316,10 @@ a.ppui-class:hover {
   padding: 0 7px;
   box-sizing: border-box;
   border-radius: 999px;
-  background: var(--ppui-accent-soft);
-  color: var(--ppui-accent) !important;
+  background: var(--ppui-crest);
+  color: #fff !important;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 750;
   line-height: 22px;
   text-align: center;
   text-decoration: none !important;
@@ -882,7 +1360,7 @@ a.ppui-class:hover {
   padding: 12px 0 6px;
   color: var(--ppui-muted);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 650;
   cursor: pointer;
 }
 
@@ -891,7 +1369,7 @@ a.ppui-class:hover {
 }
 
 .ppui-later .ppui-subject {
-  opacity: 0.5;
+  opacity: 0.55;
 }
 
 /* Remaining portal blocks (events calendar, if it has events). */
@@ -902,16 +1380,16 @@ html.ppui-home .portal-screen-region .screen-component {
 html.ppui-home .component-heading .heading-text {
   color: var(--ppui-muted) !important;
   font-size: 13px !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
   border-bottom: 0 !important;
 }
 
 html.ppui-home .component-my-events-student {
   border-radius: var(--ppui-radius-card);
   overflow: hidden;
-  background: var(--ppui-glass) !important;
-  -webkit-backdrop-filter: var(--ppui-blur);
-  backdrop-filter: var(--ppui-blur);
+  background: var(--ppui-surface) !important;
+  border: 1px solid var(--ppui-hairline);
+  box-shadow: var(--ppui-shadow);
 }
 
 /* Portal hard-codes light colors here; map them to the theme tokens. */
@@ -928,7 +1406,7 @@ html.ppui-home .component-class-list-student .course {
 }
 
 html.ppui-home .component-my-events-student .day-header {
-  background: var(--ppui-hover) !important;
+  background: var(--ppui-raised) !important;
   color: var(--ppui-muted) !important;
 }
 
@@ -937,7 +1415,132 @@ html.ppui-home .component-my-events-student .day.today .day-header {
   color: var(--ppui-accent) !important;
 }
 
-/* Hard-coded light/saturated leftovers, dark theme only. */
+/* ---------- News page (html.ppui-newspage) ---------- */
+
+html.ppui-newspage .article {
+  position: relative;
+  display: grid !important;
+  grid-template-columns: 52px minmax(0, 1fr);
+  column-gap: 18px;
+  align-items: start;
+  max-width: 820px;
+  margin: 0 auto 14px !important;
+  padding: 22px 24px !important;
+  box-sizing: border-box;
+  background: var(--ppui-surface) !important;
+  border: 1px solid var(--ppui-hairline) !important;
+  border-radius: var(--ppui-radius-card) !important;
+  box-shadow: var(--ppui-shadow) !important;
+  color: var(--ppui-text);
+}
+
+html.ppui-newspage .article > * {
+  grid-column: 2;
+  min-width: 0;
+}
+
+html.ppui-newspage .article > .ppui-stub {
+  grid-column: 1;
+  grid-row: 1 / span 20;
+  width: 52px;
+}
+
+html.ppui-newspage .article > .ppui-stub .ppui-stub-day {
+  font-size: 22px;
+  padding: 4px 0 6px;
+}
+
+html.ppui-newspage .article-title,
+html.ppui-newspage .article-title a {
+  margin: 0 0 4px !important;
+  color: var(--ppui-text) !important;
+  font-size: 21px !important;
+  font-weight: 750 !important;
+  line-height: 1.25 !important;
+  letter-spacing: -0.02em;
+  text-decoration: none !important;
+  text-wrap: balance;
+}
+
+html.ppui-newspage .article-title a:hover {
+  color: var(--ppui-accent) !important;
+}
+
+html.ppui-newspage .article-date {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px !important;
+  color: var(--ppui-muted) !important;
+  font-size: 13px !important;
+  font-weight: 550;
+}
+
+html.ppui-newspage .article-date[data-ago]::after {
+  content: attr(data-ago);
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+html.ppui-newspage .article :where(p, li, div) {
+  color: var(--ppui-text);
+  font-size: 15.5px;
+  line-height: 1.65;
+}
+
+html.ppui-newspage .article :where(p) {
+  max-width: 68ch;
+}
+
+html.ppui-newspage .article a:not(.article-title a) {
+  color: var(--ppui-accent) !important;
+  text-underline-offset: 3px;
+}
+
+html.ppui-newspage .article .ppui-photo {
+  margin-bottom: 18px;
+}
+
+html.ppui-newspage .article .ppui-photo-image {
+  position: static;
+  width: 100%;
+  height: auto;
+  max-height: 340px;
+  aspect-ratio: auto;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+@media (max-width: 560px) {
+  html.ppui-newspage .article {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px !important;
+  }
+  html.ppui-newspage .article > * {
+    grid-column: 1;
+  }
+  html.ppui-newspage .article > .ppui-stub {
+    grid-row: auto;
+    margin-bottom: 12px;
+  }
+}
+
+/* ---------- Light theme: native portal pages pick up the type and crest blue ---------- */
+
+html body .app-container :where(h1, h2, h3, h4) {
+  color: var(--ppui-text);
+  letter-spacing: -0.015em;
+}
+
+/* ---------- Dark theme: native portal pages (overview, schedule, messages, calendar, ...) ----------
+   The portal hard-codes dark text and white panels; remap them. Specificity is kept low on the
+   broad text rule so the specific rules below win. */
+
 :root[data-ppui-theme="dark"] .ae-container-fluid--full,
 :root[data-ppui-theme="dark"] .vx-hover-menu,
 :root[data-ppui-theme="dark"] .vx-hover-menu a {
@@ -959,11 +1562,7 @@ html.ppui-home .component-my-events-student .day.today .day-header {
   color: var(--ppui-text) !important;
 }
 
-/* ---------- Dark theme: native portal pages (overview, schedule, messages, calendar, ...) ----------
-   The portal hard-codes dark text and white panels; remap them. Specificity is kept low on the
-   broad text rule so the specific rules below win. */
-
-:root[data-ppui-theme="dark"] .app-container :where(h1, h2, h3, h4, h5, h6, p, span, small, li, td, th, label, strong, b, div):not(.ppui-dash *):not(.ppui-header *) {
+:root[data-ppui-theme="dark"] .app-container :where(h1, h2, h3, h4, h5, h6, p, span, small, li, td, th, label, strong, b, div):not(.ppui-dash *):not(.ppui-header *):not(.ppui-stub *) {
   color: var(--ppui-text) !important;
 }
 
@@ -985,13 +1584,13 @@ html.ppui-home .component-my-events-student .day.today .day-header {
 :root[data-ppui-theme="dark"] .vx-tab-bar,
 :root[data-ppui-theme="dark"] .vx-page-tabs,
 :root[data-ppui-theme="dark"] .screen-toolbar {
-  background: var(--ppui-glass) !important;
+  background: var(--ppui-surface) !important;
   border-color: var(--ppui-hairline) !important;
 }
 
 :root[data-ppui-theme="dark"] .vx-tab-bar__tab--active,
 :root[data-ppui-theme="dark"] .vx-page-tabs__tab--active {
-  background: var(--ppui-surface) !important;
+  background: var(--ppui-raised) !important;
 }
 
 :root[data-ppui-theme="dark"] .vx-tab-bar__tab--active *,
@@ -1038,4 +1637,396 @@ html.ppui-home .component-my-events-student .day.today .day-header {
    the frame itself from showing a white flash while it loads. */
 :root[data-ppui-theme="dark"] .old-portals-iframe {
   background: var(--ppui-bg) !important;
+}
+
+/* ---------- Motion ----------
+   Load: the ridges rise back to front, the greeting settles, the cards follow, badges pop in.
+   Scroll: the forest parallaxes, rows and articles ease in as they enter, a thin bar tracks reading.
+   Touch: rows light up, subject tiles tip, frames lift, menus cascade, the theme spreads from its button.
+   Everything that moves sits behind prefers-reduced-motion; the static layout never depends on it. */
+
+:root {
+  interpolate-size: allow-keywords;
+}
+
+/* Rows light up under the pointer; the highlight bleeds past the card's text column. */
+.ppui-row::after,
+.ppui-course::after,
+.ppui-story-link::after {
+  content: "";
+  position: absolute;
+  inset: 3px -10px;
+  z-index: -1;
+  border-radius: 12px;
+  background: var(--ppui-hover);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.ppui-row,
+.ppui-course,
+.ppui-story-link {
+  position: relative;
+  isolation: isolate;
+}
+
+.ppui-row:hover::after,
+.ppui-course:hover::after,
+.ppui-story-link:hover::after {
+  opacity: 1;
+}
+
+/* "Not today" opens smoothly, with a chevron that turns. */
+.ppui-later-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+}
+
+.ppui-later-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.ppui-later-toggle::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin: 0 3px 0 1px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.3s var(--ppui-ease);
+}
+
+.ppui-later[open] > .ppui-later-toggle::before {
+  transform: rotate(45deg);
+}
+
+.ppui-later::details-content {
+  block-size: 0;
+  overflow: hidden;
+  transition: block-size 0.45s var(--ppui-ease), content-visibility 0.45s allow-discrete;
+}
+
+.ppui-later[open]::details-content {
+  block-size: auto;
+}
+
+/* Theme switch: content.js clips the new theme in a growing circle; no cross-fade. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* Reading progress along the top of the window (driven by scroll, below). */
+.ppui-header::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2147483000;
+  height: 3px;
+  background: var(--ppui-sky);
+  transform-origin: left;
+  transform: scaleX(0);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ppui-ridge {
+    animation: ppui-rise 1s var(--ppui-ease) both;
+  }
+  .ppui-ridge-mid { animation-delay: 0.08s; }
+  .ppui-ridge-near { animation-delay: 0.16s; }
+
+  .ppui-orb {
+    animation: ppui-orb 1.4s var(--ppui-ease) both;
+  }
+
+  .ppui-intro {
+    animation: ppui-settle 0.7s var(--ppui-ease) 0.12s both;
+  }
+
+  .ppui-enter > * {
+    animation: ppui-settle 0.6s var(--ppui-ease) both;
+  }
+  .ppui-enter > :nth-child(1) { animation-delay: 0.22s; }
+  .ppui-enter > :nth-child(2) { animation-delay: 0.3s; }
+  .ppui-enter > :nth-child(3) { animation-delay: 0.38s; }
+
+  .ppui-progress-seg::after {
+    animation: ppui-grow 0.9s var(--ppui-ease) both;
+    animation-delay: calc(0.45s + var(--i, 0) * 0.08s);
+  }
+
+  .ppui-live::after {
+    animation: ppui-ping 1.8s ease-out infinite;
+  }
+
+  .ppui-theme-toggle .ppui-icon {
+    animation: ppui-spin 0.45s var(--ppui-ease);
+  }
+
+  .ppui-popover:popover-open {
+    animation: ppui-pop 0.2s var(--ppui-ease);
+  }
+
+  .ppui-skel-a,
+  .ppui-skel-b {
+    animation: ppui-shimmer 1.4s linear infinite;
+    animation-delay: calc(var(--i, 0) * 0.1s);
+  }
+
+  .ppui-scene[data-sky="night"] .ppui-stars {
+    animation: ppui-twinkle 5s ease-in-out infinite alternate;
+  }
+
+  @media (max-width: 640px) {
+    .ppui-popover:popover-open {
+      animation: ppui-sheet 0.28s var(--ppui-ease);
+    }
+  }
+
+  /* Load extras */
+  .ppui-intro .ppui-greeting {
+    animation: ppui-unveil 0.9s var(--ppui-ease) 0.1s both;
+  }
+
+  .ppui-badge,
+  .ppui-count {
+    animation: ppui-boing 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.7s both;
+  }
+
+  .ppui-row.is-now::before {
+    animation: ppui-bar 0.6s var(--ppui-ease) 0.6s both;
+  }
+
+  .ppui-cloud {
+    animation: ppui-drift 70s linear infinite alternate;
+  }
+  .ppui-cloud:nth-child(2) { animation-duration: 95s; animation-direction: alternate-reverse; }
+  .ppui-cloud:nth-child(3) { animation-duration: 120s; }
+
+  /* Pointer and press */
+  .ppui-card {
+    transition: translate 0.35s var(--ppui-ease), box-shadow 0.35s var(--ppui-ease), border-color 0.35s;
+  }
+  .ppui-card:hover {
+    translate: 0 -2px;
+    border-color: rgba(20, 70, 160, 0.16);
+    box-shadow: 0 1px 0 rgba(11, 30, 69, 0.03), 0 22px 40px -22px rgba(11, 30, 69, 0.38);
+  }
+
+  .ppui-subject,
+  .ppui-title-icon,
+  .ppui-feature-icon {
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .ppui-course:hover .ppui-subject {
+    transform: rotate(-8deg) scale(1.08);
+  }
+  .ppui-panel:hover .ppui-title-icon {
+    transform: rotate(-6deg);
+  }
+  .ppui-feature:hover .ppui-feature-icon {
+    transform: scale(1.08) rotate(4deg);
+  }
+
+  .ppui-feature::after {
+    transition: transform 0.8s var(--ppui-ease);
+  }
+  .ppui-feature:hover::after {
+    transform: translate(-6px, -4px) rotate(-4deg);
+  }
+
+  .ppui-bar-button .ppui-icon {
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .ppui-bar-button:hover .ppui-icon {
+    transform: scale(1.12);
+  }
+  .ppui-apps-button:hover .ppui-icon,
+  .ppui-apps-button[aria-expanded="true"] .ppui-icon {
+    transform: rotate(45deg) scale(1.05);
+  }
+
+  .ppui-more,
+  .ppui-badge,
+  .ppui-later-toggle,
+  .ppui-app,
+  .ppui-menu-item {
+    transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s var(--ppui-ease);
+  }
+  .ppui-more:active,
+  .ppui-badge:active,
+  .ppui-app:active,
+  .ppui-menu-item:active,
+  .ppui-story-link:active {
+    transform: scale(0.97);
+  }
+  .ppui-app:hover,
+  .ppui-menu-item:hover {
+    transform: translateX(2px);
+  }
+
+  .ppui-link {
+    background: linear-gradient(currentColor, currentColor) 0 100% / 0 1.5px no-repeat;
+    transition: background-size 0.3s var(--ppui-ease);
+  }
+  .ppui-link:hover {
+    text-decoration: none !important;
+    background-size: 100% 1.5px;
+  }
+
+  /* Menus cascade in */
+  .ppui-popover:popover-open .ppui-apps-group,
+  .ppui-popover:popover-open.ppui-menu > li {
+    animation: ppui-settle 0.35s var(--ppui-ease) both;
+  }
+  .ppui-popover:popover-open .ppui-apps-group:nth-child(2),
+  .ppui-popover:popover-open.ppui-menu > li:nth-child(2) { animation-delay: 0.03s; }
+  .ppui-popover:popover-open .ppui-apps-group:nth-child(3),
+  .ppui-popover:popover-open.ppui-menu > li:nth-child(3) { animation-delay: 0.06s; }
+  .ppui-popover:popover-open .ppui-apps-group:nth-child(4),
+  .ppui-popover:popover-open.ppui-menu > li:nth-child(4) { animation-delay: 0.09s; }
+  .ppui-popover:popover-open .ppui-apps-group:nth-child(n + 5),
+  .ppui-popover:popover-open.ppui-menu > li:nth-child(n + 5) { animation-delay: 0.12s; }
+}
+
+/* Scroll-driven: parallax forest, reading bar, rows and articles easing in.
+   These use the individual translate/scale properties so they never fight the load animations. */
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .ppui-ridge-far {
+      animation: ppui-rise 1s var(--ppui-ease) both, ppui-par-far linear both;
+      animation-timeline: auto, scroll(root);
+      animation-range: normal, 0 480px;
+    }
+    .ppui-ridge-mid {
+      animation: ppui-rise 1s var(--ppui-ease) 0.08s both, ppui-par-mid linear both;
+      animation-timeline: auto, scroll(root);
+      animation-range: normal, 0 480px;
+    }
+    .ppui-orb {
+      animation: ppui-orb 1.4s var(--ppui-ease) both, ppui-par-orb linear both;
+      animation-timeline: auto, scroll(root);
+      animation-range: normal, 0 480px;
+    }
+    .ppui-clouds {
+      animation: ppui-par-mid linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 480px;
+    }
+    .ppui-intro .ppui-date {
+      animation: ppui-par-fade linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 260px;
+    }
+    .ppui-intro .ppui-greeting {
+      animation: ppui-unveil 0.9s var(--ppui-ease) 0.1s both, ppui-par-fade linear both;
+      animation-timeline: auto, scroll(root);
+      animation-range: normal, 0 300px;
+    }
+
+    .ppui-header::before {
+      animation: ppui-read linear both;
+      animation-timeline: scroll(root);
+    }
+
+    .ppui-row,
+    .ppui-course,
+    .ppui-story,
+    html.ppui-newspage .article,
+    html.ppui-home .component-my-events-student {
+      animation: ppui-enter-view linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 80%;
+    }
+  }
+}
+
+@keyframes ppui-rise {
+  from { transform: translateY(36px); opacity: 0; }
+}
+
+@keyframes ppui-orb {
+  from { transform: translateY(40px); opacity: 0; }
+}
+
+@keyframes ppui-settle {
+  from { transform: translateY(14px); opacity: 0; }
+}
+
+@keyframes ppui-grow {
+  from { transform: scaleX(0); }
+}
+
+@keyframes ppui-ping {
+  0% { transform: scale(1); opacity: 0.9; }
+  100% { transform: scale(2.8); opacity: 0; }
+}
+
+@keyframes ppui-spin {
+  from { transform: rotate(-90deg) scale(0.6); opacity: 0; }
+}
+
+@keyframes ppui-pop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+}
+
+@keyframes ppui-sheet {
+  from { transform: translateY(100%); }
+}
+
+@keyframes ppui-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: 0 0; }
+}
+
+@keyframes ppui-twinkle {
+  to { opacity: 0.45; }
+}
+
+@keyframes ppui-unveil {
+  from { clip-path: inset(0 0 100% 0); translate: 0 24px; }
+  to { clip-path: inset(0 0 -20% 0); translate: 0 0; }
+}
+
+@keyframes ppui-boing {
+  from { scale: 0.3; opacity: 0; }
+}
+
+@keyframes ppui-bar {
+  from { transform: scaleY(0); }
+}
+
+@keyframes ppui-drift {
+  to { translate: -120px 0; }
+}
+
+@keyframes ppui-par-far {
+  to { translate: 0 90px; }
+}
+
+@keyframes ppui-par-mid {
+  to { translate: 0 50px; }
+}
+
+@keyframes ppui-par-orb {
+  to { translate: 0 140px; }
+}
+
+@keyframes ppui-par-fade {
+  to { opacity: 0; translate: 0 -24px; }
+}
+
+@keyframes ppui-read {
+  to { transform: scaleX(1); }
+}
+
+@keyframes ppui-enter-view {
+  from { opacity: 0; translate: 0 22px; scale: 0.985; }
 }

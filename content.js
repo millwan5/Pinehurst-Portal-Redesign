@@ -152,6 +152,18 @@
     wrench: [["path", { d: "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" }]],
     chart: [["path", { d: "M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3" }]],
     trendingUp: [["path", { d: "M16 7h6v6M22 7l-8.5 8.5-5-5L2 17" }]],
+    // Drawn for this extension: the crest's leaning pine, and a person for Account.
+    pine: [["path", { d: "M11.9 2.2 18.9 18.5l-5.8 1.4v1.9l-4.4-1.2L5 19.7Z" }]],
+    user: [["circle", { cx: 12, cy: 8, r: 4 }], ["path", { d: "M4 21a8 8 0 0 1 16 0" }]],
+  };
+
+  const GROUP_ICONS = {
+    Calendars: "calendarClock",
+    Learning: "bookOpen",
+    "Microsoft 365": "grid",
+    "School life": "pine",
+    Account: "user",
+    Other: "external",
   };
 
   // Pick a subject icon from the class name; anything unrecognised gets an open book.
@@ -185,6 +197,115 @@
     ["polygon", { points: "107,147 300,188 503,147 503,512 330,478 300,482 107,512", class: "ppui-logo-pages" }],
     ["polygon", { points: "302,15 460,455 330,492 330,545 230,513 145,488", class: "ppui-logo-tree" }],
   ];
+
+  // Same crest, flat silver on blue, for empty states.
+  function emptyState(text) {
+    const li = el("li", "ppui-empty");
+    li.append(svgIcon("ppui-empty-art", LOGO, "75 10 460 540"), el("span", null, text));
+    return li;
+  }
+
+  // Seeded random numbers, so the header forest looks the same on every visit.
+  function seeded(seed) {
+    return () => {
+      seed = (seed + 0x6d2b79f5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // One pine: a trunk and three to five drooping tiers that narrow towards a slightly leaning tip.
+  // Each tier's outer corner is jittered so no two trees (or two sides of one tree) match.
+  function pinePath(rand, x, g, h) {
+    const n = 3 + Math.floor(rand() * 3);
+    const w = h * (0.42 + rand() * 0.12);
+    const trunk = Math.max(2, w * 0.07);
+    const crown = h * 0.88;
+    const tierH = crown / n;
+    const tip = x + (rand() - 0.4) * w * 0.12;
+    const p = (px, py) => " L" + px.toFixed(1) + " " + py.toFixed(1);
+    let right = "";
+    let left = "";
+    for (let t = 0; t < n; t++) {
+      const yb = g - h * 0.1 - t * tierH * 0.92;
+      const hw = (w / 2) * (1 - t / (n + 0.6));
+      const droop = tierH * (0.12 + rand() * 0.1);
+      const inner = hw * (0.42 + rand() * 0.12);
+      // Right side climbs outward then tucks in; left side is built bottom-up and reversed later.
+      right += p(x + hw * (0.94 + rand() * 0.12), yb + droop) + p(x + inner, yb - tierH * 0.34);
+      left = p(x - inner, yb - tierH * 0.34) + p(x - hw * (0.94 + rand() * 0.12), yb + droop * (0.8 + rand() * 0.4)) + left;
+    }
+    return " M" + (x - trunk).toFixed(1) + " " + (g + 8).toFixed(1) + p(x + trunk, g + 8) + p(x + trunk, g - h * 0.1) +
+      right + p(tip, g - h) + left + p(x - trunk, g - h * 0.1) + "Z";
+  }
+
+  // One ridge of pines drawn as a single path, standing on a ground line that dips in the
+  // middle like the crest's open book. Trees sometimes cluster, sometimes leave a clearing.
+  function ridgePath(rand, opts, W) {
+    const H = 240;
+    const ground = (x) => H - opts.base - Math.cos((x / W) * Math.PI * 2) * opts.dip;
+    let d = "M0 " + H + " L0 " + ground(0).toFixed(1);
+    for (let x = 0; x <= W; x += 40) d += " L" + x + " " + ground(x).toFixed(1);
+    d += " L" + W + " " + H + "Z";
+    for (let x = -20; x < W + 40; ) {
+      const h = opts.height * (0.45 + rand() * 0.7);
+      d += pinePath(rand, x, ground(x) + 4, h);
+      const r = rand();
+      x += opts.gap * (r < 0.25 ? 0.35 + rand() * 0.2 : r > 0.9 ? 1.8 + rand() : 0.7 + rand() * 0.6);
+    }
+    return d;
+  }
+
+  const RIDGES = [
+    { cls: "ppui-ridge-far", seed: 7, base: 64, dip: 10, gap: 38, height: 96 },
+    { cls: "ppui-ridge-mid", seed: 21, base: 36, dip: 16, gap: 52, height: 92 },
+    { cls: "ppui-ridge-near", seed: 3, base: 14, dip: 22, gap: 90, height: 120 },
+  ];
+
+  // Header scene: sky that follows the school day, a sun (or moon) on its arc, three ridges of pines.
+  // The slim header on other pages draws a wider forest so the trees come out smaller.
+  function buildScene(compact) {
+    const W = compact ? 2400 : 1200;
+    const scene = el("div", "ppui-scene");
+    scene.setAttribute("aria-hidden", "true");
+    const stars = el("div", "ppui-stars");
+    const orb = el("div", "ppui-orb");
+    // Flat cloud bands drifting slowly across, and film grain on the sky (not the forest: the
+    // nearest ridge has to match the page exactly).
+    const clouds = el("div", "ppui-clouds");
+    clouds.append(el("span", "ppui-cloud"), el("span", "ppui-cloud"), el("span", "ppui-cloud"));
+    scene.append(stars, orb, clouds, el("div", "ppui-grain"));
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " 240");
+    svg.setAttribute("preserveAspectRatio", "xMidYMax slice");
+    svg.setAttribute("class", "ppui-forest");
+    for (const r of RIDGES) {
+      const p = document.createElementNS(ns, "path");
+      p.setAttribute("class", "ppui-ridge " + r.cls);
+      p.setAttribute("d", ridgePath(seeded(r.seed), r, W));
+      svg.appendChild(p);
+    }
+    scene.appendChild(svg);
+
+    // 6 am to 7 pm the sun rides an arc across the header; 7 pm to 6 am the moon does.
+    const update = () => {
+      const d = new Date();
+      const m = d.getHours() * 60 + d.getMinutes();
+      const f = (m - 360) / 780;
+      const day = f >= 0 && f <= 1;
+      const t = day ? f : ((m - 1140 + 1440) % 1440) / 660;
+      const x = 8 + t * 84;
+      const y = 78 - Math.sin(t * Math.PI) * 62;
+      scene.style.setProperty("--orb-x", x.toFixed(1) + "%");
+      scene.style.setProperty("--orb-y", y.toFixed(1) + "%");
+      scene.dataset.sky = !day ? "night" : f < 0.12 ? "dawn" : f > 0.85 ? "dusk" : "day";
+    };
+    update();
+    setInterval(update, 60 * 1000);
+    return scene;
+  }
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -323,10 +444,25 @@
     btn.append(icon("sun", "ppui-sun"), icon("moon", "ppui-moon"));
     btn.addEventListener("click", () => {
       const next = root.getAttribute("data-ppui-theme") === "dark" ? "light" : "dark";
-      applyTheme(next);
       try {
         localStorage.setItem(THEME_KEY, next);
       } catch (e) {}
+      // The new theme spreads out in a circle from the button, where the browser can do it.
+      if (!document.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        applyTheme(next);
+        return;
+      }
+      const r = btn.getBoundingClientRect();
+      const x = r.left + r.width / 2;
+      const y = r.top + r.height / 2;
+      const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+      const transition = document.startViewTransition(() => applyTheme(next));
+      transition.ready.then(() => {
+        root.animate(
+          { clipPath: ["circle(0px at " + x + "px " + y + "px)", "circle(" + radius + "px at " + x + "px " + y + "px)"] },
+          { duration: 560, easing: "cubic-bezier(0.32, 0.72, 0, 1)", pseudoElement: "::view-transition-new(root)" },
+        );
+      }).catch(() => {});
     });
     return btn;
   }
@@ -473,7 +609,9 @@
       const items = allApps();
       for (const [name, list] of groupApps(items)) {
         const group = el("section", "ppui-apps-group");
-        group.appendChild(el("h3", "ppui-apps-title", name));
+        const heading = el("h3", "ppui-apps-title");
+        heading.append(icon(GROUP_ICONS[name] || "grid"), document.createTextNode(name));
+        group.appendChild(heading);
         const ul = el("ul", "ppui-apps-list");
         for (const item of list) {
           const li = el("li");
@@ -602,10 +740,16 @@
   function buildHeader() {
     const header = el("header", "ppui-header");
 
+    const home = HOME_PATH.test(location.pathname);
+    header.classList.toggle("is-compact", !home);
+    header.appendChild(buildScene(!home));
+
     const brand = el("a", "ppui-brand");
     brand.href = HOME_URL;
     brand.setAttribute("aria-label", "Pinehurst Dashboard home");
-    brand.appendChild(svgIcon("ppui-logo", LOGO, "75 10 460 540"));
+    const plate = el("span", "ppui-logo-plate");
+    plate.appendChild(svgIcon("ppui-logo", LOGO, "75 10 460 540"));
+    brand.appendChild(plate);
     const brandName = el("span", "ppui-brand-name");
     brandName.append(el("span", "ppui-brand-title", "Pinehurst"), el("span", "ppui-brand-sub", "Dashboard"));
     brand.appendChild(brandName);
@@ -633,7 +777,9 @@
       };
       update();
       setInterval(update, 60 * 1000);
-      header.append(hello, date);
+      const intro = el("div", "ppui-intro");
+      intro.append(hello, date);
+      header.append(intro);
     }
 
     const app = document.querySelector(SEL.app);
@@ -660,6 +806,35 @@
     },
     NAV_WAIT_MS,
   );
+
+  // The news page gets its own reading layout (styles.css, html.ppui-newspage): each article
+  // gets a calendar stub and a "2 days ago" line. Articles hydrate late, so keep watching.
+  if (/\/news/i.test(location.pathname)) {
+    root.classList.add("ppui-newspage");
+    const decorate = () => {
+      for (const node of document.querySelectorAll(SEL.article + ":not(.ppui-dated)")) {
+        node.classList.add("ppui-dated");
+        // Mount each article picture in the same frame the dashboard uses.
+        for (const img of node.querySelectorAll("img")) {
+          if (img.closest(".ppui-photo")) continue;
+          const frame = el("span", "ppui-photo has-image");
+          img.classList.add("ppui-photo-image");
+          img.replaceWith(frame);
+          frame.appendChild(img);
+        }
+        const dateNode = node.querySelector(SEL.articleDate);
+        const date = splitDate(clean(dateNode && dateNode.textContent));
+        if (!date.day) continue;
+        const stub = el("span", "ppui-stub");
+        stub.setAttribute("aria-hidden", "true");
+        stub.append(el("span", "ppui-stub-day", date.day), el("span", "ppui-stub-month", date.month));
+        node.prepend(stub);
+        if (dateNode) dateNode.setAttribute("data-ago", date.ago);
+      }
+    };
+    decorate();
+    new MutationObserver(decorate).observe(document.body, { childList: true, subtree: true });
+  }
 
   if (!HOME_PATH.test(location.pathname)) return;
   root.classList.add("ppui-home");
@@ -754,20 +929,83 @@
     const when = pick.label === "Now"
       ? (pick.next ? "until " + pick.next.time : "last one today")
       : "at " + pick.item.time;
-    box.appendChild(el("span", "ppui-feature-label", pick.label + " " + when));
-    box.appendChild(el("span", "ppui-feature-class", pick.item.title));
-    if (pick.item.subtitle) box.appendChild(el("span", "ppui-meta", pick.item.subtitle));
+    const art = el("span", "ppui-feature-icon");
+    art.appendChild(icon(subjectIcon(pick.item.title)));
+    const text = el("div", "ppui-feature-text");
+    const label = el("span", "ppui-feature-label");
+    if (pick.label === "Now") label.appendChild(el("span", "ppui-live"));
+    label.appendChild(document.createTextNode(pick.label + " " + when));
+    text.append(label, el("span", "ppui-feature-class", pick.item.title));
+    if (pick.item.subtitle) text.appendChild(el("span", "ppui-meta", pick.item.subtitle));
+    box.append(art, text);
+  }
+
+  // How far through today's timetable we are: one segment per period, as wide as the period is long,
+  // filled for the ones that are over and partly filled for the one on now.
+  function renderProgress(bar, items) {
+    const timed = items.filter((item) => item.start !== null);
+    bar.hidden = timed.length < 2;
+    if (bar.hidden) return;
+    const d = new Date();
+    const minutes = d.getHours() * 60 + d.getMinutes();
+    const track = bar.querySelector(".ppui-progress-track");
+    track.replaceChildren();
+    let total = 0;
+    let passed = 0;
+    let done = 0;
+    timed.forEach((item, i) => {
+      const end = i + 1 < timed.length ? timed[i + 1].start : item.start + 50;
+      const length = Math.max(end - item.start, 5);
+      const fill = Math.min(Math.max((minutes - item.start) / length, 0), 1);
+      total += length;
+      passed += fill * length;
+      if (fill >= 1) done++;
+      const seg = el("span", "ppui-progress-seg" + (fill > 0 && fill < 1 ? " is-now" : ""));
+      seg.style.flexGrow = String(length);
+      seg.style.setProperty("--fill", fill.toFixed(3));
+      seg.style.setProperty("--i", String(i));
+      seg.title = item.title + ", " + item.time;
+      track.appendChild(seg);
+    });
+    bar.querySelector(".ppui-progress-label").textContent =
+      done >= timed.length ? "School's out" : passed <= 0 ? timed.length + " on today" : done + " of " + timed.length + " done";
+    bar.setAttribute("aria-valuenow", String(Math.round((passed / total) * 100)));
+  }
+
+  function buildProgress() {
+    const bar = el("div", "ppui-progress");
+    bar.setAttribute("role", "progressbar");
+    bar.setAttribute("aria-label", "School day");
+    bar.setAttribute("aria-valuemin", "0");
+    bar.setAttribute("aria-valuemax", "100");
+    bar.append(el("span", "ppui-progress-track"), el("span", "ppui-progress-label"));
+    bar.hidden = true;
+    return bar;
+  }
+
+  // Placeholder rows that shimmer while a card loads.
+  function skeleton(count) {
+    const items = [];
+    for (let i = 0; i < count; i++) {
+      const li = el("li", "ppui-skeleton");
+      li.setAttribute("aria-hidden", "true");
+      li.style.setProperty("--i", String(i));
+      li.append(el("span", "ppui-skel-a"), el("span", "ppui-skel-b"));
+      items.push(li);
+    }
+    return items;
   }
 
   function renderRows(list, items) {
     list.replaceChildren();
     if (!items.length) {
-      list.appendChild(el("li", "ppui-empty", "Nothing scheduled today."));
+      list.appendChild(emptyState("Nothing scheduled today."));
       return;
     }
     const nowIndex = items.findIndex((item) => item.now);
     items.forEach((item, i) => {
       const row = el("li", "ppui-row" + (item.now ? " is-now" : "") + (i < nowIndex ? " is-past" : ""));
+      row.style.setProperty("--i", String(i));
       row.appendChild(el("span", "ppui-time", item.time));
       const body = el("div", "ppui-body");
       body.appendChild(el("span", "ppui-class", item.title));
@@ -781,9 +1019,10 @@
     const section = panel("ppui-today", "calendarClock", "Today", "Full schedule", SCHEDULE_URL);
     const featured = el("div", "ppui-feature");
     featured.hidden = true;
+    const progress = buildProgress();
     const list = el("ul", "ppui-rows");
-    list.appendChild(el("li", "ppui-empty", "Loading schedule..."));
-    section.append(featured, list);
+    list.append(el("li", "ppui-sr", "Loading schedule..."), ...skeleton(5));
+    section.append(featured, progress, list);
 
     async function load() {
       try {
@@ -792,9 +1031,11 @@
         const items = parseSchedule(await res.text());
         if (!items) throw new Error("schedule markup not found");
         renderFeatured(featured, items);
+        renderProgress(progress, items);
         renderRows(list, items);
       } catch (e) {
         featured.hidden = true;
+        progress.hidden = true;
         list.replaceChildren();
         const fallback = el("li", "ppui-empty");
         fallback.appendChild(document.createTextNode("Could not load today's schedule. "));
@@ -848,42 +1089,90 @@
     });
   }
 
-  // "October 14, 2026" -> "14 Oct"; anything unparseable is kept as written.
-  function shortDate(text) {
+  // "October 14, 2026" -> { day: "14", month: "Oct", ago: "2 days ago" }; unparseable dates keep their text.
+  function splitDate(text) {
     const d = new Date(text);
-    return isNaN(d) ? text : d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+    if (isNaN(d)) return { day: "", month: "", ago: text };
+    const days = Math.round((new Date().setHours(0, 0, 0, 0) - new Date(d).setHours(0, 0, 0, 0)) / 864e5);
+    const ago = days === 0 ? "Today" : days === 1 ? "Yesterday" : days > 1 && days < 7 ? days + " days ago" :
+      d.toLocaleDateString("en-AU", { weekday: "long" });
+    return {
+      day: String(d.getDate()),
+      month: d.toLocaleDateString("en-AU", { month: "short" }),
+      ago,
+    };
   }
+
+  // Articles have a title and date; a summary and a picture are used when the page has them.
+  const ARTICLE_SUMMARY = ".article-summary, .article-description, .article-body, .article-content, p";
 
   function readArticle(node) {
     const text = (sel) => clean((node.querySelector(sel) || {}).textContent);
     const link = node.querySelector(SEL.articleTitle);
+    const titleText = text(SEL.articleTitle);
+    const summaryNode = [...node.querySelectorAll(ARTICLE_SUMMARY)]
+      .find((n) => !n.closest(SEL.articleTitle) && !n.closest(SEL.articleDate) && clean(n.textContent).length > 40);
+    const img = node.querySelector("img");
     return {
-      title: text(SEL.articleTitle),
-      date: shortDate(text(SEL.articleDate)),
+      title: titleText,
+      date: splitDate(text(SEL.articleDate)),
+      summary: summaryNode ? clean(summaryNode.textContent).slice(0, 220) : "",
+      image: img ? safeHref(img.getAttribute("src")) : null,
       href: link ? sameOriginHref(link.getAttribute("href")) : null,
     };
+  }
+
+  // The lead story's picture in a mounted frame. Stories without one (or whose picture fails)
+  // get a drawn cover instead: a stand of crest pines on blue with the story's date.
+  function photoFrame(item) {
+    const frame = el("span", "ppui-photo");
+    frame.setAttribute("aria-hidden", "true");
+    const cover = el("span", "ppui-photo-cover");
+    cover.appendChild(svgIcon("ppui-cover-pines", [["path", { d: ridgePath(seeded(11), { base: 20, dip: 6, gap: 46, height: 120 }, 400) }]], "0 60 400 180"));
+    if (item.date.day) cover.appendChild(el("span", "ppui-cover-date", item.date.day + " " + item.date.month));
+    frame.appendChild(cover);
+    if (item.image) {
+      const pic = el("img", "ppui-photo-image");
+      pic.alt = "";
+      pic.loading = "lazy";
+      pic.addEventListener("load", () => frame.classList.add("has-image"));
+      pic.addEventListener("error", () => pic.remove());
+      pic.src = item.image;
+      frame.appendChild(pic);
+    }
+    return frame;
   }
 
   function renderNews(list, items, newsHref) {
     list.replaceChildren();
     if (!items.length) {
-      list.appendChild(el("li", "ppui-empty", "No news right now."));
+      list.appendChild(emptyState("No news right now."));
       return;
     }
-    for (const item of items) {
-      const row = el("li", "ppui-story");
-      const title = el("a", "ppui-headline", item.title);
-      title.href = item.href || newsHref;
-      row.appendChild(title);
-      if (item.date) row.appendChild(el("span", "ppui-meta", item.date));
+    items.forEach((item, i) => {
+      const row = el("li", "ppui-story" + (i === 0 ? " is-lead" : ""));
+      row.style.setProperty("--i", String(i));
+      const a = el("a", "ppui-story-link");
+      a.href = item.href || newsHref;
+      if (i === 0) a.appendChild(photoFrame(item));
+      const stub = el("span", "ppui-stub");
+      stub.setAttribute("aria-hidden", "true");
+      if (item.date.day) stub.append(el("span", "ppui-stub-day", item.date.day), el("span", "ppui-stub-month", item.date.month));
+      else stub.appendChild(icon("newspaper"));
+      const body = el("span", "ppui-story-body");
+      body.appendChild(el("span", "ppui-headline", item.title));
+      if (i === 0 && item.summary) body.appendChild(el("span", "ppui-summary", item.summary));
+      if (item.date.ago) body.appendChild(el("span", "ppui-meta", item.date.ago));
+      a.append(stub, body);
+      row.appendChild(a);
       list.appendChild(row);
-    }
+    });
   }
 
   function buildNewsPanel(newsLink) {
     const section = panel("ppui-news", "newspaper", "News", "All news", newsLink.href);
     const list = el("ul", "ppui-stories");
-    list.appendChild(el("li", "ppui-empty", "Loading news..."));
+    list.append(el("li", "ppui-sr", "Loading news..."), ...skeleton(4));
     section.appendChild(list);
 
     async function load() {
@@ -945,17 +1234,17 @@
     };
   }
 
-  // A steady, muted hue per class so the same class keeps its dot colour.
-  function hueFor(name) {
+  // A steady tone per class (one of six blues and silvers from the crest), so a class keeps its colour.
+  function toneFor(name) {
     let h = 2166136261;
     for (const c of name) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
-    return (h >>> 0) % 360;
+    return (h >>> 0) % 6;
   }
 
   function courseRow(course) {
     const row = el("li", "ppui-course");
     const badgeIcon = el("span", "ppui-subject");
-    badgeIcon.style.setProperty("--ppui-hue", String(hueFor(course.name)));
+    badgeIcon.dataset.tone = String(toneFor(course.name));
     badgeIcon.appendChild(icon(subjectIcon(course.name)));
     row.appendChild(badgeIcon);
 
@@ -1008,7 +1297,7 @@
 
     const section = panel("ppui-classes", "bookOpen", "Classes", "All classes", classesHref || listComp.baseURI);
     const list = el("ul", "ppui-courses");
-    if (!today.length) list.appendChild(el("li", "ppui-empty", "No classes today."));
+    if (!today.length) list.appendChild(emptyState("No classes today."));
     today.forEach((c) => list.appendChild(courseRow(c)));
     section.appendChild(list);
 
