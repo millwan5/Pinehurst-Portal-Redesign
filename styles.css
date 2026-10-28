@@ -3103,7 +3103,7 @@ html.ppui-reading {
   from { opacity: 0; translate: -32px 0; }
 }
 
-/* "Open full" on the News page is a button that opens the reader. */
+/* "Open full" on the News page goes to the story's own portal page (or, without one, opens the reader). */
 button.ppui-reader-source {
   background: transparent;
   font: inherit;
@@ -5315,4 +5315,64 @@ html body .app-container :where(h1, h2, h3, h4) {
 
 @keyframes ppui-enter-view {
   from { opacity: 0; translate: 0 22px; scale: 0.985; }
+}
+
+/* ---------- A news story's own portal page (.detail-article) ----------
+   Stories are newsletter-style tables with white bgcolor and inline black text. Shown as one card,
+   centred; in dark mode the white tables and inline colours give way so the text stays readable. */
+html .detail-article {
+  max-width: 760px;
+  margin: 24px auto 64px;
+  overflow: hidden;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: var(--ppui-radius-row);
+  background: var(--ppui-surface);
+}
+
+html .detail-article table.main,
+html .detail-article table.main-background {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+html .detail-article h1 {
+  font-family: var(--ppui-display) !important;
+  font-style: italic !important;
+  font-size: clamp(28px, 3.6vw, 36px) !important;
+  font-weight: 700 !important;
+  line-height: 1.15 !important;
+}
+
+html .detail-article img {
+  display: block;
+  margin: 0 auto;
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: 8px;
+}
+
+html .detail-article :is(p, div, td, li, span) {
+  font-size: 16px !important;
+  line-height: 1.7 !important;
+}
+
+:root[data-ppui-theme="dark"] .detail-article :is(table, tbody, tr, td, div, p, span, font, center) {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--ppui-text) !important;
+}
+
+:root[data-ppui-theme="dark"] .detail-article h1,
+:root[data-ppui-theme="dark"] .detail-article :is(h2, h3, h4) {
+  color: var(--ppui-text) !important;
+}
+
+:root[data-ppui-theme="dark"] .detail-article a,
+:root[data-ppui-theme="dark"] .detail-article a * {
+  color: var(--ppui-accent) !important;
+}
+
+/* Other portal pages built the same way (white bgcolor tables) stop glaring in dark mode too. */
+:root[data-ppui-theme="dark"] .app-container [bgcolor]:not(.ppui-dash *):not(.ppui-newsroom *):not(.ppui-overview *) {
+  background-color: transparent !important;
 }

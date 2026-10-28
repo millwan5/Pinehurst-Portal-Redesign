@@ -1845,11 +1845,17 @@
       };
       fill(item.story || { body: item.body });
 
-      // "Open full": the whole story (full text, big picture) in the reader panel, on this page.
-      const full = el("button", "ppui-reader-source ppui-room-open", "Open full");
-      full.type = "button";
-      full.setAttribute("aria-haspopup", "dialog");
-      full.addEventListener("click", () => openReader(shownNow, shownNow.indexOf(item), location.href, actions));
+      // "Open full": the story's own page on the portal. A story without one opens in the reader panel.
+      let full;
+      if (item.href) {
+        full = el("a", "ppui-reader-source ppui-room-open", "Open full");
+        full.href = item.href;
+      } else {
+        full = el("button", "ppui-reader-source ppui-room-open", "Open full");
+        full.type = "button";
+        full.setAttribute("aria-haspopup", "dialog");
+        full.addEventListener("click", () => openReader(shownNow, shownNow.indexOf(item), location.href, actions));
+      }
       foot.appendChild(full);
       // Only the list's preview (or no picture yet): get the story's own page when the card nears the screen.
       if (item.href && !item.story && (clean(item.body.textContent).length < 400 || !item.image)) {
