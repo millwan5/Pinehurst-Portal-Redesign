@@ -177,6 +177,7 @@
     // Drawn for this extension: the crest's leaning pine, and a person for Account.
     pine: [["path", { d: "M11.9 2.2 18.9 18.5l-5.8 1.4v1.9l-4.4-1.2L5 19.7Z" }]],
     user: [["circle", { cx: 12, cy: 8, r: 4 }], ["path", { d: "M4 21a8 8 0 0 1 16 0" }]],
+    tag: [["path", { d: "M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z" }], ["circle", { cx: 7.5, cy: 7.5, r: 1 }]],
   };
 
   const GROUP_ICONS = {
@@ -3490,6 +3491,431 @@
         root.classList.remove("ppui-page-pending");
       }
     }, WAIT_MS);
+  }
+
+  // ---- Messages: the inbox, with the open message read beside the list ----
+
+  const MESSAGES_PATH = /\/student\/messages(\/|$)/;
+  const MESSAGE_TABS = { messages: "clock", people: "user", categories: "tag" };
+  const DISCLAIMER = /This e-?mail is confidential/i;
+  const AVATAR_TONES = 6;
+
+  function readMessageList(doc) {
+    const messages = [];
+    let group = "";
+    for (const li of doc.querySelectorAll(".messages .vx-list > li")) {
+      if (li.classList.contains("vx-list__group-header")) {
+        group = clean(li.textContent);
+        continue;
+      }
+      if (!li.classList.contains("message")) continue;
+      const text = (sel) => clean((li.querySelector(sel) || {}).textContent);
+      const link = li.querySelector("a.message-link");
+      const href = link ? sameOriginHref(link.getAttribute("href")) : null;
+      if (!href) continue;
+      const from = li.querySelector("a.message-from");
+      messages.push({
+        id: (href.match(/email\/(\d+)/) || [])[1] || href,
+        href,
+        group,
+        from: text(".message-from") || "Unknown sender",
+        fromHref: from && from.getAttribute("href") ? sameOriginHref(from.getAttribute("href")) : null,
+        category: text(".message-category"),
+        subject: text(".message-subject") || "(No subject)",
+        date: text(".message-date-sent"),
+        unread: /\b(unread|new)\b/i.test(li.className),
+      });
+    }
+    const paging = (sel) => {
+      const a = doc.querySelector(".messages .paging-buttons " + sel);
+      return a ? sameOriginHref(a.getAttribute("href")) : null;
+    };
+    return { messages, next: paging("a.next-button"), prev: paging("a:not(.next-button)") };
+  }
+
+  function initials(name) {
+    const words = name.replace(/^(mr|mrs|ms|miss|dr)\.?\s+/i, "").split(/\s+/).filter(Boolean);
+    return ((words[0] || "?")[0] + (words.length > 1 ? words[words.length - 1][0] : "")).toUpperCase();
+  }
+
+  // Each sender keeps one colour, so a name is easy to spot down the list.
+  function avatar(name) {
+    const a = el("span", "ppui-inbox-avatar", initials(name));
+    let h = 2166136261;
+    for (const c of name) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+    a.dataset.tone = String((h >>> 0) % AVATAR_TONES);
+    a.setAttribute("aria-hidden", "true");
+    return a;
+  }
+
+  // The school's email footer (address, legal notice) adds nothing on screen.
+  function trimDisclaimer(body) {
+    const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+    for (let n; (n = walker.nextNode()); ) {
+      const i = n.textContent.search(DISCLAIMER);
+      if (i < 0) continue;
+      const range = document.createRange();
+      range.setStart(n, i);
+      range.setEndAfter(body.lastChild);
+      range.deleteContents();
+      break;
+    }
+    // Line breaks right after a paragraph or another break only leave gaps.
+    for (const br of body.querySelectorAll("br")) {
+      let prev = br.previousSibling;
+      while (prev && prev.nodeType === Node.TEXT_NODE && !clean(prev.textContent)) prev = prev.previousSibling;
+      if (!prev || prev.nodeName === "BR" || /^(P|UL|OL|H2|H3|H4|BLOCKQUOTE|FIGURE)$/.test(prev.nodeName)) br.remove();
+    }
+    let last;
+    while ((last = body.lastChild) && (last.nodeName === "BR" || !clean(last.textContent)) && !(last.querySelector && last.querySelector("img"))) last.remove();
+  }
+
+  // The message's own page is plain server HTML, so a fetch is enough (no iframe).
+  async function fetchMessage(m) {
+    if (m.full) return m.full;
+    const res = await fetch(m.href, { credentials: "same-origin" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const doc = new DOMParser().parseFromString(await res.text(), "text/html");
+    const source = doc.querySelector(".email-body");
+    if (!source) throw new Error("No message body");
+    const fields = {};
+    for (const s of doc.querySelectorAll(".vx-record-body .vx-subtitle")) {
+      const [label, ...rest] = clean(s.textContent).split(":");
+      fields[label.toLowerCase()] = clean(rest.join(":"));
+    }
+    const body = cleanBody(source, () => false);
+    trimDisclaimer(body);
+    m.full = { from: fields.from || m.from, sent: fields["date sent"] || m.date, body };
+    return m.full;
+  }
+
+  function buildInbox() {
+    const source = document.querySelector(".messages");
+    if (!source || document.querySelector(".ppui-inbox")) return;
+    const first = readMessageList(document);
+    const messages = first.messages;
+    let nextHref = first.next;
+
+    const view = el("section", "ppui-inbox");
+    view.setAttribute("aria-label", "Messages");
+
+    // Heading row: title, then Recent / People / Categories as pills.
+    const head = el("header", "ppui-ov-head");
+    head.appendChild(el("h1", "ppui-room-title", "Messages"));
+    const tabBar = document.querySelector(".vx-tab-bar.my-children-nav");
+    if (tabBar) {
+      const nav = el("nav", "ppui-ov-nav");
+      nav.setAttribute("aria-label", "Message views");
+      for (const a of tabBar.querySelectorAll("a.vx-tab-bar__tab")) {
+        const href = sameOriginHref(a.getAttribute("href"));
+        if (!href) continue;
+        const key = new URL(href).pathname.split("/").filter(Boolean).pop();
+        const link = el("a", "ppui-ov-nav-link");
+        link.href = href;
+        link.append(icon(MESSAGE_TABS[key] || "mail"), el("span", null, clean(a.textContent)));
+        if (a.classList.contains("vx-tab-bar__tab--active")) link.setAttribute("aria-current", "page");
+        nav.appendChild(link);
+      }
+      head.appendChild(nav);
+      tabBar.classList.add("ppui-moved");
+    }
+    view.appendChild(head);
+
+    // Tools: search, All / Unread (only when something is unread), Mark all read.
+    const tools = el("div", "ppui-inbox-tools");
+    const searchBox = el("label", "ppui-inbox-search");
+    const search = el("input");
+    search.type = "text";
+    search.placeholder = "Search messages";
+    search.setAttribute("aria-label", "Search messages by sender or subject");
+    searchBox.append(icon("search"), search);
+    tools.appendChild(searchBox);
+    let onlyUnread = false;
+    const switcher = el("div", "ppui-ov-switch");
+    const switchButtons = [["All", false], ["Unread", true]].map(([label, value]) => {
+      const b = el("button", "ppui-ov-switch-button");
+      b.type = "button";
+      b.append(el("span", null, label));
+      if (value) b.appendChild(el("span", "ppui-ov-switch-count"));
+      b.addEventListener("click", () => {
+        onlyUnread = value;
+        renderList();
+      });
+      return b;
+    });
+    switcher.append(...switchButtons);
+    tools.appendChild(switcher);
+    const markAll = source.querySelector('a[href*="acknowledge-all"]');
+    const markHref = markAll && sameOriginHref(markAll.getAttribute("href"));
+    if (markHref) {
+      const a = el("a", "ppui-ov-link ppui-inbox-mark");
+      a.href = markHref;
+      a.append(icon("check"), el("span", null, "Mark all read"));
+      tools.appendChild(a);
+    }
+    view.appendChild(tools);
+
+    const body = el("div", "ppui-inbox-body");
+    const listPane = el("div", "ppui-inbox-list");
+    if (first.prev) {
+      const newer = el("a", "ppui-ov-link ppui-inbox-newer");
+      newer.href = first.prev;
+      newer.append(icon("chevronLeft"), el("span", null, "Newer messages"));
+      listPane.appendChild(newer);
+    }
+    const list = el("ul", "ppui-inbox-rows");
+    list.setAttribute("aria-label", "Messages");
+    const more = el("button", "ppui-ov-link ppui-inbox-more");
+    more.type = "button";
+    listPane.append(list, more);
+    const reader = el("article", "ppui-inbox-reader");
+    reader.tabIndex = -1;
+    body.append(listPane, reader);
+    view.appendChild(body);
+
+    let openId = null;
+    let openToken = 0;
+    const rows = new Map();
+
+    function row(m, showCategory) {
+      const a = el("a", "ppui-inbox-row" + (m.unread ? " is-unread" : ""));
+      a.href = m.href;
+      a.dataset.id = m.id;
+      const top = el("span", "ppui-inbox-row-top");
+      top.append(el("span", "ppui-inbox-from", m.from), el("span", "ppui-inbox-date", m.date));
+      const text = el("span", "ppui-inbox-row-text");
+      text.append(top, el("span", "ppui-inbox-subject", m.subject));
+      if (showCategory && m.category) text.appendChild(el("span", "ppui-inbox-category", m.category));
+      a.append(avatar(m.from), text);
+      if (m.unread) a.appendChild(el("span", "ppui-sr", " (unread)"));
+      if (m.id === openId) a.setAttribute("aria-current", "true");
+      // A plain click reads it here; Ctrl/Cmd-click still opens the portal's page in a new tab.
+      a.addEventListener("click", (e) => {
+        if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        e.preventDefault();
+        open(m);
+      });
+      rows.set(m.id, a);
+      return a;
+    }
+
+    function shown() {
+      const q = search.value.trim().toLowerCase();
+      return messages.filter((m) => (!onlyUnread || m.unread) && (!q || (m.from + " " + m.subject + " " + m.category).toLowerCase().includes(q)));
+    }
+
+    function renderList() {
+      const unread = messages.filter((m) => m.unread).length;
+      if (!unread) onlyUnread = false;
+      switcher.hidden = !unread;
+      switchButtons[1].lastChild.textContent = String(unread);
+      switchButtons.forEach((b, i) => b.setAttribute("aria-pressed", String(onlyUnread === !!i)));
+      // The category only earns a line when the messages come from more than one.
+      const showCategory = new Set(messages.map((m) => m.category)).size > 1;
+      rows.clear();
+      const items = [];
+      let group = null;
+      const visible = shown();
+      for (const m of visible) {
+        if (m.group !== group) {
+          group = m.group;
+          if (group) items.push(el("li", "ppui-inbox-group", group));
+        }
+        const li = el("li");
+        li.appendChild(row(m, showCategory));
+        items.push(li);
+      }
+      list.replaceChildren(...items);
+      if (!visible.length) {
+        const q = search.value.trim();
+        list.appendChild(emptyState(q ? "No messages match “" + q + "”." : onlyUnread ? "Nothing unread." : "No messages yet."));
+      }
+      more.hidden = !nextHref;
+      more.disabled = false;
+      more.replaceChildren(el("span", null, "Load older messages"));
+    }
+
+    function emptyReader() {
+      const box = el("div", "ppui-inbox-reader-empty");
+      box.append(icon("mail"), el("p", null, messages.length ? "Pick a message to read it here." : "No messages to read."));
+      reader.replaceChildren(box);
+    }
+
+    function step(by) {
+      const visible = shown();
+      const i = visible.findIndex((m) => m.id === openId);
+      const to = visible[i + by];
+      if (to) open(to, true);
+    }
+
+    function readerButton(label, iconName, onClick, className) {
+      const b = el("button", "ppui-inbox-icon-button" + (className ? " " + className : ""));
+      b.type = "button";
+      b.title = label;
+      b.setAttribute("aria-label", label);
+      b.appendChild(icon(iconName));
+      b.addEventListener("click", onClick);
+      return b;
+    }
+
+    async function open(m, focusRow) {
+      openId = m.id;
+      const token = ++openToken;
+      for (const [id, a] of rows) {
+        if (id === m.id) a.setAttribute("aria-current", "true");
+        else a.removeAttribute("aria-current");
+      }
+      if (focusRow && rows.get(m.id)) rows.get(m.id).focus();
+      view.classList.add("is-reading");
+      history.replaceState(null, "", "#message-" + m.id);
+
+      const bar = el("div", "ppui-inbox-reader-bar");
+      const back = el("button", "ppui-ov-link ppui-inbox-back");
+      back.type = "button";
+      back.append(icon("chevronLeft"), el("span", null, "All messages"));
+      back.addEventListener("click", close);
+      bar.appendChild(back);
+      const visible = shown();
+      const i = visible.findIndex((x) => x.id === m.id);
+      const newer = readerButton("Newer message", "chevronLeft", () => step(-1));
+      const older = readerButton("Older message", "chevronRight", () => step(1));
+      newer.disabled = i <= 0;
+      older.disabled = i < 0 || i >= visible.length - 1;
+      const portal = el("a", "ppui-ov-link ppui-inbox-portal");
+      portal.href = m.href;
+      portal.append(el("span", null, "Open on portal"));
+      bar.append(newer, older, portal);
+
+      const subject = el("h2", "ppui-inbox-reader-subject", m.subject);
+      const meta = el("div", "ppui-inbox-reader-meta");
+      const who = el("div", "ppui-inbox-reader-who");
+      const name = m.fromHref ? el("a", "ppui-inbox-reader-from", m.from) : el("span", "ppui-inbox-reader-from", m.from);
+      if (m.fromHref) {
+        name.href = m.fromHref;
+        name.title = "All messages from " + m.from;
+      }
+      const sent = el("span", "ppui-inbox-reader-sent", m.date);
+      who.append(name, sent);
+      meta.append(avatar(m.from), who);
+      if (m.category) meta.appendChild(el("span", "ppui-inbox-reader-category", m.category));
+      const text = el("div", "ppui-inbox-reader-text is-loading");
+      text.setAttribute("aria-busy", "true");
+      for (let n = 0; n < 4; n++) text.appendChild(el("span", "ppui-inbox-skeleton"));
+      reader.replaceChildren(bar, subject, meta, text);
+      reader.scrollTop = 0;
+      if (matchMedia("(max-width: 860px)").matches) {
+        reader.focus({ preventScroll: true });
+        view.scrollIntoView({ block: "start" });
+      }
+
+      try {
+        const full = await fetchMessage(m);
+        if (token !== openToken) return;
+        sent.textContent = full.sent;
+        text.classList.remove("is-loading");
+        text.removeAttribute("aria-busy");
+        text.replaceChildren(full.body.cloneNode(true));
+        if (!clean(full.body.textContent) && !full.body.querySelector("img")) text.replaceChildren(el("p", "ppui-inbox-note", "This message has no text."));
+        // Opening it on the portal marks it read; the row follows.
+        if (m.unread) {
+          m.unread = false;
+          rows.get(m.id)?.classList.remove("is-unread");
+          rows.get(m.id)?.querySelector(".ppui-sr")?.remove();
+          const left = messages.filter((x) => x.unread).length;
+          switchButtons[1].lastChild.textContent = String(left);
+          if (!left && !onlyUnread) switcher.hidden = true;
+        }
+      } catch (e) {
+        if (token !== openToken) return;
+        console.warn("[Pinehurst Dashboard] Couldn't load message", e);
+        text.classList.remove("is-loading");
+        text.removeAttribute("aria-busy");
+        const retry = el("button", "ppui-ov-link", "Try again");
+        retry.type = "button";
+        retry.addEventListener("click", () => open(m));
+        const p = el("p", "ppui-inbox-note", "This message didn't load. Try again, or open it on the portal.");
+        text.replaceChildren(p, retry);
+      }
+    }
+
+    function close() {
+      openId = null;
+      openToken++;
+      view.classList.remove("is-reading");
+      for (const a of rows.values()) a.removeAttribute("aria-current");
+      history.replaceState(null, "", location.pathname + location.search);
+      emptyReader();
+    }
+
+    // Older pages load in place, under the ones already shown.
+    more.addEventListener("click", async () => {
+      if (!nextHref) return;
+      more.disabled = true;
+      more.replaceChildren(el("span", null, "Loading…"));
+      try {
+        const res = await fetch(nextHref, { credentials: "same-origin" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const page = readMessageList(new DOMParser().parseFromString(await res.text(), "text/html"));
+        const known = new Set(messages.map((m) => m.id));
+        messages.push(...page.messages.filter((m) => !known.has(m.id)));
+        nextHref = page.next;
+        renderList();
+      } catch (e) {
+        console.warn("[Pinehurst Dashboard] Couldn't load older messages", e);
+        more.disabled = false;
+        more.replaceChildren(el("span", null, "Couldn't load. Try again"));
+      }
+    });
+
+    search.addEventListener("input", renderList);
+    search.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && search.value) {
+        search.value = "";
+        renderList();
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        list.querySelector(".ppui-inbox-row")?.focus();
+      }
+    });
+    // Up / Down (or J / K) walk the list and open each message as they go.
+    list.addEventListener("keydown", (e) => {
+      const by = { ArrowDown: 1, ArrowUp: -1, j: 1, k: -1 }[e.key];
+      const current = e.target.closest(".ppui-inbox-row");
+      if (!by || !current) return;
+      e.preventDefault();
+      const all = [...list.querySelectorAll(".ppui-inbox-row")];
+      const to = all[all.indexOf(current) + by];
+      const m = to && messages.find((x) => x.id === to.dataset.id);
+      if (m) open(m, true);
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && view.classList.contains("is-reading") && !e.target.closest("input, textarea")) close();
+    });
+
+    renderList();
+    emptyReader();
+    source.before(view);
+    source.classList.add("ppui-moved");
+    const fromHash = location.hash.match(/^#message-(.+)$/);
+    const start = fromHash && messages.find((m) => m.id === fromHash[1]);
+    if (start) open(start);
+  }
+
+  // The list is in the page's HTML, so it's there by now. early.js hid the portal's version.
+  if (MESSAGES_PATH.test(location.pathname)) {
+    try {
+      if (document.querySelector(".messages .vx-list li.message")) {
+        root.classList.add("ppui-inbox-page");
+        buildInbox();
+      }
+    } catch (e) {
+      console.warn("[Pinehurst Dashboard] Messages view failed; showing the portal's page.", e);
+      root.classList.remove("ppui-inbox-page");
+      document.querySelectorAll(".ppui-moved").forEach((n) => n.classList.remove("ppui-moved"));
+      document.querySelector(".ppui-inbox")?.remove();
+    } finally {
+      root.classList.remove("ppui-page-pending");
+    }
   }
 
   if (!HOME_PATH.test(location.pathname)) return;

@@ -50,6 +50,12 @@
     setTimeout(() => root.classList.remove("ppui-page-pending"), 8000);
   }
 
+  // Messages: hide the portal's inbox until content.js has built ours.
+  if (/\/student\/messages(\/|$)/.test(location.pathname)) {
+    root.classList.add("ppui-page-pending");
+    setTimeout(() => root.classList.remove("ppui-page-pending"), 4000);
+  }
+
   // Never leave the page blank if the portal or content.js is slow or fails.
   setTimeout(() => root.classList.remove("ppui-booting"), 4000);
 })();

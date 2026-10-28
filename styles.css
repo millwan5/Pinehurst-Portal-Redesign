@@ -4847,15 +4847,15 @@ html body .app-container :where(h1, h2, h3, h4) {
   color: var(--ppui-text) !important;
 }
 
-:root[data-ppui-theme="dark"] .app-container :where(h1, h2, h3, h4, h5, h6, p, span, small, li, td, th, label, strong, b, div):not(.ppui-dash *):not(.ppui-newsroom *):not(.ppui-overview *):not(.ppui-header *):not(.ppui-stub *) {
+:root[data-ppui-theme="dark"] .app-container :where(h1, h2, h3, h4, h5, h6, p, span, small, li, td, th, label, strong, b, div):not(.ppui-dash *):not(.ppui-newsroom *):not(.ppui-overview *):not(.ppui-inbox *):not(.ppui-header *):not(.ppui-stub *) {
   color: var(--ppui-text) !important;
 }
 
-:root[data-ppui-theme="dark"] .app-container :where(small, .vx-subtitle, .vx-tab-bar__description, .message-from-label, .message-category, .item-subtitle, .vx-heading-6, .day-number):not(.ppui-dash *):not(.ppui-newsroom *):not(.ppui-overview *) {
+:root[data-ppui-theme="dark"] .app-container :where(small, .vx-subtitle, .vx-tab-bar__description, .message-from-label, .message-category, .item-subtitle, .vx-heading-6, .day-number):not(.ppui-dash *):not(.ppui-newsroom *):not(.ppui-overview *):not(.ppui-inbox *) {
   color: var(--ppui-muted) !important;
 }
 
-:root[data-ppui-theme="dark"] .app-container a:not(.ppui-dash a):not(.ppui-header a):not(.ppui-newsroom a):not(.ppui-overview a),
+:root[data-ppui-theme="dark"] .app-container a:not(.ppui-dash a):not(.ppui-header a):not(.ppui-newsroom a):not(.ppui-overview a):not(.ppui-inbox a),
 :root[data-ppui-theme="dark"] .app-container .vx-button {
   color: var(--ppui-accent) !important;
 }
@@ -4893,7 +4893,7 @@ html body .app-container :where(h1, h2, h3, h4) {
   box-shadow: none !important;
 }
 
-:root[data-ppui-theme="dark"] .app-container :where(hr, table, tr, td, th, li, .course):not(.ppui-overview *) {
+:root[data-ppui-theme="dark"] .app-container :where(hr, table, tr, td, th, li, .course):not(.ppui-overview *):not(.ppui-inbox *) {
   border-color: var(--ppui-hairline) !important;
 }
 
@@ -5373,6 +5373,555 @@ html .detail-article :is(p, div, td, li, span) {
 }
 
 /* Other portal pages built the same way (white bgcolor tables) stop glaring in dark mode too. */
-:root[data-ppui-theme="dark"] .app-container [bgcolor]:not(.ppui-dash *):not(.ppui-newsroom *):not(.ppui-overview *) {
+:root[data-ppui-theme="dark"] .app-container [bgcolor]:not(.ppui-dash *):not(.ppui-newsroom *):not(.ppui-overview *):not(.ppui-inbox *) {
   background-color: transparent !important;
+}
+
+/* ---------- Messages (html.ppui-inbox-page): list on the left, the open message beside it ---------- */
+html.ppui-inbox-page .ppui-moved {
+  display: none !important;
+}
+
+.ppui-inbox {
+  --ppui-inbox-list: minmax(300px, 380px);
+  max-width: 1180px;
+  margin: 8px auto 72px;
+  padding: 0 20px;
+  box-sizing: border-box;
+  color: var(--ppui-text);
+  font-family: var(--ppui-font);
+}
+
+.ppui-inbox-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 14px;
+}
+
+.ppui-inbox-search {
+  display: flex;
+  flex: 0 1 320px;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 999px;
+  background: var(--ppui-surface);
+  color: var(--ppui-muted);
+  cursor: text;
+}
+
+.ppui-inbox-search:focus-within {
+  border-color: var(--ppui-accent);
+}
+
+.ppui-inbox-search .ppui-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.ppui-inbox-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  color: var(--ppui-text) !important;
+  font: inherit;
+  font-size: 14px;
+}
+
+.ppui-inbox-search input::placeholder {
+  color: var(--ppui-muted);
+  opacity: 1;
+}
+
+.ppui-inbox-tools .ppui-ov-switch[hidden] {
+  display: none;
+}
+
+.ppui-inbox-tools .ppui-ov-switch-button[aria-pressed="true"] {
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent);
+}
+
+.ppui-inbox-mark {
+  height: 38px !important;
+  margin-left: auto;
+}
+
+.ppui-inbox-body {
+  display: grid;
+  grid-template-columns: var(--ppui-inbox-list) minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+
+/* The list */
+.ppui-inbox-list {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ppui-inbox-rows {
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: var(--ppui-radius-row);
+  background: var(--ppui-surface);
+}
+
+.ppui-inbox-rows > li {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ppui-inbox-group {
+  padding: 14px 10px 6px;
+  color: var(--ppui-muted);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.ppui-inbox-group:first-child {
+  padding-top: 8px;
+}
+
+.ppui-inbox-row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 10px;
+  color: var(--ppui-text) !important;
+  text-decoration: none !important;
+  transition: background-color 0.15s ease;
+}
+
+.ppui-inbox-row:hover {
+  background: var(--ppui-hover);
+}
+
+.ppui-inbox-row[aria-current="true"] {
+  background: var(--ppui-accent-soft);
+}
+
+.ppui-inbox-row:focus-visible {
+  outline-offset: -2px;
+}
+
+.ppui-inbox-avatar {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--ppui-tone-bg, var(--ppui-accent-soft));
+  color: var(--ppui-tone-ink, var(--ppui-accent));
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.ppui-inbox-avatar[data-tone="0"] { --ppui-tone-bg: #dfe8fb; --ppui-tone-ink: #1446a0; }
+.ppui-inbox-avatar[data-tone="1"] { --ppui-tone-bg: #d9f0ea; --ppui-tone-ink: #13664f; }
+.ppui-inbox-avatar[data-tone="2"] { --ppui-tone-bg: #f6e6cf; --ppui-tone-ink: #8a5306; }
+.ppui-inbox-avatar[data-tone="3"] { --ppui-tone-bg: #ece0f6; --ppui-tone-ink: #643093; }
+.ppui-inbox-avatar[data-tone="4"] { --ppui-tone-bg: #f8dfe0; --ppui-tone-ink: #9b2c34; }
+.ppui-inbox-avatar[data-tone="5"] { --ppui-tone-bg: #e2e6ec; --ppui-tone-ink: #3b4a63; }
+
+:root[data-ppui-theme="dark"] .ppui-inbox-avatar[data-tone="0"] { --ppui-tone-bg: #1b3366; --ppui-tone-ink: #a9c6ff; }
+:root[data-ppui-theme="dark"] .ppui-inbox-avatar[data-tone="1"] { --ppui-tone-bg: #123f37; --ppui-tone-ink: #8fdcc5; }
+:root[data-ppui-theme="dark"] .ppui-inbox-avatar[data-tone="2"] { --ppui-tone-bg: #47331a; --ppui-tone-ink: #f0c98a; }
+:root[data-ppui-theme="dark"] .ppui-inbox-avatar[data-tone="3"] { --ppui-tone-bg: #36234f; --ppui-tone-ink: #d4b6f2; }
+:root[data-ppui-theme="dark"] .ppui-inbox-avatar[data-tone="4"] { --ppui-tone-bg: #4a2228; --ppui-tone-ink: #f3b0b5; }
+:root[data-ppui-theme="dark"] .ppui-inbox-avatar[data-tone="5"] { --ppui-tone-bg: #26324a; --ppui-tone-ink: #c3cde0; }
+
+.ppui-inbox-row-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+.ppui-inbox-row-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.ppui-inbox-from {
+  flex: 1;
+  overflow: hidden;
+  color: var(--ppui-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ppui-inbox-date {
+  flex: none;
+  color: var(--ppui-muted);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ppui-inbox-subject {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ppui-text);
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.ppui-inbox-category {
+  color: var(--ppui-muted);
+  font-size: 12.5px;
+}
+
+/* Unread: bold sender and subject, a dot on the avatar. */
+.ppui-inbox-row.is-unread .ppui-inbox-from,
+.ppui-inbox-row.is-unread .ppui-inbox-subject {
+  color: var(--ppui-text);
+  font-weight: 800;
+}
+
+.ppui-inbox-row.is-unread .ppui-inbox-date {
+  color: var(--ppui-accent);
+  font-weight: 700;
+}
+
+.ppui-inbox-row.is-unread::before {
+  content: "";
+  position: absolute;
+  top: 9px;
+  left: 37px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--ppui-surface);
+  border-radius: 50%;
+  background: var(--ppui-accent);
+}
+
+.ppui-inbox-rows .ppui-empty {
+  padding: 28px 12px;
+}
+
+.ppui-inbox-more,
+.ppui-inbox-newer {
+  justify-self: center;
+  cursor: pointer;
+  font: inherit;
+  background: transparent;
+}
+
+.ppui-inbox-more:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.ppui-inbox-more[hidden] {
+  display: none !important;
+}
+
+/* The open message */
+.ppui-inbox-reader {
+  position: sticky;
+  top: 16px;
+  min-width: 0;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 18px 28px 32px;
+  box-sizing: border-box;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: var(--ppui-radius-row);
+  background: var(--ppui-surface);
+  outline: 0;
+  overscroll-behavior: contain;
+}
+
+.ppui-inbox-reader-empty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  min-height: 320px;
+  color: var(--ppui-muted);
+  font-size: 14.5px;
+  text-align: center;
+}
+
+.ppui-inbox-reader-empty .ppui-icon {
+  width: 30px;
+  height: 30px;
+  stroke-width: 1.5;
+  opacity: 0.7;
+}
+
+.ppui-inbox-reader-empty p {
+  margin: 0;
+}
+
+.ppui-inbox-reader-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 -10px 18px;
+}
+
+.ppui-inbox-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ppui-muted);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ppui-inbox-icon-button .ppui-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.ppui-inbox-icon-button:hover:not(:disabled) {
+  background: var(--ppui-hover);
+  color: var(--ppui-text);
+}
+
+.ppui-inbox-icon-button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.ppui-inbox-back {
+  display: none !important;
+  margin-right: auto;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ppui-inbox-portal {
+  margin-left: auto;
+}
+
+.ppui-inbox-reader-bar .ppui-ov-link {
+  white-space: nowrap;
+}
+
+.ppui-inbox-reader-subject {
+  max-width: 34ch;
+  margin: 0 0 18px !important;
+  color: var(--ppui-text) !important;
+  font-family: var(--ppui-display) !important;
+  font-style: italic !important;
+  font-size: clamp(26px, 2.6vw, 34px) !important;
+  font-weight: 700 !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.ppui-inbox-reader-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--ppui-hairline);
+}
+
+.ppui-inbox-reader-meta .ppui-inbox-avatar {
+  width: 40px;
+  height: 40px;
+}
+
+.ppui-inbox-reader-who {
+  display: grid;
+  gap: 1px;
+}
+
+.ppui-inbox-reader-from {
+  color: var(--ppui-text) !important;
+  font-size: 15px;
+  font-weight: 750;
+  text-decoration: none !important;
+}
+
+a.ppui-inbox-reader-from:hover {
+  color: var(--ppui-accent) !important;
+  text-decoration: underline !important;
+}
+
+.ppui-inbox-reader-sent {
+  color: var(--ppui-muted);
+  font-size: 13px;
+}
+
+.ppui-inbox-reader-category {
+  margin-left: auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--ppui-hover);
+  color: var(--ppui-muted);
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+.ppui-inbox-reader-text {
+  max-width: 68ch;
+  padding-top: 20px;
+  color: var(--ppui-text);
+  font-size: 15.5px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.ppui-inbox-reader-text :is(p, ul, ol, blockquote, h2, h3, h4) {
+  margin: 0 0 0.85em !important;
+  color: var(--ppui-text) !important;
+}
+
+.ppui-inbox-reader-text :is(h2, h3, h4) {
+  font-size: 1.1em !important;
+  font-weight: 750 !important;
+}
+
+.ppui-inbox-reader-text blockquote {
+  padding-left: 14px;
+  border-left: 3px solid var(--ppui-hairline);
+  color: var(--ppui-muted) !important;
+}
+
+.ppui-inbox-reader-text a {
+  color: var(--ppui-accent) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+}
+
+.ppui-inbox-reader-text img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 8px 0;
+  border-radius: 8px;
+}
+
+.ppui-inbox-note {
+  margin: 0 0 12px !important;
+  color: var(--ppui-muted) !important;
+}
+
+.ppui-inbox-reader-text.is-loading {
+  display: grid;
+  gap: 10px;
+}
+
+.ppui-inbox-skeleton {
+  height: 13px;
+  border-radius: 6px;
+  background: var(--ppui-hover);
+  animation: ppui-inbox-pulse 1.2s ease-in-out infinite alternate;
+}
+
+.ppui-inbox-skeleton:nth-child(2) { width: 92%; }
+.ppui-inbox-skeleton:nth-child(3) { width: 78%; }
+.ppui-inbox-skeleton:nth-child(4) { width: 55%; }
+
+@keyframes ppui-inbox-pulse {
+  to { opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ppui-inbox-skeleton { animation: none; }
+}
+
+/* Phone and narrow windows: the list, or the open message, one at a time. */
+@media (max-width: 860px) {
+  .ppui-inbox {
+    padding: 0 16px;
+  }
+  .ppui-inbox-search {
+    flex: 1 1 100%;
+  }
+  .ppui-inbox-mark {
+    margin-left: 0;
+  }
+  .ppui-inbox-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ppui-inbox-reader {
+    position: static;
+    max-height: none;
+    padding: 12px 18px 28px;
+  }
+  .ppui-inbox:not(.is-reading) .ppui-inbox-reader,
+  .ppui-inbox.is-reading .ppui-inbox-list,
+  .ppui-inbox.is-reading .ppui-inbox-tools {
+    display: none;
+  }
+  .ppui-inbox-back {
+    display: inline-flex !important;
+  }
+  .ppui-inbox-reader-bar {
+    margin: 0 -6px 16px;
+  }
+  .ppui-inbox-reader-category {
+    margin-left: 0;
+  }
+}
+
+/* ---------- A message's own portal page (.detail-email): one readable card, both themes ---------- */
+html .detail-email {
+  max-width: 760px;
+  margin: 24px auto 64px;
+  padding: 8px 28px 32px;
+  box-sizing: border-box;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: var(--ppui-radius-row);
+  background: var(--ppui-surface);
+}
+
+html .detail-email .vx-record-title {
+  font-family: var(--ppui-display) !important;
+  font-style: italic !important;
+  font-size: clamp(26px, 3.4vw, 34px) !important;
+  font-weight: 700 !important;
+  line-height: 1.15 !important;
+}
+
+html .detail-email .email-body {
+  font-size: 15.5px !important;
+  line-height: 1.65 !important;
+}
+
+:root[data-ppui-theme="dark"] .detail-email :is(div, p, span, font, td, table, center) {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--ppui-text) !important;
+}
+
+:root[data-ppui-theme="dark"] .detail-email .email-body a {
+  color: var(--ppui-accent) !important;
 }
