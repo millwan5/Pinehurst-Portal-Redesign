@@ -1439,6 +1439,12 @@ html.ppui-news-pending .article {
   display: none !important;
 }
 
+/* Until our view is built, none of the portal's News page shows (its heading and title strip
+   included), so the old layout never flashes. */
+html.ppui-news-pending .app-container {
+  visibility: hidden !important;
+}
+
 .ppui-newsroom {
   max-width: 1080px;
   margin: 0 auto 72px;
@@ -1479,6 +1485,7 @@ html.ppui-news-pending .article {
 
 .ppui-room-controls {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-left: auto;
   padding-bottom: 8px;
@@ -1728,6 +1735,29 @@ html.ppui-news-pending .article {
 
 .ppui-rail-node:hover {
   color: var(--ppui-accent);
+}
+
+/* How many stories that day has. */
+.ppui-rail-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 18px;
+  margin-left: auto;
+  padding: 0 6px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: var(--ppui-hover);
+  color: var(--ppui-muted);
+  font-size: 11px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.ppui-rail-node.is-current .ppui-rail-count {
+  background: var(--ppui-accent);
+  color: #fff;
 }
 
 .ppui-rail-chip {
@@ -2093,6 +2123,198 @@ html.ppui-news-pending .article {
 .ppui-room-story .ppui-reader-source {
   margin-top: 0;
   border-color: var(--ppui-paper-edge);
+}
+
+/* ---- Titles layout (the default): one slim row per story, headline and date only.
+   A headline opens its story in place as the full sheet; clicking it again folds it back. ---- */
+.ppui-room-list.is-titles {
+  gap: 10px;
+}
+
+.ppui-room-story.is-compact {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: 16px;
+  row-gap: 3px;
+  align-items: center;
+  padding: 12px 14px;
+  transition: opacity 0.25s ease, translate 0.25s var(--ppui-ease), border-color 0.15s ease, rotate 0.4s var(--ppui-ease);
+}
+
+/* Rows skip the second sheet and the paper grain: plain stock, and much less to paint. */
+.ppui-room-story.is-compact::before {
+  display: none;
+}
+
+.ppui-room-story.is-compact::after {
+  background-image: none;
+}
+
+.ppui-room-story.is-compact:hover {
+  border-color: var(--ppui-accent);
+}
+
+.ppui-room-story.is-compact .ppui-room-meta {
+  display: contents;
+}
+
+/* A story folded back keeps its built text, out of sight. */
+.ppui-room-story.is-compact > :is(.ppui-room-picture, .ppui-room-body, .ppui-room-foot) {
+  display: none;
+}
+
+.ppui-room-story.is-compact .ppui-stub {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+.ppui-room-story.is-compact .ppui-room-headline {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0 !important;
+  padding: 0;
+  border: 0;
+  font-size: 19px !important;
+  line-height: 1.3 !important;
+}
+
+.ppui-room-story.is-compact .ppui-room-when {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 12.5px;
+}
+
+.ppui-room-story.is-compact .ppui-room-actions {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+}
+
+.ppui-room-story.is-compact .ppui-room-actions .ppui-story-action {
+  width: 32px;
+  height: 32px;
+}
+
+/* The date and the buttons sit above the row-wide click area. */
+.ppui-room-story.is-compact :is(.ppui-room-when, .ppui-room-actions) {
+  position: relative;
+  z-index: 1;
+}
+
+.ppui-room-toggle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* In a row, the whole row opens the story. */
+.ppui-room-story.is-compact .ppui-room-toggle::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.ppui-room-toggle:hover > span {
+  color: var(--ppui-accent);
+}
+
+.ppui-room-toggle:focus-visible {
+  outline: 2px solid var(--ppui-sky);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+.ppui-room-toggle-caret {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 0.3em;
+  color: var(--ppui-muted);
+  transition: rotate 0.25s var(--ppui-ease);
+}
+
+.ppui-room-toggle[aria-expanded="true"] .ppui-room-toggle-caret {
+  rotate: 180deg;
+}
+
+/* Opened from a row, the story shows in full: its headline folds it back, so no "Show less". */
+.ppui-room-story.from-titles .ppui-room-more {
+  display: none;
+}
+
+/* A date picked on the timeline: its stories glow for a moment (an accent ring that fades out). */
+.ppui-room-story.is-glowing {
+  animation: ppui-glow 1.4s ease-out;
+}
+
+@keyframes ppui-glow {
+  0%, 30% {
+    border-color: var(--ppui-accent);
+    outline: 3px solid var(--ppui-accent);
+    outline-offset: 3px;
+  }
+  100% {
+    outline: 3px solid transparent;
+    outline-offset: 8px;
+  }
+}
+
+/* Layout switch: Titles / Full. */
+.ppui-room-layout-switch {
+  display: inline-flex;
+  gap: 2px;
+  height: 34px;
+  padding: 3px;
+  box-sizing: border-box;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 999px;
+  background: var(--ppui-surface);
+}
+
+.ppui-room-layout-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ppui-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ppui-room-layout-button .ppui-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.ppui-room-layout-button:hover {
+  color: var(--ppui-text);
+}
+
+.ppui-room-layout-button[aria-pressed="true"] {
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent);
 }
 
 @media (max-width: 700px) {

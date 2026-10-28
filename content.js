@@ -164,6 +164,7 @@
     calendar: [["rect", { x: 3, y: 4, width: 18, height: 18, rx: 2 }], ["path", { d: "M16 2v4M8 2v4M3 10h18" }]],
     sort: [["path", { d: "m21 16-4 4-4-4M17 20V4M3 8l4-4 4 4M7 4v16" }]],
     chevronDown: [["path", { d: "m6 9 6 6 6-6" }]],
+    list: [["path", { d: "M3 6h.01M3 12h.01M3 18h.01M8 6h13M8 12h13M8 18h13" }]],
     notebook: [["path", { d: "M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4M2 6h4M2 10h4M2 14h4M2 18h4" }], ["path", { d: "M21.38 5.63a1 1 0 1 0-3-3l-5.02 5a2 2 0 0 0-.5.86l-.84 2.87a.5.5 0 0 0 .62.62l2.87-.84a2 2 0 0 0 .86-.5z" }]],
     plus: [["path", { d: "M5 12h14M12 5v14" }]],
     minimise: [["path", { d: "M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" }]],
@@ -1651,8 +1652,39 @@
       render();
     }
 
+    // Layout: "Titles" (the default) lists headlines only, and a headline opens its story in place;
+    // "Full" shows every story as a full card. Remembered.
+    const LAYOUT_KEY = "ppui-news-layout";
+    let layoutMode = "titles";
+    try {
+      if (localStorage.getItem(LAYOUT_KEY) === "full") layoutMode = "full";
+    } catch (e) {}
+    // Stories opened or closed by hand, against the layout's default (closed in Titles, open in Full).
+    const flipped = new Set();
+    const layoutSwitch = el("div", "ppui-room-layout-switch");
+    layoutSwitch.setAttribute("role", "group");
+    layoutSwitch.setAttribute("aria-label", "Layout");
+    const layoutButtons = [["titles", "Titles", "list"], ["full", "Full", "newspaper"]].map(([mode, label, iconName]) => {
+      const b = el("button", "ppui-room-layout-button");
+      b.type = "button";
+      b.dataset.mode = mode;
+      b.title = mode === "titles" ? "Show headlines only" : "Show full stories";
+      b.append(icon(iconName), el("span", null, label));
+      b.addEventListener("click", () => {
+        if (layoutMode === mode) return;
+        layoutMode = mode;
+        flipped.clear();
+        try {
+          localStorage.setItem(LAYOUT_KEY, mode);
+        } catch (e) {}
+        render();
+      });
+      return b;
+    });
+    layoutSwitch.append(...layoutButtons);
+
     const controls = el("div", "ppui-room-controls");
-    controls.append(whenChoice.btn, sortChoice.btn);
+    controls.append(layoutSwitch, whenChoice.btn, sortChoice.btn);
     head.append(title, tabs, controls);
 
     // Timeline: one dated node per story, a fill that follows your place, a chip on phones.
@@ -1725,7 +1757,8 @@
 
     function storyCard(item, index) {
       const pinned = actions.isPinned(item);
-      const card = el("article", "ppui-room-story" + (pinned ? " is-pinned" : ""));
+      const compact = (layoutMode === "titles") !== flipped.has(item);
+      const card = el("article", "ppui-room-story" + (pinned ? " is-pinned" : "") + (compact ? " is-compact" : ""));
       card.id = "ppui-story-" + index;
       card.dataset.index = String(index);
       card.tabIndex = -1;
@@ -1750,14 +1783,42 @@
       }
       meta.append(storyStub(item), when, buttons);
 
-      const headline = el("h2", "ppui-room-headline", item.title);
+      const headline = el("h2", "ppui-room-headline");
       headline.id = card.id + "-title";
+      card.append(meta, headline);
+      // In either layout the headline is a button that opens and closes the story in place.
+      // A closed story's text and picture are only built, and fetched, once it is opened.
+      // From Titles a story opens in full (so no "Show less"); in Full it opens folded, as before.
+      if (layoutMode === "titles") card.classList.add("from-titles", "is-open");
+      const toggle = el("button", "ppui-room-toggle");
+      toggle.type = "button";
+      toggle.setAttribute("aria-expanded", String(!compact));
+      toggle.append(el("span", null, item.title), icon("chevronDown", "ppui-room-toggle-caret"));
+      headline.appendChild(toggle);
+      toggle.addEventListener("click", () => {
+        const opening = card.classList.contains("is-compact");
+        if (flipped.has(item)) flipped.delete(item);
+        else flipped.add(item);
+        card.classList.toggle("is-compact", !opening);
+        toggle.setAttribute("aria-expanded", String(opening));
+        if (opening && !card.querySelector(".ppui-room-body")) storyDetails(item, card);
+        if (!opening && card.getBoundingClientRect().top < 0) {
+          card.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" });
+        }
+        onScroll();
+      });
+      if (!compact) storyDetails(item, card);
+      return card;
+    }
+
+    // A story's picture, text and buttons, added under its headline.
+    function storyDetails(item, card) {
       const picture = el("div", "ppui-room-picture");
       if (item.image) picture.appendChild(photoFrame(item, true));
       const body = el("div", "ppui-room-body ppui-reader-body");
       body.id = card.id + "-body";
       const foot = el("div", "ppui-room-foot");
-      card.append(meta, headline, picture, body, foot);
+      card.append(picture, body, foot);
 
       const fill = (story) => {
         body.replaceChildren(...story.body.cloneNode(true).childNodes);
@@ -1805,7 +1866,6 @@
         });
         fetcher.observe(card);
       }
-      return card;
     }
 
     // A card leaving its tab (to the trash, or back from it) slides out first.
@@ -1836,6 +1896,8 @@
       whenChoice.text.textContent = whenLabel();
       whenChoice.btn.classList.toggle("is-active", when.kind !== "all");
       sortChoice.text.textContent = sort === "newest" ? "Newest" : "Oldest";
+      for (const b of layoutButtons) b.setAttribute("aria-pressed", String(b.dataset.mode === layoutMode));
+      list.classList.toggle("is-titles", layoutMode === "titles");
       for (const b of tabButtons) {
         const on = b.dataset.view === actions.view;
         b.setAttribute("aria-selected", String(on));
@@ -1880,63 +1942,106 @@
 
     // ---- Timeline ----
     let current = -1;
+    // One node per day (pinned stories, at the top of "All stories", get their own), with its story count.
+    let groups = [];
+    let groupOf = [];
+    let railCards = [];
 
     function buildRail(shown) {
-      nodes.replaceChildren();
-      const last = Math.max(shown.length - 1, 1);
+      groups = [];
+      groupOf = [];
       shown.forEach((item, i) => {
+        const key = actions.view === "all" && actions.isPinned(item) ? "pinned" : item.time === null ? "undated" : item.time;
+        let g = groups[groups.length - 1];
+        if (!g || g.key !== key) {
+          const label = key === "pinned" ? "Pinned" : key === "undated" ? "No date" : item.date.day + " " + item.date.month;
+          g = { key, label, start: i, count: 0 };
+          groups.push(g);
+        }
+        g.count++;
+        groupOf.push(groups.length - 1);
+      });
+      nodes.replaceChildren();
+      const last = Math.max(groups.length - 1, 1);
+      groups.forEach((g, gi) => {
         const li = el("li", "ppui-rail-item");
-        li.style.setProperty("--pos", String(i / last));
+        li.style.setProperty("--pos", String(gi / last));
         const b = el("button", "ppui-rail-node");
         b.type = "button";
-        b.setAttribute("aria-label", item.title + (item.dateText ? ", " + item.dateText : ""));
-        b.title = item.title;
-        b.append(el("span", "ppui-rail-dot"), el("span", "ppui-rail-date", item.date.day ? item.date.day + " " + item.date.month : String(i + 1)));
-        b.addEventListener("click", () => goTo(i));
+        const stories = g.count === 1 ? "1 story" : g.count + " stories";
+        b.setAttribute("aria-label", g.label + ", " + stories);
+        b.title = stories;
+        b.append(el("span", "ppui-rail-dot"), el("span", "ppui-rail-date", g.label), el("span", "ppui-rail-count", String(g.count)));
+        b.addEventListener("click", () => {
+          goTo(g.start);
+          glow(railCards.slice(g.start, g.start + g.count));
+        });
         li.appendChild(b);
         nodes.appendChild(li);
       });
-      rail.hidden = shown.length < 2;
-      rail.style.setProperty("--count", String(shown.length));
+      railCards = [...list.querySelectorAll(".ppui-room-story")];
+      rail.hidden = groups.length < 2;
+      rail.style.setProperty("--count", String(groups.length));
       current = -1;
       followScroll();
     }
 
-    // Where you are: the last card whose top has crossed the reading line, and how far through it.
+    // Where you are: the last card whose top has crossed the reading line, and how far through its day.
     // The fill runs from the first dot to the last, so it lines up with the dots.
     function followScroll() {
-      const cards = [...list.querySelectorAll(".ppui-room-story")];
-      if (cards.length < 2) return;
+      const cards = railCards;
+      if (groups.length < 2 || cards.length < 2) return;
       const line = innerHeight * READING_LINE;
       let index = 0;
       let through = 0;
-      cards.forEach((card, i) => {
-        const r = card.getBoundingClientRect();
-        if (r.top <= line) {
-          index = i;
-          through = Math.min(Math.max((line - r.top) / r.height, 0), 1);
-        }
-      });
+      for (let i = 0; i < cards.length; i++) {
+        const r = cards[i].getBoundingClientRect();
+        if (r.top > line) break;
+        index = i;
+        through = Math.min(Math.max((line - r.top) / r.height, 0), 1);
+      }
       // At the very bottom of the page the last story counts as reached.
       if (innerHeight + scrollY >= document.documentElement.scrollHeight - 4) {
         index = cards.length - 1;
         through = 0;
       }
-      const progress = Math.min((index + through) / (cards.length - 1), 1);
+      const gi = groupOf[index];
+      const g = groups[gi];
+      const progress = Math.min((gi + (index - g.start + through) / g.count) / (groups.length - 1), 1);
       rail.style.setProperty("--rail-progress", progress.toFixed(4));
       if (index !== current) setCurrent(index, cards.length);
     }
 
     function setCurrent(index, total) {
       current = index;
+      const gi = groupOf[index];
       nodes.querySelectorAll(".ppui-rail-node").forEach((b, i) => {
-        b.classList.toggle("is-current", i === index);
-        b.classList.toggle("is-past", i < index);
-        if (i === index) b.setAttribute("aria-current", "step");
+        b.classList.toggle("is-current", i === gi);
+        b.classList.toggle("is-past", i < gi);
+        if (i === gi) b.setAttribute("aria-current", "step");
         else b.removeAttribute("aria-current");
       });
-      const date = nodes.querySelectorAll(".ppui-rail-date")[index];
-      chip.textContent = (index + 1) + " of " + total + (date ? "  " + date.textContent : "");
+      chip.textContent = (index + 1) + " of " + total + "  " + groups[gi].label;
+    }
+
+    // A date picked on the timeline: its stories light up briefly once the scroll has landed,
+    // so you can see where that day starts.
+    function glow(cards) {
+      const start = () => cards.forEach((card) => {
+        card.classList.remove("is-glowing");
+        void card.offsetWidth;
+        card.classList.add("is-glowing");
+        card.addEventListener("animationend", (e) => {
+          if (e.animationName === "ppui-glow") card.classList.remove("is-glowing");
+        }, { once: true });
+      });
+      if (reduced() || !("onscrollend" in window)) return start();
+      // No scroll needed (already there) means no scrollend: fall back after a moment.
+      const fallback = setTimeout(start, 700);
+      addEventListener("scrollend", () => {
+        clearTimeout(fallback);
+        start();
+      }, { once: true });
     }
 
     function goTo(i) {
@@ -3113,7 +3218,7 @@
         return;
       }
       root.classList.add("ppui-news-pending");
-      // Build once the list stops growing: two quiet checks in a row, 100 ms apart.
+      // Build once the list stops growing: two quiet checks in a row, 60 ms apart.
       let count = -1;
       let quiet = 0;
       const timer = setInterval(() => {
@@ -3136,7 +3241,7 @@
         } finally {
           root.classList.remove("ppui-news-pending");
         }
-      }, 100);
+      }, 60);
     }, NEWS_WAIT_MS);
   }
 
@@ -3481,16 +3586,37 @@
       filter.classList.toggle("is-active", actions.view !== "all");
       const shown = actions.visible();
       renderNews(list, shown, newsLink.href, actions);
-      // The lead story's picture often lives only on its own page: fetch it for the card.
-      if (shown[0] && !shown[0].image) fullStory(shown[0]);
+      // The lead story's picture often lives only on its own page: fetch it for the card (and remember it).
+      if (shown[0] && !shown[0].image) fullStory(shown[0]).then(() => shown[0].image && saveCachedNews(newsLink.href, items));
+    }
+
+    // Last visit's stories show at once; the hidden frame then brings the list up to date.
+    const cached = cachedNews(newsLink.href);
+    if (cached.length) {
+      items = cached;
+      reader.newsHref = reader.newsHref || newsLink.href;
+      render();
     }
 
     async function load() {
       try {
         reader.newsHref = reader.newsHref || newsLink.href;
-        items = await loadArticles(newsLink.href);
+        const fresh = await loadArticles(newsLink.href);
+        // Keep pictures already found for stories that haven't changed.
+        const known = new Map(items.map((item) => [storyKey(item), item.image]));
+        fresh.forEach((item) => {
+          if (!item.image && known.get(storyKey(item))) item.image = known.get(storyKey(item));
+        });
+        const same = fresh.length === items.length && fresh.every((item, i) => storyKey(item) === storyKey(items[i]));
+        if (same && items.length) {
+          saveCachedNews(newsLink.href, items);
+          return;
+        }
+        items = fresh;
+        saveCachedNews(newsLink.href, items);
         render();
       } catch (e) {
+        if (items.length) return;
         list.replaceChildren();
         const fallback = el("li", "ppui-empty");
         fallback.appendChild(document.createTextNode("Could not load news. "));
@@ -3501,11 +3627,48 @@
       }
     }
 
-    load();
+    // With stories already on screen, the (heavy) frame waits until the page is idle.
+    if (cached.length && window.requestIdleCallback) requestIdleCallback(load, { timeout: 2000 });
+    else load();
     setInterval(() => {
       if (document.visibilityState === "visible") load();
     }, REFRESH_MS);
     return section;
+  }
+
+  // The card's stories, kept between visits: plain fields plus the (already cleaned) body markup.
+  const NEWS_CACHE_KEY = "ppui-news-cache";
+
+  function saveCachedNews(href, items) {
+    writeJson(NEWS_CACHE_KEY, {
+      href,
+      items: items.map((item) => ({
+        title: item.title, dateText: item.dateText, summary: item.summary, image: item.image, href: item.href,
+        body: item.body.innerHTML,
+      })),
+    });
+  }
+
+  function cachedNews(href) {
+    const saved = readJson(NEWS_CACHE_KEY, null);
+    if (!saved || saved.href !== href || !Array.isArray(saved.items)) return [];
+    return saved.items.filter((c) => c && typeof c.title === "string").map((c) => {
+      const day = new Date(c.dateText);
+      // Re-clean the saved markup (an inert template: nothing loads or runs while it's parsed).
+      const t = document.createElement("template");
+      t.innerHTML = typeof c.body === "string" ? c.body : "";
+      return {
+        title: c.title,
+        dateText: c.dateText || "",
+        time: isNaN(day) ? null : day.setHours(0, 0, 0, 0),
+        date: splitDate(c.dateText || ""),
+        summary: c.summary || "",
+        image: absUrl(c.image),
+        href: c.href ? sameOriginHref(c.href) : null,
+        frames: [],
+        body: cleanBody(t.content, () => false),
+      };
+    });
   }
 
   function findNews() {
