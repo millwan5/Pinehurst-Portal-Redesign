@@ -1597,6 +1597,10 @@ html.ppui-news-pending .app-container {
   color: var(--ppui-text);
 }
 
+.ppui-room-tab-count:empty {
+  display: none;
+}
+
 .ppui-room-tab-count {
   min-width: 20px;
   height: 20px;
@@ -1891,6 +1895,7 @@ html.ppui-news-pending .app-container {
   --ppui-paper: #fdfcf8;
   --ppui-paper-under: #f3f1ea;
   --ppui-paper-edge: #e4e0d4;
+  --ppui-glow: #ffffff;
   --ppui-ink-text: #1c2740;
   --ppui-grain-blend: multiply;
 }
@@ -1899,6 +1904,7 @@ html.ppui-news-pending .app-container {
   --ppui-paper: #101e3c;
   --ppui-paper-under: #0c1830;
   --ppui-paper-edge: rgba(167, 169, 172, 0.2);
+  --ppui-glow: rgba(253, 252, 248, 0.55);
   --ppui-ink-text: #dfe5f1;
   --ppui-grain-blend: screen;
 }
@@ -2164,9 +2170,13 @@ html.ppui-news-pending .app-container {
   display: none;
 }
 
-.ppui-room-story.is-compact .ppui-stub {
+.ppui-room-story.is-compact .ppui-read-box {
   grid-column: 1;
   grid-row: 1 / span 2;
+}
+
+.ppui-room-story.is-compact :is(.ppui-stub, .ppui-room-date, .ppui-room-toggle-caret) {
+  display: none;
 }
 
 .ppui-room-story.is-compact .ppui-room-headline {
@@ -2199,8 +2209,82 @@ html.ppui-news-pending .app-container {
   height: 32px;
 }
 
-/* The date and the buttons sit above the row-wide click area. */
-.ppui-room-story.is-compact :is(.ppui-room-when, .ppui-room-actions) {
+/* In a row the pin only shows on hover or focus, or when the story is pinned. */
+.ppui-room-story.is-compact .ppui-story-pin[aria-pressed="false"] {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.ppui-room-story.is-compact:is(:hover, :focus-within) .ppui-story-pin {
+  opacity: 1;
+}
+
+/* Read tick box: a round check that fills crest blue. */
+.ppui-read-box {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+}
+
+.ppui-read-box input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.ppui-read-mark {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  box-sizing: border-box;
+  border: 2px solid var(--ppui-silver);
+  border-radius: 50%;
+  color: transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.ppui-read-mark .ppui-icon {
+  width: 13px;
+  height: 13px;
+  stroke-width: 3;
+}
+
+.ppui-read-box:hover .ppui-read-mark {
+  border-color: var(--ppui-accent);
+  color: var(--ppui-accent);
+}
+
+.ppui-read-box input:checked + .ppui-read-mark {
+  border-color: var(--ppui-accent);
+  background: var(--ppui-accent);
+  color: #fff;
+}
+
+.ppui-read-box input:focus-visible + .ppui-read-mark {
+  outline: 2px solid var(--ppui-sky);
+  outline-offset: 2px;
+}
+
+/* Ticked: a line runs through the headline and it greys out. */
+.ppui-room-toggle > span {
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 58% / 0 2px;
+  transition: background-size 0.35s var(--ppui-ease), color 0.2s ease;
+}
+
+.ppui-room-story.is-done .ppui-room-toggle > span {
+  background-size: 100% 2px;
+  color: var(--ppui-muted);
+}
+
+/* The tick box, date and pin sit above the row-wide click area. */
+.ppui-room-story.is-compact :is(.ppui-read-box, .ppui-room-when, .ppui-room-actions) {
   position: relative;
   z-index: 1;
 }
@@ -2257,65 +2341,23 @@ html.ppui-news-pending .app-container {
   display: none;
 }
 
-/* A date picked on the timeline: its stories glow for a moment (an accent ring that fades out). */
+/* A date picked on the timeline: its stories glow for a moment in the card's own paper colour. */
 .ppui-room-story.is-glowing {
   animation: ppui-glow 1.4s ease-out;
 }
 
+/* (An outline, since the portal's shadows are switched off everywhere.) */
 @keyframes ppui-glow {
   0%, 30% {
-    border-color: var(--ppui-accent);
-    outline: 3px solid var(--ppui-accent);
-    outline-offset: 3px;
+    outline: 5px solid var(--ppui-glow);
+    outline-offset: 2px;
   }
   100% {
-    outline: 3px solid transparent;
-    outline-offset: 8px;
+    outline: 5px solid transparent;
+    outline-offset: 10px;
   }
 }
 
-/* Layout switch: Titles / Full. */
-.ppui-room-layout-switch {
-  display: inline-flex;
-  gap: 2px;
-  height: 34px;
-  padding: 3px;
-  box-sizing: border-box;
-  border: 1px solid var(--ppui-hairline);
-  border-radius: 999px;
-  background: var(--ppui-surface);
-}
-
-.ppui-room-layout-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--ppui-muted);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 650;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.ppui-room-layout-button .ppui-icon {
-  width: 15px;
-  height: 15px;
-}
-
-.ppui-room-layout-button:hover {
-  color: var(--ppui-text);
-}
-
-.ppui-room-layout-button[aria-pressed="true"] {
-  background: var(--ppui-accent-soft);
-  color: var(--ppui-accent);
-}
 
 @media (max-width: 700px) {
   .ppui-room-story.has-picture {
@@ -2844,6 +2886,21 @@ button.ppui-menu-item:disabled {
   color: var(--ppui-muted);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
+}
+
+.ppui-menu-heading {
+  padding: 8px 12px 4px;
+  color: var(--ppui-muted);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ppui-menu-heading:not(:first-child) {
+  margin-top: 4px;
+  border-top: 1px solid var(--ppui-hairline);
+  padding-top: 10px;
 }
 
 .ppui-menu-sep {

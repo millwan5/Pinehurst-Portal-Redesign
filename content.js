@@ -164,7 +164,8 @@
     calendar: [["rect", { x: 3, y: 4, width: 18, height: 18, rx: 2 }], ["path", { d: "M16 2v4M8 2v4M3 10h18" }]],
     sort: [["path", { d: "m21 16-4 4-4-4M17 20V4M3 8l4-4 4 4M7 4v16" }]],
     chevronDown: [["path", { d: "m6 9 6 6 6-6" }]],
-    list: [["path", { d: "M3 6h.01M3 12h.01M3 18h.01M8 6h13M8 12h13M8 18h13" }]],
+    sliders: [["path", { d: "M20 7h-9M14 17H5" }], ["circle", { cx: 17, cy: 17, r: 3 }], ["circle", { cx: 7, cy: 7, r: 3 }]],
+    check: [["path", { d: "M20 6 9 17l-5-5" }]],
     notebook: [["path", { d: "M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4M2 6h4M2 10h4M2 14h4M2 18h4" }], ["path", { d: "M21.38 5.63a1 1 0 1 0-3-3l-5.02 5a2 2 0 0 0-.5.86l-.84 2.87a.5.5 0 0 0 .62.62l2.87-.84a2 2 0 0 0 .86-.5z" }]],
     plus: [["path", { d: "M5 12h14M12 5v14" }]],
     minimise: [["path", { d: "M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" }]],
@@ -1308,7 +1309,7 @@
         reader.actions.togglePin(reader.stories[reader.index]);
         showStory(reader.index);
       }),
-      readerButton("ppui-reader-trash", "Move to trash", "trash", () => {
+      readerButton("ppui-reader-trash", "Mark as read", "check", () => {
         const item = reader.stories[reader.index];
         reader.stories = reader.stories.filter((s) => s !== item);
         reader.actions.trash(item);
@@ -1418,7 +1419,7 @@
   const NEWS_VIEWS = [
     ["all", "All stories"],
     ["pinned", "Pinned"],
-    ["trash", "Trash"],
+    ["trash", "Read"],
   ];
 
   // Pin, trash and restore for one list of stories, plus which stories each view shows.
@@ -1447,7 +1448,7 @@
           if (!prefs.trash.includes(key)) prefs.trash.push(key);
           prefs.pinned = prefs.pinned.filter((k) => k !== key);
         });
-        toast("Moved to trash", "Undo", () => actions.restore(item));
+        toast("Marked as read", "Undo", () => actions.restore(item));
       },
       restore(item) {
         const key = storyKey(item);
@@ -1471,7 +1472,7 @@
       counts: () => ({ all: actions.visible("all").length, pinned: actions.visible("pinned").length, trash: actions.visible("trash").length }),
       get emptyText() {
         if (actions.view === "pinned") return "Nothing pinned yet. Pin a story to keep it at the top.";
-        if (actions.view === "trash") return "Trash is empty.";
+        if (actions.view === "trash") return "Nothing here yet. Tick a story once you've read it.";
         return "No news right now.";
       },
     };
@@ -1504,7 +1505,7 @@
     const room = el("section", "ppui-newsroom");
     room.setAttribute("aria-label", "School news");
 
-    // One heading row: the page's name (the portal's, found below), the three tabs, then When and Sort.
+    // One heading row: the page's name (the portal's, found below), the three tabs, then the View menu.
     const head = el("header", "ppui-room-head");
     const title = el("h1", "ppui-room-title", "News");
     const tabs = el("div", "ppui-room-tabs");
@@ -1519,8 +1520,7 @@
       b.dataset.view = view;
       b.setAttribute("role", "tab");
       b.setAttribute("aria-controls", "ppui-room-list");
-      b.append(icon(view === "pinned" ? "pin" : view === "trash" ? "trash" : "newspaper"), el("span", null, label),
-        el("span", "ppui-room-tab-count"));
+      b.append(el("span", null, label), el("span", "ppui-room-tab-count"));
       b.addEventListener("click", () => switchTo(view));
       return b;
     });
@@ -1609,11 +1609,55 @@
       menu.appendChild(li);
     }
 
-    const whenChoice = choice("calendar", "Show stories from", (menu) => {
+    // Layout: "Titles" (the default) lists headlines only, and a headline opens its story in place;
+    // "Full" shows every story as a full card. Remembered.
+    const LAYOUT_KEY = "ppui-news-layout";
+    const LAYOUTS = [["titles", "Headlines only"], ["full", "Full stories"]];
+    let layoutMode = "titles";
+    try {
+      if (localStorage.getItem(LAYOUT_KEY) === "full") layoutMode = "full";
+    } catch (e) {}
+    // Stories opened or closed by hand, against the layout's default (closed in Titles, open in Full).
+    const flipped = new Set();
+
+    function setLayout(mode) {
+      if (layoutMode === mode) return;
+      layoutMode = mode;
+      flipped.clear();
+      try {
+        localStorage.setItem(LAYOUT_KEY, mode);
+      } catch (e) {}
+      render();
+    }
+
+    function setSort(key) {
+      sort = key;
+      try {
+        localStorage.setItem(SORT_KEY, key);
+      } catch (e) {}
+      render();
+    }
+
+    function setWhen(next) {
+      when = next;
+      render();
+    }
+
+    function menuHeading(menu, text) {
+      const li = el("li", "ppui-menu-heading", text);
+      li.setAttribute("role", "presentation");
+      menu.appendChild(li);
+    }
+
+    // One "View" menu holds layout, date range and sort, so the heading row stays quiet.
+    const viewChoice = choice("sliders", "View options", (menu) => {
       menu.replaceChildren();
+      menuHeading(menu, "Layout");
+      for (const [mode, label] of LAYOUTS) radioItem(menu, label, layoutMode === mode, () => setLayout(mode));
+      menuHeading(menu, "Show");
       for (const [kind, label] of WHEN) radioItem(menu, label, when.kind === kind, () => setWhen({ kind }));
       // Or one particular day, limited to the days the stories cover.
-      const li = el("li", "ppui-menu-sep ppui-choice-day");
+      const li = el("li", "ppui-choice-day");
       const field = el("label", null, "Pick a day");
       const input = el("input");
       input.type = "date";
@@ -1632,59 +1676,12 @@
       field.appendChild(input);
       li.appendChild(field);
       menu.appendChild(li);
+      menuHeading(menu, "Sort");
+      for (const [key, label] of SORTS) radioItem(menu, label, sort === key, () => setSort(key));
     });
-
-    const sortChoice = choice("sort", "Sort stories", (menu) => {
-      menu.replaceChildren();
-      for (const [key, label] of SORTS) {
-        radioItem(menu, label, sort === key, () => {
-          sort = key;
-          try {
-            localStorage.setItem(SORT_KEY, key);
-          } catch (e) {}
-          render();
-        });
-      }
-    });
-
-    function setWhen(next) {
-      when = next;
-      render();
-    }
-
-    // Layout: "Titles" (the default) lists headlines only, and a headline opens its story in place;
-    // "Full" shows every story as a full card. Remembered.
-    const LAYOUT_KEY = "ppui-news-layout";
-    let layoutMode = "titles";
-    try {
-      if (localStorage.getItem(LAYOUT_KEY) === "full") layoutMode = "full";
-    } catch (e) {}
-    // Stories opened or closed by hand, against the layout's default (closed in Titles, open in Full).
-    const flipped = new Set();
-    const layoutSwitch = el("div", "ppui-room-layout-switch");
-    layoutSwitch.setAttribute("role", "group");
-    layoutSwitch.setAttribute("aria-label", "Layout");
-    const layoutButtons = [["titles", "Titles", "list"], ["full", "Full", "newspaper"]].map(([mode, label, iconName]) => {
-      const b = el("button", "ppui-room-layout-button");
-      b.type = "button";
-      b.dataset.mode = mode;
-      b.title = mode === "titles" ? "Show headlines only" : "Show full stories";
-      b.append(icon(iconName), el("span", null, label));
-      b.addEventListener("click", () => {
-        if (layoutMode === mode) return;
-        layoutMode = mode;
-        flipped.clear();
-        try {
-          localStorage.setItem(LAYOUT_KEY, mode);
-        } catch (e) {}
-        render();
-      });
-      return b;
-    });
-    layoutSwitch.append(...layoutButtons);
 
     const controls = el("div", "ppui-room-controls");
-    controls.append(layoutSwitch, whenChoice.btn, sortChoice.btn);
+    controls.append(viewChoice.btn);
     head.append(title, tabs, controls);
 
     // Timeline: one dated node per story, a fill that follows your place, a chip on phones.
@@ -1766,22 +1763,15 @@
 
       const meta = el("div", "ppui-room-meta");
       const when = el("span", "ppui-room-when");
-      if (pinned) {
-        const mark = el("span", "ppui-pinned-mark");
-        mark.append(icon("pin"), document.createTextNode("Pinned"));
-        when.appendChild(mark);
-      }
       if (item.dateText) when.appendChild(el("span", "ppui-room-date", item.dateText));
       if (item.date.ago && item.date.ago !== item.dateText) when.appendChild(el("span", "ppui-room-ago", item.date.ago));
       const buttons = el("span", "ppui-room-actions");
-      if (actions.view === "trash") {
-        buttons.appendChild(storyButton("ppui-story-restore", "Restore", "rotateCcw", () => leave(card, () => actions.restore(item))));
-      } else {
+      if (actions.view !== "trash") {
         const pin = storyButton("ppui-story-pin", pinned ? "Unpin" : "Pin to the top", "pin", () => actions.togglePin(item));
         pin.setAttribute("aria-pressed", String(pinned));
-        buttons.append(pin, storyButton("ppui-story-trash", "Move to trash", "trash", () => leave(card, () => actions.trash(item))));
+        buttons.appendChild(pin);
       }
-      meta.append(storyStub(item), when, buttons);
+      meta.append(readBox(item, card), storyStub(item), when, buttons);
 
       const headline = el("h2", "ppui-room-headline");
       headline.id = card.id + "-title";
@@ -1868,7 +1858,30 @@
       }
     }
 
-    // A card leaving its tab (to the trash, or back from it) slides out first.
+    // Tick a story once you've read it: its headline is crossed out, then it leaves the list for
+    // "Read" (with Undo). In "Read" the box is ticked; untick it to bring the story back.
+    function readBox(item, card) {
+      const done = actions.view === "trash";
+      const box = el("label", "ppui-read-box");
+      const input = el("input");
+      input.type = "checkbox";
+      input.checked = done;
+      input.setAttribute("aria-label", (done ? "Mark as unread: " : "Mark as read: ") + item.title);
+      const mark = el("span", "ppui-read-mark");
+      mark.setAttribute("aria-hidden", "true");
+      mark.appendChild(icon("check"));
+      box.append(input, mark);
+      if (done) card.classList.add("is-done");
+      input.addEventListener("change", () => {
+        card.classList.toggle("is-done", input.checked);
+        if (input.checked === done) return;
+        input.disabled = true;
+        setTimeout(() => leave(card, () => (input.checked ? actions.trash(item) : actions.restore(item))), reduced() ? 0 : 650);
+      });
+      return box;
+    }
+
+    // A card leaving its tab (marked read, or back from "Read") slides out first.
     function leave(card, then) {
       if (reduced()) return then();
       card.classList.add("is-leaving");
@@ -1893,24 +1906,24 @@
 
     function render() {
       const counts = actions.counts();
-      whenChoice.text.textContent = whenLabel();
-      whenChoice.btn.classList.toggle("is-active", when.kind !== "all");
-      sortChoice.text.textContent = sort === "newest" ? "Newest" : "Oldest";
-      for (const b of layoutButtons) b.setAttribute("aria-pressed", String(b.dataset.mode === layoutMode));
+      // The View button says "View", or the date range when one is narrowing the list.
+      viewChoice.text.textContent = when.kind === "all" ? "View" : whenLabel();
+      viewChoice.btn.classList.toggle("is-active", when.kind !== "all");
       list.classList.toggle("is-titles", layoutMode === "titles");
       for (const b of tabButtons) {
         const on = b.dataset.view === actions.view;
         b.setAttribute("aria-selected", String(on));
         b.tabIndex = on ? 0 : -1;
-        b.querySelector(".ppui-room-tab-count").textContent = String(counts[b.dataset.view]);
+        // Counts only where there is something to count.
+        b.querySelector(".ppui-room-tab-count").textContent = counts[b.dataset.view] ? String(counts[b.dataset.view]) : "";
       }
       list.setAttribute("aria-labelledby", "ppui-tab-" + actions.view);
       moveIndicator();
 
       tools.replaceChildren();
       if (actions.view === "trash" && counts.trash) {
-        tools.appendChild(el("p", "ppui-room-tools-text", "Trashed stories stay here until you restore them."));
-        const all = el("button", "ppui-room-restore-all", "Restore all");
+        tools.appendChild(el("p", "ppui-room-tools-text", "Stories you've ticked. Untick one to put it back."));
+        const all = el("button", "ppui-room-restore-all", "Put all back");
         all.type = "button";
         all.prepend(icon("rotateCcw"));
         all.addEventListener("click", () => actions.restoreAll());
@@ -2000,8 +2013,9 @@
         index = i;
         through = Math.min(Math.max((line - r.top) / r.height, 0), 1);
       }
-      // At the very bottom of the page the last story counts as reached.
-      if (innerHeight + scrollY >= document.documentElement.scrollHeight - 4) {
+      // At the very bottom of the page the last story counts as reached (not when the short list of
+      // headlines fits without scrolling at all).
+      if (scrollY > 0 && innerHeight + scrollY >= document.documentElement.scrollHeight - 4) {
         index = cards.length - 1;
         through = 0;
       }
@@ -3503,14 +3517,14 @@
       body.appendChild(meta);
       a.append(storyStub(item), body);
 
-      // Pin / trash (or, in the trash view, restore). They sit over the row and appear on hover or focus.
+      // Pin / mark as read (or, in the Read view, put back). They sit over the row and appear on hover or focus.
       const tools = el("span", "ppui-story-actions");
       if (actions.view === "trash") {
-        tools.appendChild(storyButton("ppui-story-restore", "Restore", "rotateCcw", () => actions.restore(item)));
+        tools.appendChild(storyButton("ppui-story-restore", "Mark as unread", "rotateCcw", () => actions.restore(item)));
       } else {
         const pin = storyButton("ppui-story-pin", pinned ? "Unpin" : "Pin to the top", "pin", () => actions.togglePin(item));
         pin.setAttribute("aria-pressed", String(pinned));
-        tools.append(pin, storyButton("ppui-story-trash", "Move to trash", "trash", () => {
+        tools.append(pin, storyButton("ppui-story-trash", "Mark as read", "check", () => {
           row.classList.add("is-leaving");
           setTimeout(() => actions.trash(item), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 260);
         }));
@@ -3529,7 +3543,7 @@
     let items = [];
     const actions = newsActions(() => items, render);
 
-    // Filter button in the card's heading: All stories / Pinned / Trash, with counts.
+    // Filter button in the card's heading: All stories / Pinned / Read, with counts.
     const filter = el("button", "ppui-filter");
     filter.type = "button";
     filter.setAttribute("aria-label", "Filter news");
@@ -3560,7 +3574,7 @@
       }
       if (counts.trash) {
         const li = el("li", "ppui-menu-sep");
-        const b = el("button", "ppui-menu-item", "Restore everything in trash");
+        const b = el("button", "ppui-menu-item", "Put everything back");
         b.type = "button";
         b.setAttribute("role", "menuitem");
         b.addEventListener("click", () => {
@@ -3580,7 +3594,7 @@
     head.insertBefore(filter, head.querySelector(".ppui-link"));
 
     function render() {
-      // An emptied "Pinned" or "Trash" view falls back to everything.
+      // An emptied "Pinned" or "Read" view falls back to everything.
       if (actions.view !== "all" && !actions.visible().length) actions.view = "all";
       filterLabel.textContent = actions.view === "all" ? "" : NEWS_VIEWS.find(([v]) => v === actions.view)[1];
       filter.classList.toggle("is-active", actions.view !== "all");
