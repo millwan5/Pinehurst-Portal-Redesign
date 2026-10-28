@@ -1,6 +1,23 @@
 /* Pinehurst Dashboard: restyle of the Veracross login page (accounts.veracross.au).
    Tokens mirror styles.css; the two pages live on different hosts so they can't share a file. */
 
+/* Playfair Display, bundled (SIL OFL), variable weight, roman and italic: the big headings only (set in italic). */
+@font-face {
+  font-family: "Playfair Display";
+  src: url("chrome-extension://__MSG_@@extension_id__/fonts/PlayfairDisplay.ttf") format("truetype");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Playfair Display";
+  src: url("chrome-extension://__MSG_@@extension_id__/fonts/PlayfairDisplay-Italic.ttf") format("truetype");
+  font-weight: 400 900;
+  font-style: italic;
+  font-display: swap;
+}
+
 @font-face {
   font-family: "Plus Jakarta Sans";
   src: url("chrome-extension://__MSG_@@extension_id__/fonts/PlusJakartaSans.ttf") format("truetype");
@@ -76,10 +93,11 @@ body {
 /* Text */
 .card-header-title {
   color: var(--ppui-text) !important;
-  font-family: var(--ppui-font) !important;
+  font-family: "Playfair Display", Georgia, serif !important;
+  font-style: italic !important;
   font-size: 28px !important;
-  font-weight: 800 !important;
-  letter-spacing: -0.035em;
+  font-weight: 700 !important;
+  letter-spacing: -0.005em;
 }
 
 .ae-grid .card p,

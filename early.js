@@ -29,6 +29,14 @@
   root.classList.add("ppui-booting");
   if (/^\/pinehurst\/student\/?$/.test(location.pathname)) root.classList.add("ppui-home");
 
+  // The News page: hide the portal's own list until content.js has built ours (it removes the class).
+  try {
+    if (localStorage.getItem("ppui-news-path") === location.pathname) {
+      root.classList.add("ppui-news-pending");
+      setTimeout(() => root.classList.remove("ppui-news-pending"), 8000);
+    }
+  } catch (e) {}
+
   // Never leave the page blank if the portal or content.js is slow or fails.
   setTimeout(() => root.classList.remove("ppui-booting"), 4000);
 })();

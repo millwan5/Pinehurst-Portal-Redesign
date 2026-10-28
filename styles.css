@@ -3,6 +3,23 @@
    everything below it stays quiet. Tokens first, then global pieces, then the home dashboard
    (html.ppui-home), the news page (html.ppui-newspage) and the dark remaps of native pages. */
 
+/* Playfair Display, bundled (SIL OFL), variable weight, roman and italic: the big headings only (set in italic). */
+@font-face {
+  font-family: "Playfair Display";
+  src: url("chrome-extension://__MSG_@@extension_id__/fonts/PlayfairDisplay.ttf") format("truetype");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Playfair Display";
+  src: url("chrome-extension://__MSG_@@extension_id__/fonts/PlayfairDisplay-Italic.ttf") format("truetype");
+  font-weight: 400 900;
+  font-style: italic;
+  font-display: swap;
+}
+
 /* Plus Jakarta Sans, bundled (SIL OFL), variable weight. */
 @font-face {
   font-family: "Plus Jakarta Sans";
@@ -39,6 +56,7 @@
   --ppui-ease: cubic-bezier(0.32, 0.72, 0, 1);
   --ppui-font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text",
     "Segoe UI", system-ui, sans-serif;
+  --ppui-display: "Playfair Display", Georgia, "Times New Roman", serif;
 }
 
 /* content.js always sets data-ppui-theme (saved choice, else system); the media query
@@ -181,7 +199,7 @@ html :focus-visible {
 .ppui-header.is-compact,
 .ppui-header.is-standalone {
   margin: 0 0 12px;
-  padding: 14px var(--ppui-gutter) 62px;
+  padding: 14px var(--ppui-gutter) 70px;
 }
 
 .ppui-scene {
@@ -297,7 +315,7 @@ html :focus-visible {
 }
 
 .ppui-header.is-compact .ppui-forest {
-  height: 56px;
+  height: 68px;
 }
 
 .ppui-header.is-compact .ppui-ridge-far {
@@ -382,11 +400,12 @@ html :focus-visible {
 
 .ppui-greeting {
   margin: 0 0 8px !important;
-  font-family: var(--ppui-font) !important;
-  font-size: clamp(34px, 5.4vw, 56px) !important;
-  font-weight: 800 !important;
-  line-height: 1.02 !important;
-  letter-spacing: -0.04em;
+  font-family: var(--ppui-display) !important;
+  font-style: italic !important;
+  font-size: clamp(36px, 5.6vw, 60px) !important;
+  font-weight: 700 !important;
+  line-height: 1.05 !important;
+  letter-spacing: -0.01em;
   color: #fff !important;
   text-wrap: balance;
 }
@@ -936,10 +955,12 @@ a.ppui-class:hover {
 
 .ppui-feature-class {
   overflow: hidden;
-  font-size: 24px;
-  font-weight: 800;
+  font-family: var(--ppui-display);
+  font-style: italic;
+  font-size: 26px;
+  font-weight: 700;
   line-height: 1.15;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.005em;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -1410,118 +1431,1341 @@ html.ppui-home .component-my-events-student .day.today .day-header {
   color: var(--ppui-accent) !important;
 }
 
-/* ---------- News page (html.ppui-newspage) ---------- */
+/* ---------- News page (html.ppui-newspage): tabs, full-text cards and a date timeline ---------- */
 
-html.ppui-newspage .article {
-  position: relative;
-  display: grid !important;
-  grid-template-columns: 52px minmax(0, 1fr);
-  column-gap: 18px;
-  align-items: start;
-  max-width: 820px;
-  margin: 0 auto 14px !important;
-  padding: 22px 24px !important;
+/* The portal's own articles stay in the page (as a fallback) but out of sight. */
+html.ppui-newspage .ppui-moved,
+html.ppui-news-pending .article {
+  display: none !important;
+}
+
+.ppui-newsroom {
+  max-width: 1080px;
+  margin: 0 auto 72px;
+  padding: 0 20px;
   box-sizing: border-box;
-  background: var(--ppui-surface) !important;
-  border: 1px solid var(--ppui-hairline) !important;
-  border-radius: var(--ppui-radius-card) !important;
   color: var(--ppui-text);
 }
 
-html.ppui-newspage .article > * {
-  grid-column: 2;
+/* One heading row: page name, tabs, then When and Sort, all on a shared rule. */
+.ppui-room-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  column-gap: 28px;
+  row-gap: 4px;
+  padding-top: 6px;
+  border-bottom: 1px solid var(--ppui-hairline);
+}
+
+.ppui-room-title {
+  margin: 0 0 10px !important;
+  color: var(--ppui-text) !important;
+  font-family: var(--ppui-display) !important;
+  font-style: italic !important;
+  font-size: clamp(30px, 3.6vw, 40px) !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+/* Tabs, with an underline that slides to the selected one. */
+.ppui-room-tabs {
+  position: relative;
+  display: flex;
+  gap: 4px;
+}
+
+.ppui-room-controls {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  padding-bottom: 8px;
+}
+
+.ppui-room-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px 0 12px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 999px;
+  background: var(--ppui-surface);
+  color: var(--ppui-text);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ppui-room-choice .ppui-icon {
+  width: 15px;
+  height: 15px;
+  color: var(--ppui-muted);
+}
+
+.ppui-room-choice .ppui-choice-caret {
+  width: 14px;
+  height: 14px;
+  transition: rotate 0.25s var(--ppui-ease);
+}
+
+.ppui-room-choice[aria-expanded="true"] .ppui-choice-caret {
+  rotate: 180deg;
+}
+
+.ppui-room-choice:hover,
+.ppui-room-choice[aria-expanded="true"] {
+  background: var(--ppui-hover);
+}
+
+.ppui-room-choice.is-active {
+  border-color: transparent;
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent);
+}
+
+.ppui-room-choice.is-active .ppui-icon {
+  color: var(--ppui-accent);
+}
+
+.ppui-choice-menu {
+  min-width: 200px;
+}
+
+.ppui-choice-day label {
+  display: grid;
+  gap: 6px;
+  padding: 6px 8px 4px;
+  color: var(--ppui-muted);
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+.ppui-choice-day input {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 10px;
+  background: var(--ppui-raised);
+  color: var(--ppui-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.ppui-room-list > .ppui-empty .ppui-room-restore-all {
+  margin-top: 4px;
+}
+
+.ppui-room-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 12px;
+  border: 0;
+  border-radius: 10px 10px 0 0;
+  background: transparent;
+  color: var(--ppui-muted);
+  font-size: 15px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.ppui-room-tab .ppui-icon {
+  width: 17px;
+  height: 17px;
+}
+
+.ppui-room-tab:hover {
+  background: var(--ppui-hover);
+  color: var(--ppui-text);
+}
+
+.ppui-room-tab[aria-selected="true"] {
+  color: var(--ppui-text);
+}
+
+.ppui-room-tab-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 7px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: var(--ppui-hover);
+  color: var(--ppui-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.ppui-room-tab[aria-selected="true"] .ppui-room-tab-count {
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent);
+}
+
+.ppui-room-tab-indicator {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--ppui-accent);
+  pointer-events: none;
+}
+
+/* Timeline on the left, reading column on the right. */
+.ppui-room-layout {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+  margin-top: 22px;
+}
+
+.ppui-room-layout:has(> .ppui-rail[hidden]) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ppui-rail {
+  position: sticky;
+  top: 28px;
+  height: min(70vh, calc(var(--count, 2) * 64px));
+  min-height: 160px;
+}
+
+.ppui-rail[hidden] {
+  display: none;
+}
+
+/* The track runs from the first dot's centre to the last's; the fill grows down it as you read. */
+.ppui-rail-track {
+  position: absolute;
+  left: 8px;
+  top: 9px;
+  bottom: 9px;
+  width: 2px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--ppui-hairline);
+}
+
+.ppui-rail-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--ppui-accent);
+  transform-origin: top;
+  transform: scaleY(var(--rail-progress, 0));
+  transition: transform 0.12s linear;
+}
+
+.ppui-rail-nodes {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ppui-rail-item {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--pos) * (100% - 18px));
+}
+
+.ppui-rail-node {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ppui-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ppui-rail-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin-left: 4px;
+  box-sizing: border-box;
+  border: 2px solid var(--ppui-silver);
+  border-radius: 50%;
+  background: var(--ppui-surface);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.ppui-rail-node.is-past .ppui-rail-dot {
+  border-color: var(--ppui-accent);
+  background: var(--ppui-accent);
+}
+
+.ppui-rail-node.is-current .ppui-rail-dot {
+  border-color: var(--ppui-accent);
+  background: var(--ppui-surface);
+  outline: 4px solid var(--ppui-accent-soft);
+  transform: scale(1.5);
+}
+
+.ppui-rail-node.is-current {
+  color: var(--ppui-text);
+  font-weight: 750;
+}
+
+.ppui-rail-node:hover {
+  color: var(--ppui-accent);
+}
+
+.ppui-rail-chip {
+  display: none;
+}
+
+/* Phones: no room for the timeline, so a sticky chip says where you are ("3 of 12  28 Oct"). */
+@media (max-width: 760px) {
+  .ppui-room-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .ppui-rail {
+    top: 10px;
+    z-index: 5;
+    display: flex;
+    justify-content: center;
+    height: auto;
+    min-height: 0;
+    pointer-events: none;
+  }
+  .ppui-rail-track,
+  .ppui-rail-nodes {
+    display: none;
+  }
+  .ppui-rail-chip {
+    position: relative;
+    display: inline-flex;
+    overflow: hidden;
+    padding: 7px 14px 9px;
+    border-radius: 999px;
+    background: var(--ppui-crest);
+    color: #fff;
+    font-size: 12.5px;
+    font-weight: 700;
+    white-space: pre;
+    font-variant-numeric: tabular-nums;
+  }
+  /* The chip's own little progress line. */
+  .ppui-rail-chip::after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 4px;
+    height: 2px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.85);
+    transform-origin: left;
+    transform: scaleX(var(--rail-progress, 0));
+  }
+  .ppui-room-tab {
+    padding: 10px 10px 12px;
+    font-size: 14px;
+  }
+}
+
+.ppui-room-main {
   min-width: 0;
 }
 
-html.ppui-newspage .article > .ppui-stub {
-  grid-column: 1;
-  grid-row: 1 / span 20;
-  width: 52px;
+.ppui-room-tools:empty {
+  display: none;
 }
 
-html.ppui-newspage .article > .ppui-stub .ppui-stub-day {
-  font-size: 22px;
-  padding: 4px 0 6px;
+.ppui-room-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 10px 10px 16px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 14px;
+  background: var(--ppui-raised);
 }
 
-html.ppui-newspage .article-title,
-html.ppui-newspage .article-title a {
-  margin: 0 0 4px !important;
-  color: var(--ppui-text) !important;
-  font-size: 21px !important;
-  font-weight: 750 !important;
-  line-height: 1.25 !important;
-  letter-spacing: -0.02em;
-  text-decoration: none !important;
+.ppui-room-tools-text {
+  margin: 0 !important;
+  color: var(--ppui-muted) !important;
+  font-size: 14px;
+}
+
+.ppui-room-restore-all,
+.ppui-room-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 999px;
+  background: var(--ppui-surface);
+  color: var(--ppui-accent);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s var(--ppui-ease);
+}
+
+.ppui-room-restore-all .ppui-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.ppui-room-restore-all:hover,
+.ppui-room-more:hover {
+  background: var(--ppui-accent-soft);
+}
+
+.ppui-room-restore-all:active,
+.ppui-room-more:active {
+  transform: scale(0.96);
+}
+
+.ppui-room-list {
+  display: grid;
+  gap: 34px;
+}
+
+.ppui-room-list > .ppui-empty {
+  padding: 56px 20px;
+  border: 1px dashed var(--ppui-hairline);
+  border-radius: 6px;
+}
+
+/* One story, as a sheet of paper: off-white stock with a little grain, a second sheet peeking out
+   underneath, square-ish corners, and a double rule under the headline. No shadows. */
+.ppui-newsroom {
+  --ppui-paper: #fdfcf8;
+  --ppui-paper-under: #f3f1ea;
+  --ppui-paper-edge: #e4e0d4;
+  --ppui-ink-text: #1c2740;
+  --ppui-grain-blend: multiply;
+}
+
+:root[data-ppui-theme="dark"] .ppui-newsroom {
+  --ppui-paper: #101e3c;
+  --ppui-paper-under: #0c1830;
+  --ppui-paper-edge: rgba(167, 169, 172, 0.2);
+  --ppui-ink-text: #dfe5f1;
+  --ppui-grain-blend: screen;
+}
+
+.ppui-room-story {
+  position: relative;
+  isolation: isolate;
+  padding: 30px 40px 28px;
+  border: 1px solid var(--ppui-paper-edge);
+  border-radius: 4px;
+  background: var(--ppui-paper);
+  color: var(--ppui-ink-text);
+  outline: none;
+  scroll-margin-top: 24px;
+  transition: opacity 0.25s ease, translate 0.25s var(--ppui-ease), border-color 0.25s ease, rotate 0.4s var(--ppui-ease);
+}
+
+/* The sheet underneath, slightly offset and turned. */
+.ppui-room-story::before {
+  content: "";
+  position: absolute;
+  inset: 6px -5px -7px 5px;
+  z-index: -2;
+  border: 1px solid var(--ppui-paper-edge);
+  border-radius: 4px;
+  background: var(--ppui-paper-under);
+  rotate: 0.5deg;
+}
+
+/* Paper grain over the sheet. */
+.ppui-room-story::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--ppui-paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.47 0 0 0 0 0.4 0 0 0 0.12 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
+  background-blend-mode: var(--ppui-grain-blend);
+  opacity: 1;
+  pointer-events: none;
+}
+
+.ppui-room-story:focus-visible {
+  outline: 2px solid var(--ppui-sky);
+  outline-offset: 4px;
+}
+
+/* Pinned: a strip of crest-blue tape across the top. */
+.ppui-room-story.is-pinned {
+  border-top: 3px solid var(--ppui-accent);
+}
+
+.ppui-room-story.is-leaving {
+  opacity: 0;
+  translate: 48px 0;
+  rotate: 2deg;
+}
+
+.ppui-room-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ppui-room-meta .ppui-stub {
+  border-radius: 4px;
+  background: var(--ppui-paper);
+  border-color: var(--ppui-paper-edge);
+}
+
+.ppui-room-when {
+  display: grid;
+  gap: 2px;
+  font-size: 13.5px;
+}
+
+.ppui-room-when .ppui-pinned-mark {
+  margin: 0;
+}
+
+.ppui-room-date {
+  font-weight: 650;
+}
+
+.ppui-room-ago {
+  color: var(--ppui-muted);
+}
+
+.ppui-room-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.ppui-room-actions .ppui-story-action {
+  width: 36px;
+  height: 36px;
+  background: var(--ppui-paper);
+  border-color: var(--ppui-paper-edge);
+}
+
+.ppui-room-headline {
+  margin: 18px 0 16px !important;
+  padding-bottom: 14px;
+  border-bottom: 3px double var(--ppui-paper-edge);
+  color: var(--ppui-ink-text) !important;
+  font-family: var(--ppui-display) !important;
+  font-style: italic !important;
+  font-size: clamp(26px, 3.2vw, 34px) !important;
+  font-weight: 700 !important;
+  line-height: 1.18 !important;
+  letter-spacing: -0.005em;
   text-wrap: balance;
 }
 
-html.ppui-newspage .article-title a:hover {
-  color: var(--ppui-accent) !important;
+.ppui-room-picture:empty {
+  display: none;
 }
 
-html.ppui-newspage .article-date {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 0 0 12px !important;
-  color: var(--ppui-muted) !important;
-  font-size: 13px !important;
-  font-weight: 550;
+.ppui-room-picture {
+  margin-bottom: 20px;
 }
 
-html.ppui-newspage .article-date[data-ago]::after {
-  content: attr(data-ago);
-  padding: 2px 9px;
-  border-radius: 999px;
-  background: var(--ppui-accent-soft);
-  color: var(--ppui-accent);
-  font-size: 12px;
-  font-weight: 700;
+.ppui-room-story .ppui-photo {
+  border-radius: 3px;
+  border-color: var(--ppui-paper-edge);
+  background: #fff;
 }
 
-html.ppui-newspage .article :where(p, li, div) {
-  color: var(--ppui-text);
-  font-size: 15.5px;
-  line-height: 1.65;
+:root[data-ppui-theme="dark"] .ppui-room-story .ppui-photo {
+  background: var(--ppui-paper-under);
 }
 
-html.ppui-newspage .article :where(p) {
-  max-width: 68ch;
+.ppui-room-story .ppui-photo::after,
+.ppui-room-story .ppui-photo-cover,
+.ppui-room-story .ppui-photo-image {
+  border-radius: 2px;
 }
 
-html.ppui-newspage .article a:not(.article-title a) {
-  color: var(--ppui-accent) !important;
-  text-underline-offset: 3px;
-}
-
-html.ppui-newspage .article .ppui-photo {
-  margin-bottom: 18px;
-}
-
-html.ppui-newspage .article .ppui-photo-image {
-  position: static;
-  width: 100%;
+/* Body: comfortable reading size and measure. */
+.ppui-room-body {
+  max-width: 66ch;
   height: auto;
-  max-height: 340px;
-  aspect-ratio: auto;
-  object-fit: cover;
-  border-radius: 10px;
+  overflow: clip;
+  outline: none;
+  color: var(--ppui-ink-text);
+  font-size: 17.5px;
+  line-height: 1.8;
+}
+
+.ppui-room-body p {
+  margin: 0 0 1.1em;
+}
+
+/* A drop cap opens each longer story, as in print (short notices are too brief for one). */
+.ppui-room-story:is(.is-folded, .is-open) .ppui-room-body > p:first-child::first-letter {
+  float: left;
+  margin: 0.06em 0.1em 0 0;
+  color: var(--ppui-accent);
+  font-family: var(--ppui-display);
+  font-style: italic;
+  font-size: 3.3em;
+  font-weight: 700;
+  line-height: 0.85;
+}
+
+/* Folded (the default): the first few lines, fading out. */
+.ppui-room-story.is-folded .ppui-room-body {
+  height: 7.4em;
+  -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent);
+  mask-image: linear-gradient(180deg, #000 45%, transparent);
+}
+
+/* A story's picture sits beside the text as a small clipping, slightly askew, folded or open. */
+.ppui-room-story.has-picture {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  column-gap: 32px;
+  align-items: start;
+}
+
+.ppui-room-story.has-picture > * {
+  grid-column: 1;
+}
+
+.ppui-room-story.has-picture > .ppui-room-picture {
+  grid-column: 2;
+  grid-row: 1 / span 4;
+  margin: 4px 0 0;
+  rotate: 1.2deg;
+}
+
+.ppui-room-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.ppui-room-foot:empty {
+  display: none;
+}
+
+.ppui-room-more {
+  background: var(--ppui-accent);
+  border-color: transparent;
+  color: #fff;
+}
+
+.ppui-room-more:hover {
+  background: var(--ppui-crest);
+  filter: brightness(1.1);
+}
+
+.ppui-room-story.is-open .ppui-room-more {
+  background: transparent;
+  border-color: var(--ppui-paper-edge);
+  color: var(--ppui-accent);
+}
+
+.ppui-room-story .ppui-reader-source {
+  margin-top: 0;
+  border-color: var(--ppui-paper-edge);
+}
+
+@media (max-width: 700px) {
+  .ppui-room-story.has-picture {
+    display: block;
+  }
+  .ppui-room-story.has-picture > .ppui-room-picture {
+    max-width: 260px;
+    margin-bottom: 18px;
+  }
+  .ppui-room-controls {
+    margin-left: 0;
+    padding-bottom: 10px;
+  }
 }
 
 @media (max-width: 560px) {
-  html.ppui-newspage .article {
-    grid-template-columns: minmax(0, 1fr);
-    padding: 18px !important;
+  .ppui-room-story {
+    padding: 22px 20px 22px;
   }
-  html.ppui-newspage .article > * {
-    grid-column: 1;
+  .ppui-room-body {
+    font-size: 17px;
   }
-  html.ppui-newspage .article > .ppui-stub {
-    grid-row: auto;
-    margin-bottom: 12px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ppui-room-tab-indicator {
+    transition: translate 0.45s var(--ppui-ease), width 0.45s var(--ppui-ease);
   }
+  .ppui-room-body {
+    transition: height 0.55s var(--ppui-ease);
+  }
+  .ppui-room-list.is-switching {
+    animation: ppui-settle 0.4s var(--ppui-ease);
+  }
+  .ppui-room-head > * {
+    animation: ppui-settle 0.6s var(--ppui-ease) both;
+  }
+  .ppui-room-head > :nth-child(2) { animation-delay: 0.06s; }
+  .ppui-room-head > :nth-child(3) { animation-delay: 0.12s; }
+  .ppui-rail {
+    animation: ppui-fade 0.8s ease 0.2s both;
+  }
+}
+
+/* ---------- News reader: stories open in a panel on the right (a sheet on phones) ---------- */
+
+html.ppui-reading {
+  overflow: hidden;
+}
+
+.ppui-reader {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(620px, 100vw);
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--ppui-hairline);
+  background: var(--ppui-surface);
+  color: var(--ppui-text);
+  font-family: var(--ppui-font);
+}
+
+.ppui-reader[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.ppui-reader::backdrop {
+  background: rgba(4, 10, 26, 0.42);
+}
+
+.ppui-reader-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ppui-hairline);
+}
+
+.ppui-reader-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ppui-text);
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s var(--ppui-ease);
+}
+
+.ppui-reader-button:hover {
+  background: var(--ppui-hover);
+}
+
+.ppui-reader-button:active {
+  transform: scale(0.92);
+}
+
+.ppui-reader-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.ppui-reader-count {
+  min-width: 56px;
+  color: var(--ppui-muted);
+  font-size: 13px;
+  font-weight: 650;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.ppui-reader-all {
+  margin-left: auto;
+  padding: 0 10px;
+  color: var(--ppui-accent) !important;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none !important;
+}
+
+.ppui-reader-all:hover {
+  text-decoration: underline !important;
+  text-underline-offset: 3px;
+}
+
+.ppui-reader-scroll {
+  flex: 1;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 22px 28px 48px;
+}
+
+.ppui-reader-page {
+  max-width: 62ch;
+  margin: 0 auto;
+  outline: none;
+}
+
+.ppui-reader-page .ppui-photo {
+  margin-bottom: 22px;
+}
+
+.ppui-reader-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ppui-reader-when {
+  display: grid;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.ppui-reader-date {
+  color: var(--ppui-text);
+  font-weight: 650;
+}
+
+.ppui-reader-ago {
+  color: var(--ppui-muted);
+}
+
+.ppui-reader-title {
+  margin: 16px 0 14px !important;
+  color: var(--ppui-text) !important;
+  font-family: var(--ppui-display) !important;
+  font-style: italic !important;
+  font-size: clamp(26px, 3.6vw, 34px) !important;
+  font-weight: 700 !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+
+.ppui-reader-body {
+  color: var(--ppui-text);
+  font-size: 16.5px;
+  line-height: 1.7;
+}
+
+.ppui-reader-body p,
+.ppui-reader-body ul,
+.ppui-reader-body ol,
+.ppui-reader-body blockquote,
+.ppui-reader-body figure {
+  margin: 0 0 1em;
+}
+
+.ppui-reader-body h2,
+.ppui-reader-body h3,
+.ppui-reader-body h4 {
+  margin: 1.4em 0 0.5em;
+  font-size: 18px;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+}
+
+.ppui-reader-body a {
+  color: var(--ppui-accent);
+  text-underline-offset: 3px;
+}
+
+.ppui-reader-body img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.2em 0;
+  border-radius: 12px;
+}
+
+.ppui-reader-body blockquote {
+  padding-left: 16px;
+  border-left: 3px solid var(--ppui-accent);
+  color: var(--ppui-muted);
+}
+
+.ppui-reader-loading {
+  display: grid;
+  gap: 8px;
+  padding-top: 6px;
+}
+
+.ppui-reader-source {
+  display: inline-flex;
+  margin-top: 18px;
+  padding: 9px 16px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 999px;
+  color: var(--ppui-accent) !important;
+  font-size: 14px;
+  font-weight: 650;
+  text-decoration: none !important;
+  transition: background-color 0.15s ease;
+}
+
+.ppui-reader-source:hover {
+  background: var(--ppui-accent-soft);
+}
+
+@media (max-width: 640px) {
+  .ppui-reader {
+    inset: auto 0 0 0;
+    width: 100%;
+    height: 92dvh;
+    border-left: 0;
+    border-top: 1px solid var(--ppui-hairline);
+    border-radius: var(--ppui-radius-card) var(--ppui-radius-card) 0 0;
+  }
+  .ppui-reader-scroll {
+    padding: 18px 18px calc(36px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ppui-reader[open] {
+    animation: ppui-reader-in 0.42s var(--ppui-ease);
+  }
+  .ppui-reader[open]::backdrop {
+    animation: ppui-fade 0.32s ease;
+  }
+  .ppui-reader.is-closing {
+    animation: ppui-reader-out 0.32s var(--ppui-ease) forwards;
+  }
+  .ppui-reader.is-closing::backdrop {
+    animation: ppui-fade-out 0.32s ease forwards;
+  }
+  .ppui-reader-page.from-next {
+    animation: ppui-page-next 0.38s var(--ppui-ease);
+  }
+  .ppui-reader-page.from-prev {
+    animation: ppui-page-prev 0.38s var(--ppui-ease);
+  }
+  .ppui-reader-loading .ppui-skel-a,
+  .ppui-reader-loading .ppui-skel-b {
+    animation: ppui-shimmer 1.4s linear infinite;
+  }
+
+  @media (max-width: 640px) {
+    .ppui-reader[open] { animation-name: ppui-sheet; }
+    .ppui-reader.is-closing { animation-name: ppui-sheet-out; }
+  }
+}
+
+@keyframes ppui-reader-in {
+  from { translate: 100% 0; }
+}
+
+@keyframes ppui-reader-out {
+  to { translate: 100% 0; }
+}
+
+@keyframes ppui-sheet-out {
+  to { transform: translateY(100%); }
+}
+
+@keyframes ppui-fade-out {
+  to { opacity: 0; }
+}
+
+@keyframes ppui-page-next {
+  from { opacity: 0; translate: 32px 0; }
+}
+
+@keyframes ppui-page-prev {
+  from { opacity: 0; translate: -32px 0; }
+}
+
+/* "Open full" on the News page is a button that opens the reader. */
+button.ppui-reader-source {
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.ppui-reader-note a {
+  color: var(--ppui-accent);
+  font-weight: 650;
+  text-underline-offset: 3px;
+}
+
+/* ---------- Picture viewer: click a story's picture to see it full size ---------- */
+
+.ppui-photo.is-zoomable.has-image {
+  cursor: zoom-in;
+}
+
+.ppui-photo.is-zoomable.has-image:hover .ppui-photo-image,
+.ppui-photo.is-zoomable.has-image:focus-visible .ppui-photo-image {
+  transform: scale(1.04);
+}
+
+.ppui-photo.is-zoomable:focus-visible {
+  outline: 2px solid var(--ppui-sky);
+  outline-offset: 3px;
+}
+
+/* A small "enlarge" mark in the corner of a zoomable picture. */
+.ppui-photo.is-zoomable.has-image::before {
+  content: "";
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 1;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(4, 10, 26, 0.55) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7'/%3E%3C/svg%3E") center / 14px no-repeat;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.ppui-photo.is-zoomable.has-image:hover::before,
+.ppui-photo.is-zoomable.has-image:focus-visible::before {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .ppui-photo.is-zoomable.has-image::before {
+    opacity: 1;
+  }
+}
+
+.ppui-viewer {
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 4vh 4vw;
+  box-sizing: border-box;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-family: var(--ppui-font);
+  cursor: zoom-out;
+}
+
+.ppui-viewer[open] {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  place-items: center;
+  gap: 14px;
+}
+
+.ppui-viewer::backdrop {
+  background: rgba(4, 10, 26, 0.88);
+}
+
+.ppui-viewer-image {
+  display: block;
+  min-width: min(480px, 92vw);
+  max-width: 92vw;
+  max-height: calc(92dvh - 70px);
+  object-fit: contain;
+  border-radius: 12px;
+  transform-origin: top left;
+}
+
+.ppui-viewer-caption {
+  margin: 0 !important;
+  max-width: 60ch;
+  color: rgba(255, 255, 255, 0.92) !important;
+  font-family: var(--ppui-display);
+  font-style: italic;
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.ppui-viewer-close {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+}
+
+.ppui-viewer-close:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ppui-viewer[open]::backdrop {
+    animation: ppui-fade 0.35s ease;
+  }
+  .ppui-viewer.is-closing::backdrop {
+    animation: ppui-fade-out 0.34s ease forwards;
+  }
+  .ppui-viewer[open] .ppui-viewer-caption,
+  .ppui-viewer[open] .ppui-viewer-close {
+    animation: ppui-settle 0.5s var(--ppui-ease) 0.15s both;
+  }
+  .ppui-viewer.is-closing .ppui-viewer-caption,
+  .ppui-viewer.is-closing .ppui-viewer-close {
+    animation: ppui-fade-out 0.2s ease forwards;
+  }
+}
+
+/* ---------- News card: filter, pin and trash ---------- */
+
+.ppui-news .ppui-head .ppui-filter {
+  margin-left: auto;
+}
+
+.ppui-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ppui-muted);
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ppui-filter .ppui-icon {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2.2;
+}
+
+.ppui-filter:hover,
+.ppui-filter[aria-expanded="true"] {
+  background: var(--ppui-hover);
+  color: var(--ppui-text);
+}
+
+.ppui-filter.is-active {
+  border-color: transparent;
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent);
+}
+
+.ppui-filter-label:empty {
+  display: none;
+}
+
+button.ppui-menu-item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.ppui-menu-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ppui-menu-item[aria-checked="true"] {
+  color: var(--ppui-accent) !important;
+  font-weight: 700;
+}
+
+.ppui-menu-count {
+  margin-left: auto;
+  color: var(--ppui-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ppui-menu-sep {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--ppui-hairline);
+}
+
+/* Pin / hide buttons over each story: shown on hover or keyboard focus, always on touch screens. */
+.ppui-story {
+  position: relative;
+  transition: opacity 0.25s ease, translate 0.25s var(--ppui-ease);
+}
+
+.ppui-story.is-leaving {
+  opacity: 0;
+  translate: 24px 0;
+}
+
+.ppui-story-actions {
+  position: absolute;
+  top: 9px;
+  right: -6px;
+  z-index: 1;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.ppui-story.is-lead .ppui-story-actions {
+  top: 10px;
+  right: 10px;
+}
+
+.ppui-story:hover .ppui-story-actions,
+.ppui-story:focus-within .ppui-story-actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .ppui-story-actions {
+    opacity: 1;
+  }
+}
+
+.ppui-story-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 50%;
+  background: var(--ppui-surface);
+  color: var(--ppui-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s var(--ppui-ease);
+}
+
+.ppui-story-action .ppui-icon {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2;
+}
+
+.ppui-story-action:hover {
+  color: var(--ppui-accent);
+}
+
+.ppui-story-action:active {
+  transform: scale(0.9);
+}
+
+.ppui-story-pin[aria-pressed="true"],
+.ppui-reader-pin[aria-pressed="true"] {
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent);
+}
+
+.ppui-pinned-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-right: 8px;
+  color: var(--ppui-accent);
+  font-weight: 700;
+}
+
+.ppui-pinned-mark .ppui-icon {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2.4;
+}
+
+.ppui-reader-note {
+  padding: 12px 14px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 12px;
+  background: var(--ppui-raised);
+  color: var(--ppui-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Undo message along the bottom of the window. */
+.ppui-toast {
+  position: fixed;
+  inset: auto auto 24px 50%;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 8px 8px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: var(--ppui-ink);
+  color: #fff;
+  font-family: var(--ppui-font);
+  font-size: 14px;
+  font-weight: 550;
+  translate: -50% 160%;
+  transition: translate 0.35s var(--ppui-ease);
+}
+
+.ppui-toast.is-shown {
+  translate: -50% 0;
+}
+
+.ppui-toast-action {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ppui-toast-action:hover {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 /* ---------- Light theme: native portal pages pick up the type and crest blue ---------- */
@@ -1556,15 +2800,15 @@ html body .app-container :where(h1, h2, h3, h4) {
   color: var(--ppui-text) !important;
 }
 
-:root[data-ppui-theme="dark"] .app-container :where(h1, h2, h3, h4, h5, h6, p, span, small, li, td, th, label, strong, b, div):not(.ppui-dash *):not(.ppui-header *):not(.ppui-stub *) {
+:root[data-ppui-theme="dark"] .app-container :where(h1, h2, h3, h4, h5, h6, p, span, small, li, td, th, label, strong, b, div):not(.ppui-dash *):not(.ppui-newsroom *):not(.ppui-header *):not(.ppui-stub *) {
   color: var(--ppui-text) !important;
 }
 
-:root[data-ppui-theme="dark"] .app-container :where(small, .vx-subtitle, .vx-tab-bar__description, .message-from-label, .message-category, .item-subtitle, .vx-heading-6, .day-number):not(.ppui-dash *) {
+:root[data-ppui-theme="dark"] .app-container :where(small, .vx-subtitle, .vx-tab-bar__description, .message-from-label, .message-category, .item-subtitle, .vx-heading-6, .day-number):not(.ppui-dash *):not(.ppui-newsroom *) {
   color: var(--ppui-muted) !important;
 }
 
-:root[data-ppui-theme="dark"] .app-container a:not(.ppui-dash a):not(.ppui-header a),
+:root[data-ppui-theme="dark"] .app-container a:not(.ppui-dash a):not(.ppui-header a):not(.ppui-newsroom a),
 :root[data-ppui-theme="dark"] .app-container .vx-button {
   color: var(--ppui-accent) !important;
 }
@@ -1929,11 +3173,16 @@ html body .app-container :where(h1, h2, h3, h4) {
     .ppui-row,
     .ppui-course,
     .ppui-story,
-    html.ppui-newspage .article,
+    .ppui-room-story,
     html.ppui-home .component-my-events-student {
       animation: ppui-enter-view linear both;
       animation-timeline: view();
       animation-range: entry 0% entry 80%;
+    }
+
+    /* News page cards are tall: ease them in over their first 160px, not most of their height. */
+    .ppui-room-story {
+      animation-range: entry 0px entry 160px;
     }
   }
 }
