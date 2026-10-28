@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Pinehurst Dashboard",
-  "version": "2.3",
+  "version": "3.1",
+  "permissions": ["storage"],
   "description": "Pinehurst Dashboard for the Student Portal: today's timetable, classes and news at a glance, every link in one Apps launcher.",
   "icons": {
     "16": "icons/icon16.png",

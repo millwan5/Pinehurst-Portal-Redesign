@@ -1310,16 +1310,16 @@ a.ppui-class:hover {
   color: var(--tone-fg, #fff);
 }
 
-.ppui-subject[data-tone="0"] { --tone-bg: #1446a0; --tone-fg: #fff; }
-.ppui-subject[data-tone="1"] { --tone-bg: #3d7be8; --tone-fg: #fff; }
-.ppui-subject[data-tone="2"] { --tone-bg: #0b1e45; --tone-fg: #fff; }
-.ppui-subject[data-tone="3"] { --tone-bg: #e3e5e9; --tone-fg: #3f4652; }
-.ppui-subject[data-tone="4"] { --tone-bg: #dce8ff; --tone-fg: #1446a0; }
-.ppui-subject[data-tone="5"] { --tone-bg: #5a6b85; --tone-fg: #fff; }
+[data-tone="0"] { --tone-bg: #1446a0; --tone-fg: #fff; }
+[data-tone="1"] { --tone-bg: #3d7be8; --tone-fg: #fff; }
+[data-tone="2"] { --tone-bg: #0b1e45; --tone-fg: #fff; }
+[data-tone="3"] { --tone-bg: #e3e5e9; --tone-fg: #3f4652; }
+[data-tone="4"] { --tone-bg: #dce8ff; --tone-fg: #1446a0; }
+[data-tone="5"] { --tone-bg: #5a6b85; --tone-fg: #fff; }
 
-:root[data-ppui-theme="dark"] .ppui-subject[data-tone="2"] { --tone-bg: #22397a; }
-:root[data-ppui-theme="dark"] .ppui-subject[data-tone="3"] { --tone-bg: #3a4252; --tone-fg: #e3e5e9; }
-:root[data-ppui-theme="dark"] .ppui-subject[data-tone="4"] { --tone-bg: #1c3570; --tone-fg: #a9c6ff; }
+:root[data-ppui-theme="dark"] [data-tone="2"] { --tone-bg: #22397a; }
+:root[data-ppui-theme="dark"] [data-tone="3"] { --tone-bg: #3a4252; --tone-fg: #e3e5e9; }
+:root[data-ppui-theme="dark"] [data-tone="4"] { --tone-bg: #1c3570; --tone-fg: #a9c6ff; }
 
 .ppui-subject .ppui-icon {
   width: 18px;
@@ -2766,6 +2766,1346 @@ button.ppui-menu-item:disabled {
 
 .ppui-toast-action:hover {
   background: rgba(255, 255, 255, 0.22);
+}
+
+/* ---------- Calendar and notebook ---------- */
+
+/* Small buttons that open them from the dashboard. */
+.ppui-head-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-left: auto;
+  padding: 0;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ppui-accent);
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s var(--ppui-ease);
+}
+
+.ppui-head-button .ppui-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.ppui-head-button:hover {
+  background: var(--ppui-accent-soft);
+}
+
+.ppui-head-button:active {
+  transform: scale(0.92);
+}
+
+.ppui-events-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  margin: 12px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ppui-accent);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.ppui-events-open .ppui-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Under a class name: "2 notes". */
+.ppui-note-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+  padding: 1px 8px 1px 6px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.ppui-note-count[hidden] {
+  display: none;
+}
+
+.ppui-note-count .ppui-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.ppui-menu-note-item {
+  justify-content: flex-start !important;
+}
+
+.ppui-menu-note-item .ppui-icon {
+  width: 15px;
+  height: 15px;
+  color: var(--ppui-accent);
+}
+
+.ppui-menu-note {
+  padding: 8px;
+  color: var(--ppui-muted);
+  font-size: 13px;
+  max-width: 220px;
+}
+
+/* Colour swatches and chips */
+.ppui-swatch {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--tone-bg);
+  border: 1px solid var(--ppui-hairline);
+}
+
+button.ppui-menu-item:has(.ppui-swatch) {
+  justify-content: flex-start;
+}
+
+.ppui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px 0 8px;
+  border: 1px solid var(--ppui-paper-edge, var(--ppui-hairline));
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ppui-text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ppui-chip .ppui-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--ppui-muted);
+}
+
+.ppui-chip:hover,
+.ppui-chip[aria-expanded="true"] {
+  background: var(--ppui-hover);
+}
+
+.ppui-chip.is-empty {
+  color: var(--ppui-muted);
+}
+
+.ppui-chip.is-set,
+.ppui-chip-date.is-set .ppui-icon {
+  color: var(--ppui-accent);
+}
+
+.ppui-chip-tone .ppui-icon {
+  color: var(--tone-bg);
+}
+
+.ppui-chip.is-static {
+  cursor: default;
+  height: 22px;
+  font-size: 11.5px;
+}
+
+/* A note: tick, words, chips, delete. The left edge carries its colour. */
+.ppui-notes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ppui-note {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 10px;
+  row-gap: 6px;
+  padding: 10px 6px 10px 14px;
+  border-bottom: 1px solid var(--ppui-paper-edge, var(--ppui-hairline));
+  transition: opacity 0.25s ease;
+}
+
+.ppui-note::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 4px;
+  border-radius: 4px;
+  background: var(--tone-bg);
+}
+
+.ppui-note-tick {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--ppui-accent);
+  cursor: pointer;
+}
+
+.ppui-note-text {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ppui-text);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.45;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+
+.ppui-note-edit {
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--ppui-sky);
+  border-radius: 8px;
+  background: var(--ppui-surface);
+  color: var(--ppui-text);
+  font: inherit;
+  font-size: 15px;
+}
+
+.ppui-note-chips {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ppui-note-chips:empty {
+  display: none;
+}
+
+.ppui-note .ppui-note-delete {
+  grid-column: 3;
+  grid-row: 1;
+  width: 28px;
+  height: 28px;
+  opacity: 0;
+}
+
+.ppui-note:hover .ppui-note-delete,
+.ppui-note:focus-within .ppui-note-delete {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .ppui-note .ppui-note-delete {
+    opacity: 1;
+  }
+}
+
+.ppui-note.is-done {
+  opacity: 0.55;
+}
+
+.ppui-note.is-done .ppui-note-text {
+  text-decoration: line-through;
+  text-decoration-color: var(--ppui-muted);
+}
+
+.ppui-note.is-overdue .ppui-chip-date {
+  color: #b42318;
+  border-color: rgba(180, 35, 24, 0.3);
+}
+
+:root[data-ppui-theme="dark"] .ppui-note.is-overdue .ppui-chip-date {
+  color: #ff9b8f;
+}
+
+.ppui-notes.is-compact .ppui-note {
+  padding: 7px 4px 7px 12px;
+}
+
+.ppui-notes.is-compact .ppui-note-text {
+  font-size: 14px;
+}
+
+/* ---- Notebook: a lined page sliding in from the right ---- */
+.ppui-notebook {
+  --ppui-paper: #fdfcf8;
+  --ppui-paper-edge: #e4e0d4;
+  --ppui-rule: rgba(20, 70, 160, 0.09);
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(520px, 100vw);
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--ppui-paper-edge);
+  background: var(--ppui-paper);
+  color: var(--ppui-text);
+  font-family: var(--ppui-font);
+}
+
+:root[data-ppui-theme="dark"] .ppui-notebook {
+  --ppui-paper: #101e3c;
+  --ppui-paper-edge: rgba(167, 169, 172, 0.2);
+  --ppui-rule: rgba(121, 167, 255, 0.08);
+}
+
+.ppui-notebook[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.ppui-notebook::backdrop {
+  background: rgba(4, 10, 26, 0.42);
+}
+
+.ppui-notebook-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 14px 10px 24px;
+}
+
+.ppui-notebook-title {
+  margin: 0 auto 0 0 !important;
+  color: var(--ppui-text) !important;
+  font-family: var(--ppui-display) !important;
+  font-style: italic !important;
+  font-size: 32px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+}
+
+.ppui-notebook-filter {
+  background: var(--ppui-accent-soft);
+  border-color: transparent;
+  color: var(--ppui-accent);
+}
+
+.ppui-notebook-filter[hidden] {
+  display: none;
+}
+
+.ppui-notebook-filter .ppui-icon {
+  color: var(--ppui-accent);
+}
+
+.ppui-notebook-form {
+  display: grid;
+  gap: 10px;
+  margin: 0 18px 8px;
+  padding: 14px;
+  border: 1px solid var(--ppui-paper-edge);
+  border-radius: 12px;
+  background: var(--ppui-surface);
+}
+
+.ppui-notebook-row {
+  display: flex;
+  gap: 8px;
+}
+
+.ppui-notebook-input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 10px;
+  background: var(--ppui-raised);
+  color: var(--ppui-text);
+  font: inherit;
+  font-size: 15px;
+}
+
+.ppui-notebook-input:focus {
+  outline: none;
+  border-color: var(--ppui-sky);
+}
+
+.ppui-notebook-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ppui-accent);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ppui-notebook-add .ppui-icon {
+  width: 17px;
+  height: 17px;
+}
+
+.ppui-notebook-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* The page itself: ruled lines and a crest-blue margin line. */
+.ppui-notebook-page {
+  flex: 1;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 8px 18px 40px 34px;
+  background:
+    linear-gradient(90deg, transparent 22px, rgba(20, 70, 160, 0.28) 22px, rgba(20, 70, 160, 0.28) 23px, transparent 23px),
+    repeating-linear-gradient(180deg, transparent 0 31px, var(--ppui-rule) 31px 32px);
+  background-attachment: local;
+}
+
+.ppui-notebook-group + .ppui-notebook-group {
+  margin-top: 18px;
+}
+
+.ppui-notebook-group-title {
+  margin: 8px 0 2px !important;
+  color: var(--ppui-text) !important;
+  font-family: var(--ppui-display) !important;
+  font-style: italic !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+}
+
+.ppui-notebook-group.is-overdue .ppui-notebook-group-title {
+  color: #b42318 !important;
+}
+
+:root[data-ppui-theme="dark"] .ppui-notebook-group.is-overdue .ppui-notebook-group-title {
+  color: #ff9b8f !important;
+}
+
+.ppui-notebook-page > .ppui-empty {
+  padding: 48px 0;
+}
+
+@media (max-width: 640px) {
+  .ppui-notebook {
+    inset: auto 0 0 0;
+    width: 100%;
+    height: 90dvh;
+    border-left: 0;
+    border-top: 1px solid var(--ppui-paper-edge);
+    border-radius: var(--ppui-radius-card) var(--ppui-radius-card) 0 0;
+  }
+}
+
+/* ---- Calendar overlay ---- */
+.ppui-cal {
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(61, 123, 232, 0.16), transparent 60%),
+    var(--ppui-bg);
+  color: var(--ppui-text);
+  font-family: var(--ppui-font);
+}
+
+.ppui-cal[open] {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+
+.ppui-cal::backdrop {
+  background: transparent;
+}
+
+.ppui-cal-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px 8px;
+}
+
+.ppui-cal-heading {
+  min-width: 0;
+  margin: 0 !important;
+  color: var(--ppui-text) !important;
+  font-family: var(--ppui-display) !important;
+  font-style: italic !important;
+  font-size: clamp(26px, 3.4vw, 38px) !important;
+  font-weight: 700 !important;
+  line-height: 1.05 !important;
+  white-space: nowrap;
+}
+
+.ppui-cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.ppui-cal-today,
+.ppui-cal-notebook {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 999px;
+  background: var(--ppui-surface);
+  color: var(--ppui-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.ppui-cal-notebook .ppui-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--ppui-accent);
+}
+
+.ppui-cal-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* Months along the top; the one in view is marked. */
+.ppui-cal-months {
+  display: flex;
+  gap: 4px;
+  padding: 0 22px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ppui-cal-month {
+  flex: none;
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ppui-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.ppui-cal-month:hover {
+  background: var(--ppui-hover);
+}
+
+.ppui-cal-month.is-current {
+  background: var(--ppui-accent);
+  color: #fff;
+}
+
+/* The wall: a stage with depth; JS places each day card. */
+.ppui-wall {
+  position: relative;
+  overflow: hidden;
+  perspective: 1400px;
+  perspective-origin: 50% 40%;
+  touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
+}
+
+.ppui-wall:active {
+  cursor: grabbing;
+}
+
+.ppui-day {
+  --ppui-paper: #fdfcf8;
+  --ppui-paper-edge: #e4e0d4;
+  position: absolute;
+  left: 50%;
+  top: 4%;
+  width: min(300px, 78vw);
+  height: 88%;
+  margin-left: calc(min(300px, 78vw) / -2);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: auto;
+  padding: 18px 18px 14px;
+  border: 1px solid var(--ppui-paper-edge);
+  border-radius: 6px;
+  background: var(--ppui-paper);
+  color: var(--ppui-text);
+  transform-origin: 50% 50%;
+  will-change: transform, opacity;
+  scrollbar-width: thin;
+}
+
+:root[data-ppui-theme="dark"] .ppui-day {
+  --ppui-paper: #101e3c;
+  --ppui-paper-edge: rgba(167, 169, 172, 0.2);
+}
+
+.ppui-day.is-centre {
+  border-color: rgba(20, 70, 160, 0.35);
+}
+
+.ppui-day.is-today {
+  border-top: 4px solid var(--ppui-accent);
+}
+
+.ppui-day.is-weekend {
+  background: color-mix(in srgb, var(--ppui-paper) 92%, var(--ppui-silver));
+}
+
+.ppui-day.is-past .ppui-day-num {
+  color: var(--ppui-muted);
+}
+
+.ppui-day-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--ppui-muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.ppui-day-rel {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--ppui-accent);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.ppui-day-num {
+  margin-top: 2px;
+  color: var(--ppui-text);
+  font-family: var(--ppui-display);
+  font-style: italic;
+  font-size: 72px;
+  font-weight: 700;
+  line-height: 0.95;
+}
+
+.ppui-day-month {
+  margin-bottom: 8px;
+  padding-bottom: 10px;
+  border-bottom: 3px double var(--ppui-paper-edge);
+  color: var(--ppui-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ppui-day-section {
+  margin-top: 6px;
+}
+
+.ppui-day-label {
+  margin: 0 0 4px !important;
+  color: var(--ppui-muted) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+.ppui-day-events {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.ppui-day-events li {
+  display: flex;
+  gap: 8px;
+}
+
+.ppui-day-time {
+  flex: none;
+  min-width: 42px;
+  color: var(--ppui-accent);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.ppui-day-free {
+  margin: auto 0 !important;
+  color: var(--ppui-muted) !important;
+  font-family: var(--ppui-display);
+  font-style: italic;
+  font-size: 18px;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.ppui-day-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: auto;
+  min-height: 36px;
+  border: 1px dashed var(--ppui-paper-edge);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ppui-accent);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.ppui-day-add .ppui-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.ppui-day-add:hover {
+  border-style: solid;
+  background: var(--ppui-accent-soft);
+}
+
+.ppui-cal-hint {
+  margin: 0 !important;
+  padding: 6px 0 14px;
+  color: var(--ppui-muted) !important;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Minimised: a pill in the corner. */
+.ppui-cal-pill {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 2147482000;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 16px 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: var(--ppui-crest);
+  color: #fff;
+  font-family: var(--ppui-font);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ppui-cal-pill[hidden] {
+  display: none;
+}
+
+.ppui-cal-pill .ppui-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.ppui-cal-pill-date {
+  padding-left: 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.ppui-cal-pill .ppui-count {
+  position: static;
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  .ppui-cal-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px 14px 6px;
+  }
+  .ppui-cal-nav {
+    margin-left: 0;
+    order: 3;
+  }
+  .ppui-cal-notebook span {
+    display: none;
+  }
+  .ppui-day {
+    width: 80vw;
+    margin-left: -40vw;
+  }
+}
+
+/* Days / Month switch */
+.ppui-cal-views {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 999px;
+  background: var(--ppui-surface);
+}
+
+.ppui-cal-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ppui-muted);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.ppui-cal-view .ppui-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.ppui-cal-view[aria-pressed="true"] {
+  background: var(--ppui-accent);
+  color: #fff;
+}
+
+.ppui-wall[hidden],
+.ppui-month[hidden],
+.ppui-cal-hint[hidden] {
+  display: none;
+}
+
+/* ---- Month view: one sheet of paper, a ruled grid of days ---- */
+.ppui-month {
+  min-height: 0;
+  padding: 6px 22px 22px;
+  overflow: auto;
+}
+
+.ppui-month-sheet {
+  --ppui-paper: #fdfcf8;
+  --ppui-paper-edge: #e4e0d4;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  max-width: 1180px;
+  /* Leave room for the sheet underneath, so the view never needs to scroll for it. */
+  height: calc(100% - 10px);
+  min-height: 0;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--ppui-paper-edge);
+  border-radius: 6px;
+  background: var(--ppui-paper);
+}
+
+:root[data-ppui-theme="dark"] .ppui-month-sheet {
+  --ppui-paper: #101e3c;
+  --ppui-paper-edge: rgba(167, 169, 172, 0.2);
+}
+
+/* The sheet underneath, as on the News page. */
+.ppui-month-sheet::before {
+  content: "";
+  position: absolute;
+  inset: 6px -5px -7px 5px;
+  z-index: -1;
+  border: 1px solid var(--ppui-paper-edge);
+  border-radius: 6px;
+  background: var(--ppui-paper);
+  rotate: 0.4deg;
+}
+
+.ppui-month-names {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  padding: 4px 0 8px;
+  border-bottom: 3px double var(--ppui-paper-edge);
+}
+
+.ppui-month-name {
+  padding: 0 10px;
+  color: var(--ppui-muted);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.ppui-month-grid {
+  flex: 1;
+  display: grid;
+  grid-template-rows: repeat(var(--weeks), minmax(84px, 1fr));
+}
+
+.ppui-month-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-bottom: 1px solid var(--ppui-paper-edge);
+}
+
+.ppui-month-week:last-child {
+  border-bottom: 0;
+}
+
+.ppui-mday {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px 8px 8px;
+  border-left: 1px solid var(--ppui-paper-edge);
+  transition: background-color 0.15s ease;
+}
+
+.ppui-mday:first-child {
+  border-left: 0;
+}
+
+.ppui-mday:hover {
+  background: var(--ppui-hover);
+}
+
+.ppui-mday.is-weekend {
+  background: color-mix(in srgb, var(--ppui-paper) 94%, var(--ppui-silver));
+}
+
+.ppui-mday.is-other .ppui-mday-num,
+.ppui-mday.is-other .ppui-mday-items {
+  opacity: 0.4;
+}
+
+.ppui-mday-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ppui-mday-num {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ppui-text);
+  font-family: var(--ppui-display);
+  font-style: italic;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ppui-mday-num:hover {
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent);
+}
+
+.ppui-mday.is-past:not(.is-today) .ppui-mday-num {
+  color: var(--ppui-muted);
+}
+
+.ppui-mday.is-today .ppui-mday-num {
+  background: var(--ppui-accent);
+  color: #fff;
+}
+
+.ppui-mday-today {
+  color: var(--ppui-accent);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.ppui-mday-items {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ppui-mday-event,
+.ppui-mday-note {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+
+.ppui-mday-event {
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-text);
+}
+
+/* Notes carry their colour as a little tab on the left. */
+.ppui-mday-note {
+  border-left: 3px solid var(--tone-bg);
+  border-radius: 2px 5px 5px 2px;
+  padding-left: 6px;
+  color: var(--ppui-text);
+}
+
+.ppui-mday-note.is-done .ppui-mday-title {
+  color: var(--ppui-muted);
+  text-decoration: line-through;
+}
+
+.ppui-mday-time {
+  flex: none;
+  color: var(--ppui-accent);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ppui-mday-title {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ppui-mday-more button {
+  padding: 0 6px;
+  border: 0;
+  background: transparent;
+  color: var(--ppui-accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ppui-mday-add {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--ppui-paper-edge);
+  border-radius: 50%;
+  background: var(--ppui-paper);
+  color: var(--ppui-accent);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.ppui-mday-add .ppui-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.ppui-mday:hover .ppui-mday-add,
+.ppui-mday:focus-within .ppui-mday-add {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .ppui-mday-add {
+    display: none;
+  }
+}
+
+/* Phones: a compact grid of numbers with dots for what's on; tap a day to open it. */
+@media (max-width: 640px) {
+  .ppui-month {
+    padding: 4px 10px 14px;
+  }
+  .ppui-month-sheet {
+    min-height: 0;
+    padding: 6px;
+  }
+  .ppui-month-grid {
+    grid-template-rows: repeat(var(--weeks), minmax(58px, 1fr));
+  }
+  .ppui-month-name {
+    padding: 0;
+    text-align: center;
+  }
+  .ppui-mday {
+    align-items: center;
+    padding: 4px 2px;
+  }
+  .ppui-mday-today {
+    display: none;
+  }
+  .ppui-mday-num {
+    font-size: 17px;
+  }
+  .ppui-mday-items {
+    display: flex;
+    gap: 3px;
+  }
+  .ppui-mday-event,
+  .ppui-mday-note {
+    width: 6px;
+    height: 6px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--ppui-accent);
+  }
+  .ppui-mday-note {
+    border-left: 0;
+    background: var(--tone-bg);
+  }
+  :root[data-ppui-theme="dark"] .ppui-mday-note {
+    background: color-mix(in srgb, var(--tone-bg) 60%, #fff);
+  }
+  .ppui-mday-event > *,
+  .ppui-mday-note > *,
+  .ppui-mday-more {
+    display: none;
+  }
+  .ppui-cal-view span {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Switching views: the new one settles in. Changing month: the weeks slide in from that side. */
+  .ppui-wall.is-switching,
+  .ppui-month.is-switching {
+    animation: ppui-view-in 0.45s var(--ppui-ease);
+  }
+  .ppui-month-week {
+    animation: ppui-settle 0.45s var(--ppui-ease) both;
+    animation-delay: calc(var(--w) * 0.04s);
+  }
+  .ppui-month-sheet.from-next .ppui-month-week {
+    animation-name: ppui-page-next;
+  }
+  .ppui-month-sheet.from-prev .ppui-month-week {
+    animation-name: ppui-page-prev;
+  }
+}
+
+@keyframes ppui-view-in {
+  from { opacity: 0; scale: 0.97; }
+}
+
+/* ---- Reminder banner ---- */
+.ppui-due {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 2147482500;
+  width: min(360px, calc(100vw - 36px));
+  box-sizing: border-box;
+  padding: 16px 44px 14px 18px;
+  border: 1px solid #e4e0d4;
+  border-top: 4px solid var(--ppui-accent);
+  border-radius: 8px;
+  background: #fdfcf8;
+  color: #1c2740;
+  font-family: var(--ppui-font);
+}
+
+:root[data-ppui-theme="dark"] .ppui-due {
+  border-color: rgba(167, 169, 172, 0.2);
+  border-top-color: var(--ppui-accent);
+  background: #101e3c;
+  color: #dfe5f1;
+}
+
+.ppui-due-title {
+  margin: 0 0 6px !important;
+  color: inherit !important;
+  font-family: var(--ppui-display);
+  font-style: italic;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.ppui-due-list {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  font-size: 14.5px;
+}
+
+.ppui-due-list li {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding-left: 12px;
+}
+
+.ppui-due-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 3px;
+  bottom: 3px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--tone-bg, var(--ppui-accent));
+}
+
+.ppui-due-when {
+  flex: none;
+  color: var(--ppui-muted);
+  font-size: 12.5px;
+}
+
+.ppui-due-more {
+  color: var(--ppui-muted);
+  font-size: 13px;
+}
+
+.ppui-due-more::before {
+  display: none;
+}
+
+.ppui-due-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.ppui-due-button {
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ppui-accent);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ppui-due-button.is-primary {
+  border-color: transparent;
+  background: var(--ppui-accent);
+  color: #fff;
+}
+
+.ppui-due-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ppui-muted);
+  cursor: pointer;
+}
+
+.ppui-due-close .ppui-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.ppui-due.is-leaving {
+  opacity: 0;
+  translate: 0 20px;
+  transition: opacity 0.3s ease, translate 0.3s var(--ppui-ease);
+}
+
+/* ---- Motion ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .ppui-notebook[open] {
+    animation: ppui-reader-in 0.42s var(--ppui-ease);
+  }
+  .ppui-notebook[open]::backdrop {
+    animation: ppui-fade 0.32s ease;
+  }
+  .ppui-notebook.is-closing {
+    animation: ppui-reader-out 0.32s var(--ppui-ease) forwards;
+  }
+  .ppui-notebook.is-closing::backdrop {
+    animation: ppui-fade-out 0.32s ease forwards;
+  }
+  @media (max-width: 640px) {
+    .ppui-notebook[open] { animation-name: ppui-sheet; }
+    .ppui-notebook.is-closing { animation-name: ppui-sheet-out; }
+  }
+
+  /* Days fan out onto the curve, middle first. */
+  .ppui-day.is-entering {
+    animation: ppui-fan 0.6s var(--ppui-ease) var(--fan, 0s) both;
+  }
+
+  .ppui-cal[open] .ppui-cal-bar,
+  .ppui-cal[open] .ppui-cal-months {
+    animation: ppui-settle 0.5s var(--ppui-ease) 0.12s both;
+  }
+
+  .ppui-cal-pill:not([hidden]) {
+    animation: ppui-boing 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both;
+  }
+
+  .ppui-due {
+    animation: ppui-settle 0.5s var(--ppui-ease) both;
+  }
+
+  .ppui-note {
+    animation: ppui-settle 0.3s var(--ppui-ease) both;
+  }
+}
+
+@keyframes ppui-fan {
+  from { opacity: 0; translate: 0 60px; scale: 0.92; }
 }
 
 /* ---------- Light theme: native portal pages pick up the type and crest blue ---------- */

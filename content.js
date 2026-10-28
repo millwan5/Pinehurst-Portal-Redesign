@@ -164,6 +164,9 @@
     calendar: [["rect", { x: 3, y: 4, width: 18, height: 18, rx: 2 }], ["path", { d: "M16 2v4M8 2v4M3 10h18" }]],
     sort: [["path", { d: "m21 16-4 4-4-4M17 20V4M3 8l4-4 4 4M7 4v16" }]],
     chevronDown: [["path", { d: "m6 9 6 6 6-6" }]],
+    notebook: [["path", { d: "M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4M2 6h4M2 10h4M2 14h4M2 18h4" }], ["path", { d: "M21.38 5.63a1 1 0 1 0-3-3l-5.02 5a2 2 0 0 0-.5.86l-.84 2.87a.5.5 0 0 0 .62.62l2.87-.84a2 2 0 0 0 .86-.5z" }]],
+    plus: [["path", { d: "M5 12h14M12 5v14" }]],
+    minimise: [["path", { d: "M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" }]],
     trash: [["path", { d: "M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6" }]],
     rotateCcw: [["path", { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" }], ["path", { d: "M3 3v5h5" }]],
     // Drawn for this extension: the crest's leaning pine, and a person for Account.
@@ -765,7 +768,7 @@
     const messages = buildMessages();
     const account = buildAccount();
     if (messages) pill.appendChild(messages);
-    pill.append(buildApps(), buildToggle());
+    pill.append(buildCalendarButton(), buildNotebookButton(), buildApps(), buildToggle());
     if (account) pill.appendChild(account);
 
     const top = el("div", "ppui-header-top");
@@ -1968,6 +1971,1138 @@
   // The News page gets its own view (tabs, full-text cards, a timeline). It is recognised by its
   // stories rather than its address, which varies. Articles hydrate late: wait for the first, give
   // the rest a moment, then build. If anything fails the portal's list comes back and the error is logged.
+  // ---- Dates as "YYYY-MM-DD" (local days) ----
+
+  function isoOf(date) {
+    return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0") + "-" + String(date.getDate()).padStart(2, "0");
+  }
+
+  function dayFromIso(iso) {
+    const [y, m, d] = iso.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  function isoAfter(days, from) {
+    const d = from ? dayFromIso(from) : new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + days);
+    return isoOf(d);
+  }
+
+  // "Today", "Tomorrow", "Yesterday", "Fri 31 Oct".
+  function dayLabel(iso) {
+    if (iso === isoAfter(0)) return "Today";
+    if (iso === isoAfter(1)) return "Tomorrow";
+    if (iso === isoAfter(-1)) return "Yesterday";
+    return dayFromIso(iso).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" });
+  }
+
+  // ---- Notes and reminders: saved in the student's Chrome account (chrome.storage.sync), one key per
+  // note so each stays under the per-item limit. Where that isn't available, this browser keeps them. ----
+
+  const NOTE_PREFIX = "note:";
+  const NOTE_MAX = 1000;
+  const NOTES_LOCAL_KEY = "ppui-notes";
+  const syncArea = typeof chrome !== "undefined" && chrome.storage && chrome.storage.sync ? chrome.storage.sync : null;
+  const noteStore = { list: [], ready: null, subscribers: new Set() };
+
+  const validNote = (n) => n && typeof n.id === "string" && typeof n.text === "string";
+
+  function readNotes() {
+    if (syncArea) {
+      return new Promise((resolve) => syncArea.get(null, (all) => {
+        resolve(Object.keys(all || {}).filter((k) => k.startsWith(NOTE_PREFIX)).map((k) => all[k]).filter(validNote));
+      }));
+    }
+    try {
+      return Promise.resolve(Object.values(JSON.parse(localStorage.getItem(NOTES_LOCAL_KEY) || "{}")).filter(validNote));
+    } catch (e) {
+      return Promise.resolve([]);
+    }
+  }
+
+  function writeLocalNotes() {
+    try {
+      localStorage.setItem(NOTES_LOCAL_KEY, JSON.stringify(Object.fromEntries(noteStore.list.map((n) => [n.id, n]))));
+    } catch (e) {}
+  }
+
+  function notifyNotes() {
+    noteStore.subscribers.forEach((fn) => fn(noteStore.list));
+  }
+
+  // Notes saved from another tab (or another computer) arrive here too.
+  function loadNotes() {
+    if (noteStore.ready) return noteStore.ready;
+    const reload = () => readNotes().then((list) => {
+      noteStore.list = list;
+      notifyNotes();
+    });
+    noteStore.ready = reload();
+    if (syncArea && chrome.storage.onChanged) {
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === "sync" && Object.keys(changes).some((k) => k.startsWith(NOTE_PREFIX))) reload();
+      });
+    } else {
+      addEventListener("storage", (e) => {
+        if (e.key === NOTES_LOCAL_KEY) reload();
+      });
+    }
+    return noteStore.ready;
+  }
+
+  // Run fn now (once the notes have loaded) and after every change.
+  function onNotes(fn) {
+    noteStore.subscribers.add(fn);
+    loadNotes().then(() => fn(noteStore.list));
+  }
+
+  function saveNote(note) {
+    note.text = note.text.slice(0, NOTE_MAX);
+    const i = noteStore.list.findIndex((n) => n.id === note.id);
+    if (i >= 0) noteStore.list[i] = note;
+    else noteStore.list.push(note);
+    notifyNotes();
+    if (syncArea) syncArea.set({ [NOTE_PREFIX + note.id]: note });
+    else writeLocalNotes();
+  }
+
+  function removeNote(id) {
+    const gone = noteStore.list.find((n) => n.id === id);
+    noteStore.list = noteStore.list.filter((n) => n.id !== id);
+    notifyNotes();
+    if (syncArea) syncArea.remove(NOTE_PREFIX + id);
+    else writeLocalNotes();
+    if (gone) toast("Note deleted", "Undo", () => saveNote(gone));
+  }
+
+  function newNote(fields) {
+    return Object.assign({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      text: "",
+      date: null,
+      subject: null,
+      tone: null,
+      done: false,
+      created: Date.now(),
+      remindedOn: null,
+    }, fields);
+  }
+
+  // A note's colour: the one picked, else its subject's, else crest blue.
+  const noteTone = (note) => (note.tone !== null && note.tone !== undefined ? note.tone : note.subject ? toneFor(note.subject) : 0);
+  const openNotes = () => noteStore.list.filter((n) => !n.done);
+  const dueSoon = () => openNotes().filter((n) => n.date && n.date <= isoAfter(1));
+
+  // A steady tone per class (one of six blues and silvers from the crest), so a class keeps its colour.
+  function toneFor(name) {
+    let h = 2166136261;
+    for (const c of name) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+    return (h >>> 0) % 6;
+  }
+
+  // ---- Things the home page knows, kept for every page: classes, school events, today's timetable ----
+
+  const CLASSES_KEY = "ppui-classes";
+  const EVENTS_KEY = "ppui-events";
+  const TODAY_KEY = "ppui-today";
+
+  function readJson(key, fallback) {
+    try {
+      const v = JSON.parse(localStorage.getItem(key) || "null");
+      return v === null ? fallback : v;
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  function writeJson(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {}
+  }
+
+  const cachedClasses = () => readJson(CLASSES_KEY, []).filter((c) => c && typeof c.name === "string");
+  const cachedEvents = () => readJson(EVENTS_KEY, []).filter((e) => e && typeof e.date === "string" && typeof e.title === "string");
+
+  // The home page's events list, read defensively: each day has a header with its date and then
+  // its events. Earlier days are kept a month, so the calendar can look back.
+  function harvestEvents(comp) {
+    const out = [];
+    const year = new Date().getFullYear();
+    for (const day of comp.querySelectorAll(SEL.eventsDay)) {
+      const head = day.querySelector(SEL.eventsDayHeader);
+      const headText = clean(head && head.textContent);
+      let date = null;
+      if (/\btoday\b/i.test(headText)) date = isoAfter(0);
+      else if (/\btomorrow\b/i.test(headText)) date = isoAfter(1);
+      else {
+        const plain = headText.replace(/\b(today|tomorrow)\b/gi, "").replace(/(\d+)(st|nd|rd|th)\b/gi, "$1");
+        const parsed = new Date(/\d{4}/.test(plain) ? plain : plain + " " + year);
+        if (!isNaN(parsed)) date = isoOf(parsed);
+      }
+      if (!date) continue;
+      let items = [...day.querySelectorAll(".event, li, .vx-list__item")].filter((n) => !n.contains(head) && !head?.contains(n));
+      if (!items.length) items = [...day.children].filter((n) => n !== head && !n.contains(head));
+      for (const item of items) {
+        const text = clean(item.textContent);
+        if (!text) continue;
+        const time = (text.match(/\b\d{1,2}(:\d{2})?\s*[ap]\.?m\.?\b/i) || [])[0] || "";
+        const titleNode = item.querySelector(".event-title, .title, strong, a");
+        const title = clean(titleNode ? titleNode.textContent : text.replace(time, "")).slice(0, 140);
+        if (title) out.push({ date, title, time });
+      }
+    }
+    if (!out.length) return;
+    const from = isoAfter(-30);
+    const fresh = new Set(out.map((e) => e.date));
+    writeJson(EVENTS_KEY, cachedEvents().filter((e) => e.date >= from && !fresh.has(e.date)).concat(out));
+  }
+
+  // ---- Small menu helper: a button that opens a popover menu, filled fresh each time ----
+
+  function menuButton(btn, label, fill) {
+    const menu = el("ul", "ppui-menu ppui-choice-menu");
+    menu.setAttribute("role", "menu");
+    menu.setAttribute("aria-label", label);
+    arrowNav(menu, ".ppui-menu-item, input");
+    popover(btn, menu, () => fill(menu));
+    menu.addEventListener("toggle", (e) => {
+      if (e.newState === "open") (menu.querySelector("[aria-checked='true']") || menu.querySelector("button, input")).focus();
+    });
+    return menu;
+  }
+
+  function menuItem(menu, label, checked, pick, extraClass) {
+    const li = el("li");
+    const b = el("button", "ppui-menu-item" + (extraClass ? " " + extraClass : ""));
+    b.type = "button";
+    if (checked !== null) {
+      b.setAttribute("role", "menuitemradio");
+      b.setAttribute("aria-checked", String(checked));
+    } else {
+      b.setAttribute("role", "menuitem");
+    }
+    if (typeof label === "string") b.textContent = label;
+    else b.append(...label);
+    b.addEventListener("click", () => {
+      menu.hidePopover();
+      pick();
+    });
+    li.appendChild(b);
+    menu.appendChild(li);
+  }
+
+  // The date choices shared by the notebook and the note rows: none, today, tomorrow, next week, or a day.
+  function fillDateMenu(menu, current, pick) {
+    menu.replaceChildren();
+    for (const [label, value] of [["No date", null], ["Today", isoAfter(0)], ["Tomorrow", isoAfter(1)], ["Next week", isoAfter(7)]]) {
+      menuItem(menu, label, current === value, () => pick(value));
+    }
+    const li = el("li", "ppui-menu-sep ppui-choice-day");
+    const field = el("label", null, "Pick a day");
+    const input = el("input");
+    input.type = "date";
+    if (current) input.value = current;
+    input.addEventListener("change", () => {
+      if (!input.value) return;
+      menu.hidePopover();
+      pick(input.value);
+    });
+    field.appendChild(input);
+    li.appendChild(field);
+    menu.appendChild(li);
+  }
+
+  function fillSubjectMenu(menu, current, pick) {
+    menu.replaceChildren();
+    menuItem(menu, "No subject", !current, () => pick(null));
+    const classes = cachedClasses();
+    for (const c of classes) {
+      const swatch = el("span", "ppui-swatch");
+      swatch.dataset.tone = String(toneFor(c.name));
+      menuItem(menu, [swatch, el("span", null, c.name)], current === c.name, () => pick(c.name));
+    }
+    if (!classes.length) menu.appendChild(el("li", "ppui-menu-note", "Open the portal home page once to load your classes."));
+  }
+
+  const TONE_NAMES = ["Crest blue", "Sky", "Navy", "Silver", "Ice", "Steel"];
+
+  function fillToneMenu(menu, current, pick) {
+    menu.replaceChildren();
+    menuItem(menu, "Automatic", current === null, () => pick(null));
+    TONE_NAMES.forEach((name, tone) => {
+      const swatch = el("span", "ppui-swatch");
+      swatch.dataset.tone = String(tone);
+      menuItem(menu, [swatch, el("span", null, name)], current === tone, () => pick(tone));
+    });
+  }
+
+  function chipButton(className, iconName, text) {
+    const b = el("button", "ppui-chip " + className);
+    b.type = "button";
+    const label = el("span", "ppui-chip-label", text);
+    b.append(icon(iconName), label);
+    return b;
+  }
+
+  // One note as a row: tick it off, click the words to edit, change its date / subject / colour, delete.
+  function noteRow(note, options) {
+    const row = el("li", "ppui-note" + (note.done ? " is-done" : "") + (note.date && note.date < isoAfter(0) && !note.done ? " is-overdue" : ""));
+    row.dataset.tone = String(noteTone(note));
+    const tick = el("input", "ppui-note-tick");
+    tick.type = "checkbox";
+    tick.checked = note.done;
+    tick.setAttribute("aria-label", (note.done ? "Mark not done: " : "Mark done: ") + note.text);
+    tick.addEventListener("change", () => saveNote(Object.assign({}, note, { done: tick.checked })));
+
+    const text = el("button", "ppui-note-text", note.text);
+    text.type = "button";
+    text.title = "Edit";
+    text.addEventListener("click", () => {
+      const input = el("input", "ppui-note-edit");
+      input.value = note.text;
+      input.maxLength = NOTE_MAX;
+      input.setAttribute("aria-label", "Edit note");
+      let done = false;
+      const finish = (keep) => {
+        if (done) return;
+        done = true;
+        const value = input.value.trim();
+        if (keep && value && value !== note.text) saveNote(Object.assign({}, note, { text: value }));
+        else input.replaceWith(text);
+      };
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") finish(true);
+        if (e.key === "Escape") {
+          e.stopPropagation();
+          e.preventDefault();
+          finish(false);
+        }
+      });
+      input.addEventListener("blur", () => finish(true));
+      text.replaceWith(input);
+      input.focus();
+      input.select();
+    });
+
+    const chips = el("span", "ppui-note-chips");
+    if (!options || !options.compact) {
+      const date = chipButton("ppui-chip-date", "calendar", note.date ? dayLabel(note.date) : "No date");
+      menuButton(date, "Due", (menu) => fillDateMenu(menu, note.date, (value) => saveNote(Object.assign({}, note, { date: value }))));
+      const subject = chipButton("ppui-chip-subject", "bookOpen", note.subject || "No subject");
+      subject.classList.toggle("is-empty", !note.subject);
+      menuButton(subject, "Subject", (menu) => fillSubjectMenu(menu, note.subject, (value) => saveNote(Object.assign({}, note, { subject: value }))));
+      chips.append(date, subject);
+    } else if (note.subject) {
+      chips.appendChild(el("span", "ppui-chip is-static", note.subject));
+    }
+    const remove = storyButton("ppui-note-delete", "Delete note", "trash", () => removeNote(note.id));
+    row.append(tick, text, chips, remove);
+    return row;
+  }
+
+  // ---- Notebook: a lined page that slides in from the right ----
+
+  const notebook = { dialog: null, filter: null, draft: { date: null, subject: null, tone: null } };
+
+  function buildNotebook() {
+    const dialog = el("dialog", "ppui-notebook");
+    dialog.setAttribute("aria-labelledby", "ppui-notebook-title");
+    const head = el("header", "ppui-notebook-head");
+    const title = el("h2", "ppui-notebook-title", "Notebook");
+    title.id = "ppui-notebook-title";
+    const filterChip = el("button", "ppui-chip ppui-notebook-filter");
+    filterChip.type = "button";
+    filterChip.hidden = true;
+    filterChip.addEventListener("click", () => {
+      notebook.filter = null;
+      renderNotebook();
+    });
+    head.append(title, filterChip, readerButton("ppui-notebook-close", "Close", "close", () => closePanel(dialog)));
+
+    // Writing a note: one line, then optional date / subject / colour. Enter (or Add) saves.
+    const form = el("form", "ppui-notebook-form");
+    const input = el("input", "ppui-notebook-input");
+    input.placeholder = "Write a note or reminder…";
+    input.maxLength = NOTE_MAX;
+    input.setAttribute("aria-label", "New note");
+    const add = el("button", "ppui-notebook-add");
+    add.type = "submit";
+    add.append(icon("plus"), el("span", null, "Add"));
+    const row = el("div", "ppui-notebook-row");
+    row.append(input, add);
+    const chips = el("div", "ppui-notebook-chips");
+    const dateChip = chipButton("ppui-chip-date", "calendar", "No date");
+    const subjectChip = chipButton("ppui-chip-subject", "bookOpen", "No subject");
+    const toneChip = chipButton("ppui-chip-tone", "palette", "Colour");
+    menuButton(dateChip, "Due", (menu) => fillDateMenu(menu, notebook.draft.date, (v) => {
+      notebook.draft.date = v;
+      renderDraft();
+    }));
+    menuButton(subjectChip, "Subject", (menu) => fillSubjectMenu(menu, notebook.draft.subject, (v) => {
+      notebook.draft.subject = v;
+      renderDraft();
+    }));
+    menuButton(toneChip, "Colour", (menu) => fillToneMenu(menu, notebook.draft.tone, (v) => {
+      notebook.draft.tone = v;
+      renderDraft();
+    }));
+    chips.append(dateChip, subjectChip, toneChip);
+    form.append(row, chips);
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return input.focus();
+      saveNote(newNote(Object.assign({ text }, notebook.draft)));
+      input.value = "";
+      input.focus();
+    });
+
+    const page = el("div", "ppui-notebook-page");
+    dialog.append(head, form, page);
+    dialog.addEventListener("cancel", (e) => {
+      e.preventDefault();
+      closePanel(dialog);
+    });
+    dialog.addEventListener("click", (e) => {
+      if (e.target !== dialog) return;
+      const r = dialog.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) closePanel(dialog);
+    });
+    document.body.appendChild(dialog);
+    onNotes(() => {
+      if (dialog.open) renderNotebook();
+    });
+    return dialog;
+  }
+
+  function renderDraft() {
+    const d = notebook.dialog;
+    const { date, subject, tone } = notebook.draft;
+    d.querySelector(".ppui-notebook-chips .ppui-chip-date .ppui-chip-label").textContent = date ? dayLabel(date) : "No date";
+    d.querySelector(".ppui-notebook-chips .ppui-chip-subject .ppui-chip-label").textContent = subject || "No subject";
+    d.querySelector(".ppui-notebook-chips .ppui-chip-subject").classList.toggle("is-empty", !subject);
+    const toneChip = d.querySelector(".ppui-notebook-chips .ppui-chip-tone");
+    toneChip.querySelector(".ppui-chip-label").textContent = tone === null ? "Colour" : TONE_NAMES[tone];
+    toneChip.dataset.tone = String(tone === null ? (subject ? toneFor(subject) : 0) : tone);
+    d.querySelector(".ppui-notebook-chips .ppui-chip-date").classList.toggle("is-set", !!date);
+  }
+
+  // Overdue, Today, Upcoming, No date, Done; optionally one subject only.
+  function renderNotebook() {
+    const d = notebook.dialog;
+    const page = d.querySelector(".ppui-notebook-page");
+    const chip = d.querySelector(".ppui-notebook-filter");
+    chip.hidden = !notebook.filter;
+    if (notebook.filter) {
+      chip.replaceChildren(el("span", null, notebook.filter), icon("close"));
+      chip.setAttribute("aria-label", "Show all subjects (now showing " + notebook.filter + ")");
+    }
+    const today = isoAfter(0);
+    const notes = noteStore.list.filter((n) => !notebook.filter || n.subject === notebook.filter);
+    const byDate = (a, b) => (a.date || "").localeCompare(b.date || "") || a.created - b.created;
+    const groups = [
+      ["Overdue", notes.filter((n) => !n.done && n.date && n.date < today).sort(byDate)],
+      ["Today", notes.filter((n) => !n.done && n.date === today).sort(byDate)],
+      ["Upcoming", notes.filter((n) => !n.done && n.date && n.date > today).sort(byDate)],
+      ["No date", notes.filter((n) => !n.done && !n.date).sort((a, b) => b.created - a.created)],
+      ["Done", notes.filter((n) => n.done).sort((a, b) => b.created - a.created)],
+    ];
+    page.replaceChildren();
+    for (const [name, list] of groups) {
+      if (!list.length) continue;
+      const section = el("section", "ppui-notebook-group" + (name === "Overdue" ? " is-overdue" : "") + (name === "Done" ? " is-done" : ""));
+      section.appendChild(el("h3", "ppui-notebook-group-title", name));
+      const ul = el("ul", "ppui-notes");
+      list.forEach((n) => ul.appendChild(noteRow(n)));
+      section.appendChild(ul);
+      page.appendChild(section);
+    }
+    if (!page.children.length) {
+      page.appendChild(emptyState(notebook.filter ? "No notes for " + notebook.filter + " yet." : "Nothing written down yet. Add a note above.", "div"));
+    }
+  }
+
+  // Open the notebook, optionally starting a note for a day or a subject, or showing one subject.
+  function openNotebook(options) {
+    if (!notebook.dialog) notebook.dialog = buildNotebook();
+    const o = options || {};
+    notebook.filter = o.filter || null;
+    notebook.draft = { date: o.date || null, subject: o.subject || o.filter || null, tone: null };
+    loadNotes().then(() => {
+      renderDraft();
+      renderNotebook();
+    });
+    const d = notebook.dialog;
+    d.classList.remove("is-closing");
+    if (!d.open) d.showModal();
+    root.classList.add("ppui-reading");
+    d.querySelector(".ppui-notebook-input").focus();
+  }
+
+  // Slide-out close shared by the notebook (the reader has its own).
+  function closePanel(dialog) {
+    if (!dialog.open || dialog.classList.contains("is-closing")) return;
+    const finish = () => {
+      dialog.classList.remove("is-closing");
+      dialog.close();
+      if (!document.querySelector("dialog[open]")) root.classList.remove("ppui-reading");
+    };
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return finish();
+    dialog.classList.add("is-closing");
+    const done = (e) => {
+      if (e && e.target !== dialog) return;
+      dialog.removeEventListener("animationend", done);
+      if (dialog.classList.contains("is-closing")) finish();
+    };
+    dialog.addEventListener("animationend", done);
+    setTimeout(done, 450);
+  }
+
+  // ---- Calendar: day cards on a curved wall, panned sideways in 3D ----
+
+  const CAL_BACK = 30;
+  const CAL_AHEAD = 120;
+  const CAL_WINDOW = 7;
+  const cal = {
+    dialog: null,
+    pill: null,
+    from: null,
+    start: null,
+    pos: CAL_BACK,
+    target: CAL_BACK,
+    raf: 0,
+    cards: new Map(),
+    step: 300,
+  };
+
+  const calDays = CAL_BACK + CAL_AHEAD + 1;
+  const calIso = (i) => isoAfter(i - CAL_BACK, cal.start);
+  const flatWall = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function dayCard(i) {
+    const iso = calIso(i);
+    const date = dayFromIso(iso);
+    const today = isoAfter(0);
+    const card = el("article", "ppui-day" + (iso === today ? " is-today" : "") + (iso < today ? " is-past" : "") +
+      (date.getDay() === 0 || date.getDay() === 6 ? " is-weekend" : ""));
+    card.dataset.index = String(i);
+    card.setAttribute("aria-label", date.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" }));
+
+    const top = el("header", "ppui-day-top");
+    top.append(el("span", "ppui-day-weekday", date.toLocaleDateString("en-AU", { weekday: "long" })));
+    const rel = iso === today ? "Today" : iso === isoAfter(1) ? "Tomorrow" : iso === isoAfter(-1) ? "Yesterday" : "";
+    if (rel) top.appendChild(el("span", "ppui-day-rel", rel));
+    card.append(top, el("div", "ppui-day-num", String(date.getDate())),
+      el("div", "ppui-day-month", date.toLocaleDateString("en-AU", { month: "long" })));
+
+    let empty = true;
+    const events = cachedEvents().filter((e) => e.date === iso);
+    if (events.length) {
+      empty = false;
+      const s = el("section", "ppui-day-section");
+      s.appendChild(el("h4", "ppui-day-label", "School"));
+      const ul = el("ul", "ppui-day-events");
+      for (const e of events) {
+        const li = el("li");
+        if (e.time) li.appendChild(el("span", "ppui-day-time", e.time));
+        li.appendChild(el("span", null, e.title));
+        ul.appendChild(li);
+      }
+      s.appendChild(ul);
+      card.appendChild(s);
+    }
+
+    const timetable = readJson(TODAY_KEY, null);
+    if (iso === today && timetable && timetable.date === today && timetable.items && timetable.items.length) {
+      empty = false;
+      const s = el("section", "ppui-day-section");
+      s.appendChild(el("h4", "ppui-day-label", "Timetable"));
+      const ul = el("ul", "ppui-day-events");
+      for (const item of timetable.items) {
+        const li = el("li");
+        li.append(el("span", "ppui-day-time", item.time), el("span", null, item.title));
+        ul.appendChild(li);
+      }
+      s.appendChild(ul);
+      card.appendChild(s);
+    }
+
+    const notes = noteStore.list.filter((n) => n.date === iso).sort((a, b) => a.done - b.done || a.created - b.created);
+    if (notes.length) {
+      empty = false;
+      const s = el("section", "ppui-day-section");
+      s.appendChild(el("h4", "ppui-day-label", "Notes"));
+      const ul = el("ul", "ppui-notes is-compact");
+      notes.forEach((n) => ul.appendChild(noteRow(n, { compact: true })));
+      s.appendChild(ul);
+      card.appendChild(s);
+    }
+    if (empty) card.appendChild(el("p", "ppui-day-free", "Free day"));
+
+    const add = el("button", "ppui-day-add");
+    add.type = "button";
+    add.append(icon("plus"), el("span", null, "Add note"));
+    add.addEventListener("click", () => openNotebook({ date: iso }));
+    card.appendChild(add);
+
+    // A card off to the side comes to the middle when clicked.
+    card.addEventListener("click", (e) => {
+      if (Math.round(cal.pos) !== i && !e.target.closest("button, input, a")) goToDay(i);
+    });
+    return card;
+  }
+
+  // Place each card for the current position: across, back into depth, and turned, so the
+  // row of days bends away like a curved wall. Only cards near the middle exist at all.
+  function layoutWall() {
+    const stage = cal.dialog.querySelector(".ppui-wall");
+    const flat = flatWall();
+    const from = Math.max(0, Math.floor(cal.pos) - CAL_WINDOW);
+    const to = Math.min(calDays - 1, Math.ceil(cal.pos) + CAL_WINDOW);
+    for (const [i, card] of cal.cards) {
+      if (i < from || i > to) {
+        card.remove();
+        cal.cards.delete(i);
+      }
+    }
+    for (let i = from; i <= to; i++) {
+      let card = cal.cards.get(i);
+      if (!card) {
+        card = dayCard(i);
+        cal.cards.set(i, card);
+        stage.appendChild(card);
+      }
+      const d = i - cal.pos;
+      const a = Math.abs(d);
+      const z = flat ? 0 : -Math.pow(a, 1.25) * 70;
+      const turn = flat ? 0 : Math.max(-60, Math.min(60, -d * 14));
+      card.style.transform = "translateX(" + (d * cal.step).toFixed(1) + "px) translateZ(" + z.toFixed(1) + "px) rotateY(" + turn.toFixed(2) + "deg)";
+      card.style.opacity = String(Math.max(0, Math.min(1, 1.15 - a / 5)));
+      card.style.zIndex = String(100 - Math.round(a * 10));
+      card.classList.toggle("is-centre", a < 0.5);
+      card.inert = a > 3.2;
+    }
+    // Month strip marker and the heading follow the day in the middle.
+    if (cal.view === "month") return;
+    const iso = calIso(Math.round(cal.pos));
+    const month = iso.slice(0, 7);
+    cal.dialog.querySelectorAll(".ppui-cal-month").forEach((b) => b.classList.toggle("is-current", b.dataset.month === month));
+    cal.dialog.querySelector(".ppui-cal-heading").textContent =
+      dayFromIso(iso).toLocaleDateString("en-AU", { month: "long", year: "numeric" });
+  }
+
+  // Ease towards the target by time, not by frame, so it moves at the same pace on any screen.
+  function animateWall() {
+    if (cal.raf) return;
+    let last = performance.now();
+    const tick = (now) => {
+      const dt = Math.min(64, now - last);
+      last = now;
+      const diff = cal.target - cal.pos;
+      if (Math.abs(diff) < 0.002 || flatWall()) {
+        cal.pos = cal.target;
+        cal.raf = 0;
+        layoutWall();
+        return;
+      }
+      cal.pos += diff * (1 - Math.exp(-dt / 110));
+      layoutWall();
+      cal.raf = requestAnimationFrame(tick);
+    };
+    cal.raf = requestAnimationFrame(tick);
+  }
+
+  function goToDay(i) {
+    cal.target = Math.max(0, Math.min(calDays - 1, i));
+    animateWall();
+  }
+
+  // Sideways scroll (trackpad, or Shift + wheel) and dragging pan the wall; it settles on a day.
+  function wireWall(stage) {
+    let settle = 0;
+    stage.addEventListener("wheel", (e) => {
+      const dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.shiftKey ? e.deltaY : 0;
+      if (!dx) return;
+      e.preventDefault();
+      cal.target = Math.max(0, Math.min(calDays - 1, cal.target + dx / cal.step));
+      animateWall();
+      clearTimeout(settle);
+      settle = setTimeout(() => goToDay(Math.round(cal.target)), 140);
+    }, { passive: false });
+
+    let drag = null;
+    let draggedAt = 0;
+    stage.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0 || e.target.closest("button, input, a, .ppui-note")) return;
+      drag = { x: e.clientX, target: cal.target, t: e.timeStamp, last: e.clientX, v: 0, moved: false };
+      stage.setPointerCapture(e.pointerId);
+    });
+    stage.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x;
+      if (Math.abs(dx) > 4) drag.moved = true;
+      const dt = Math.max(1, e.timeStamp - drag.t);
+      drag.v = (e.clientX - drag.last) / dt;
+      drag.last = e.clientX;
+      drag.t = e.timeStamp;
+      cal.target = Math.max(0, Math.min(calDays - 1, drag.target - dx / cal.step));
+      cal.pos = cal.target;
+      layoutWall();
+    });
+    const end = () => {
+      if (!drag) return;
+      // A flick carries on a few days; then it settles on the nearest one.
+      goToDay(Math.round(cal.target - (drag.v * 160) / cal.step));
+      draggedAt = drag.moved ? performance.now() : 0;
+      drag = null;
+    };
+    stage.addEventListener("pointerup", end);
+    stage.addEventListener("pointercancel", end);
+    // A drag shouldn't count as a click on the card it ended over (the click comes right after).
+    stage.addEventListener("click", (e) => {
+      if (performance.now() - draggedAt < 80) e.stopPropagation();
+      draggedAt = 0;
+    }, true);
+  }
+
+  function buildCalendar() {
+    const dialog = el("dialog", "ppui-cal");
+    dialog.setAttribute("aria-label", "Calendar");
+    const bar = el("header", "ppui-cal-bar");
+    const heading = el("h2", "ppui-cal-heading");
+    const nav = el("div", "ppui-cal-nav");
+    const todayBtn = el("button", "ppui-cal-today", "Today");
+    todayBtn.type = "button";
+    todayBtn.addEventListener("click", () => {
+      if (cal.view === "month") showMonth(isoAfter(0).slice(0, 7));
+      else goToDay(CAL_BACK);
+    });
+    const step = (dir) => () => {
+      if (cal.view === "month") shiftMonth(dir);
+      else goToDay(Math.round(cal.target) + dir);
+    };
+    nav.append(
+      readerButton("ppui-cal-step ppui-cal-prev", "Previous day", "chevronLeft", step(-1)),
+      todayBtn,
+      readerButton("ppui-cal-step ppui-cal-next", "Next day", "chevronRight", step(1)),
+    );
+
+    // Days (the 3D wall) or Month (a grid, the usual calendar layout).
+    const views = el("div", "ppui-cal-views");
+    views.setAttribute("role", "group");
+    views.setAttribute("aria-label", "View");
+    for (const [view, label, iconName] of [["days", "Days", "calendarClock"], ["month", "Month", "calendar"]]) {
+      const b = el("button", "ppui-cal-view");
+      b.type = "button";
+      b.dataset.view = view;
+      b.append(icon(iconName), el("span", null, label));
+      b.addEventListener("click", () => setCalView(view));
+      views.appendChild(b);
+    }
+    const notebookBtn = el("button", "ppui-cal-notebook");
+    notebookBtn.type = "button";
+    notebookBtn.append(icon("notebook"), el("span", null, "Notebook"));
+    notebookBtn.addEventListener("click", () => openNotebook());
+    const tools = el("div", "ppui-cal-tools");
+    tools.append(notebookBtn,
+      readerButton("ppui-cal-min", "Minimise", "minimise", minimiseCalendar),
+      readerButton("ppui-cal-close", "Close", "close", () => closeCalendar()));
+    bar.append(heading, nav, views, tools);
+
+    // Months across the range; click one to fly to its first day.
+    const months = el("nav", "ppui-cal-months");
+    months.setAttribute("aria-label", "Months");
+    for (let i = 0; i < calDays; i++) {
+      const iso = calIso(i);
+      if (i !== 0 && !iso.endsWith("-01")) continue;
+      const b = el("button", "ppui-cal-month", dayFromIso(iso).toLocaleDateString("en-AU", { month: "short" }));
+      b.type = "button";
+      b.dataset.month = iso.slice(0, 7);
+      b.addEventListener("click", () => {
+        if (cal.view === "month") showMonth(b.dataset.month);
+        else goToDay(i);
+      });
+      months.appendChild(b);
+    }
+
+    const stage = el("div", "ppui-wall");
+    stage.setAttribute("aria-label", "Days. Scroll sideways or drag to move through them.");
+    wireWall(stage);
+    const month = el("div", "ppui-month");
+    dialog.append(bar, months, stage, month, el("p", "ppui-cal-hint", "Scroll sideways or drag to move through the days"));
+
+    dialog.addEventListener("cancel", (e) => {
+      e.preventDefault();
+      closeCalendar();
+    });
+    document.body.appendChild(dialog);
+    addEventListener("resize", () => {
+      if (dialog.open) measureWall();
+    });
+    onNotes(() => {
+      if (!dialog.open) return;
+      cal.cards.forEach((card) => card.remove());
+      cal.cards.clear();
+      layoutWall();
+      if (cal.view === "month") renderMonth();
+    });
+    return dialog;
+  }
+
+  function measureWall() {
+    const probe = cal.dialog.querySelector(".ppui-day");
+    cal.step = (probe ? probe.offsetWidth : 280) + 22;
+    layoutWall();
+  }
+
+  // ---- Month view: the usual calendar grid, weeks starting on Monday, on a sheet of paper ----
+
+  const CAL_VIEW_KEY = "ppui-cal-view";
+  const MONTH_ITEMS = 3;
+  cal.view = readJson(CAL_VIEW_KEY, "days") === "month" ? "month" : "days";
+  cal.month = isoAfter(0).slice(0, 7);
+
+  // The wall's card number for a day.
+  const calIndex = (iso) => Math.round((dayFromIso(iso) - dayFromIso(cal.start)) / 864e5) + CAL_BACK;
+
+  function setCalView(view) {
+    if (view === cal.view) return;
+    cal.view = view;
+    writeJson(CAL_VIEW_KEY, view);
+    // Switching to Month shows the month of the day in the middle of the wall.
+    if (view === "month") cal.month = calIso(Math.round(cal.target)).slice(0, 7);
+    applyCalView(true);
+  }
+
+  function applyCalView(animate) {
+    const d = cal.dialog;
+    d.dataset.view = cal.view;
+    d.querySelectorAll(".ppui-cal-view").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === cal.view)));
+    const month = cal.view === "month";
+    d.querySelector(".ppui-wall").hidden = month;
+    d.querySelector(".ppui-month").hidden = !month;
+    d.querySelector(".ppui-cal-hint").hidden = month;
+    d.querySelector(".ppui-cal-prev").setAttribute("aria-label", month ? "Previous month" : "Previous day");
+    d.querySelector(".ppui-cal-next").setAttribute("aria-label", month ? "Next month" : "Next day");
+    d.querySelector(".ppui-cal-prev").title = month ? "Previous month" : "Previous day";
+    d.querySelector(".ppui-cal-next").title = month ? "Next month" : "Next day";
+    if (month) renderMonth();
+    else {
+      cal.cards.forEach((card) => card.remove());
+      cal.cards.clear();
+      measureWall();
+    }
+    const pane = d.querySelector(month ? ".ppui-month" : ".ppui-wall");
+    if (animate && !flatWall()) {
+      pane.classList.remove("is-switching");
+      void pane.offsetWidth;
+      pane.classList.add("is-switching");
+    }
+  }
+
+  function shiftMonth(dir) {
+    const [y, m] = cal.month.split("-").map(Number);
+    const next = new Date(y, m - 1 + dir, 1);
+    showMonth(isoOf(next).slice(0, 7), dir);
+  }
+
+  function showMonth(month, dir) {
+    if (dir === undefined) dir = month > cal.month ? 1 : month < cal.month ? -1 : 0;
+    cal.month = month;
+    renderMonth(dir);
+  }
+
+  // A day of the month in one cell: its number (opens the day on the wall), what's on, and a quiet "+".
+  function monthCell(iso, inMonth) {
+    const date = dayFromIso(iso);
+    const today = isoAfter(0);
+    const cell = el("div", "ppui-mday" + (inMonth ? "" : " is-other") + (iso === today ? " is-today" : "") +
+      (iso < today ? " is-past" : "") + (date.getDay() === 0 || date.getDay() === 6 ? " is-weekend" : ""));
+    cell.setAttribute("role", "gridcell");
+
+    const events = cachedEvents().filter((e) => e.date === iso);
+    const notes = noteStore.list.filter((n) => n.date === iso).sort((a, b) => a.done - b.done || a.created - b.created);
+    const longName = date.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" });
+    const num = el("button", "ppui-mday-num", String(date.getDate()));
+    num.type = "button";
+    const counts = [events.length && events.length + (events.length === 1 ? " event" : " events"),
+      notes.length && notes.length + (notes.length === 1 ? " note" : " notes")].filter(Boolean).join(", ");
+    num.setAttribute("aria-label", longName + (counts ? ", " + counts : "") + ". Open this day");
+    num.addEventListener("click", () => openDay(iso));
+    const head = el("div", "ppui-mday-head");
+    head.appendChild(num);
+    if (iso === today) head.appendChild(el("span", "ppui-mday-today", "Today"));
+    cell.appendChild(head);
+
+    const items = [];
+    for (const e of events) {
+      const li = el("li", "ppui-mday-event");
+      if (e.time) li.appendChild(el("span", "ppui-mday-time", e.time.replace(/\s*([ap])\.?m\.?/i, "$1")));
+      li.appendChild(el("span", "ppui-mday-title", e.title));
+      li.title = (e.time ? e.time + " " : "") + e.title;
+      items.push(li);
+    }
+    for (const n of notes) {
+      const li = el("li", "ppui-mday-note" + (n.done ? " is-done" : ""));
+      li.dataset.tone = String(noteTone(n));
+      li.appendChild(el("span", "ppui-mday-title", n.text));
+      li.title = n.text + (n.subject ? " (" + n.subject + ")" : "");
+      items.push(li);
+    }
+    if (items.length) {
+      const ul = el("ul", "ppui-mday-items");
+      items.slice(0, MONTH_ITEMS).forEach((li) => ul.appendChild(li));
+      if (items.length > MONTH_ITEMS) {
+        const more = el("li", "ppui-mday-more");
+        const b = el("button", null, "+" + (items.length - MONTH_ITEMS) + " more");
+        b.type = "button";
+        b.addEventListener("click", () => openDay(iso));
+        more.appendChild(b);
+        ul.appendChild(more);
+      }
+      cell.appendChild(ul);
+    }
+
+    const add = el("button", "ppui-mday-add");
+    add.type = "button";
+    add.setAttribute("aria-label", "Add note for " + longName);
+    add.title = "Add note";
+    add.appendChild(icon("plus"));
+    add.addEventListener("click", () => openNotebook({ date: iso }));
+    cell.appendChild(add);
+    return cell;
+  }
+
+  // A day from the month opens on the wall, gliding the last couple of cards into place.
+  function openDay(iso) {
+    const i = Math.max(0, Math.min(calDays - 1, calIndex(iso)));
+    cal.target = i;
+    cal.pos = i + (i > 1 ? -1.5 : 1.5);
+    cal.view = "days";
+    writeJson(CAL_VIEW_KEY, "days");
+    applyCalView(true);
+    animateWall();
+  }
+
+  function renderMonth(dir) {
+    const d = cal.dialog;
+    const pane = d.querySelector(".ppui-month");
+    const [y, m] = cal.month.split("-").map(Number);
+    const first = new Date(y, m - 1, 1);
+    // Weeks start on Monday; show whole weeks, five or six of them.
+    const lead = (first.getDay() + 6) % 7;
+    const start = new Date(y, m - 1, 1 - lead);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const weeks = Math.ceil((lead + daysInMonth) / 7);
+
+    const sheet = el("div", "ppui-month-sheet" + (dir > 0 ? " from-next" : dir < 0 ? " from-prev" : ""));
+    sheet.setAttribute("role", "grid");
+    sheet.setAttribute("aria-label", first.toLocaleDateString("en-AU", { month: "long", year: "numeric" }));
+    const names = el("div", "ppui-month-names");
+    names.setAttribute("role", "row");
+    for (const name of ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]) {
+      const n = el("span", "ppui-month-name", name);
+      n.setAttribute("role", "columnheader");
+      names.appendChild(n);
+    }
+    sheet.appendChild(names);
+    const grid = el("div", "ppui-month-grid");
+    grid.style.setProperty("--weeks", String(weeks));
+    for (let w = 0; w < weeks; w++) {
+      const row = el("div", "ppui-month-week");
+      row.setAttribute("role", "row");
+      row.style.setProperty("--w", String(w));
+      for (let c = 0; c < 7; c++) {
+        const date = new Date(start);
+        date.setDate(start.getDate() + w * 7 + c);
+        row.appendChild(monthCell(isoOf(date), date.getMonth() === m - 1));
+      }
+      grid.appendChild(row);
+    }
+    sheet.appendChild(grid);
+    pane.replaceChildren(sheet);
+
+    d.querySelector(".ppui-cal-heading").textContent = first.toLocaleDateString("en-AU", { month: "long", year: "numeric" });
+    d.querySelectorAll(".ppui-cal-month").forEach((b) => b.classList.toggle("is-current", b.dataset.month === cal.month));
+  }
+
+  // The overlay grows out of (or shrinks back into) a point: the button pressed, or the minimised pill.
+  function clipFrom(point, opening) {
+    const r = Math.hypot(Math.max(point.x, innerWidth - point.x), Math.max(point.y, innerHeight - point.y));
+    const shapes = ["circle(0px at " + point.x + "px " + point.y + "px)", "circle(" + r + "px at " + point.x + "px " + point.y + "px)"];
+    return cal.dialog.animate({ clipPath: opening ? shapes : shapes.reverse() },
+      { duration: opening ? 520 : 380, easing: "cubic-bezier(0.32, 0.72, 0, 1)", fill: opening ? "none" : "forwards" });
+  }
+
+  const centreOf = (node) => {
+    const r = node && node.getBoundingClientRect();
+    return r && r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : { x: innerWidth / 2, y: innerHeight / 2 };
+  };
+
+  function openCalendar(from) {
+    cal.start = isoAfter(0);
+    if (!cal.dialog) cal.dialog = buildCalendar();
+    cal.from = from || null;
+    hidePill();
+    cal.dialog.getAnimations().forEach((a) => a.cancel());
+    cal.cards.forEach((card) => card.remove());
+    cal.cards.clear();
+    cal.month = isoAfter(0).slice(0, 7);
+    loadNotes().then(() => {
+      if (!cal.dialog.open) cal.dialog.showModal();
+      root.classList.add("ppui-reading");
+      cal.pos = cal.target;
+      applyCalView();
+      measureWall();
+      cal.dialog.querySelector(".ppui-cal-today").focus({ preventScroll: true });
+      if (flatWall()) return;
+      clipFrom(centreOf(cal.from), true);
+      // The days fan out onto the curve, middle first.
+      cal.cards.forEach((card, i) => {
+        card.style.setProperty("--fan", (Math.abs(i - cal.pos) * 0.04 + 0.12).toFixed(2) + "s");
+        card.classList.remove("is-entering");
+        void card.offsetWidth;
+        card.classList.add("is-entering");
+      });
+    });
+  }
+
+  function closeCalendar(toPoint) {
+    const dialog = cal.dialog;
+    if (!dialog || !dialog.open) return Promise.resolve();
+    const finish = () => {
+      dialog.getAnimations().forEach((a) => a.cancel());
+      dialog.close();
+      if (!document.querySelector("dialog[open]")) root.classList.remove("ppui-reading");
+    };
+    if (flatWall()) {
+      finish();
+      return Promise.resolve();
+    }
+    // Finish when the shrink ends, or shortly after in any case (a background tab may not animate).
+    const shrink = clipFrom(toPoint || centreOf(cal.from), false).finished.catch(() => {});
+    return Promise.race([shrink, new Promise((r) => setTimeout(r, 500))]).then(finish);
+  }
+
+  // Minimise: the overlay shrinks into a small pill in the corner; the pill opens it again.
+  function minimiseCalendar() {
+    const pill = showPill();
+    closeCalendar(centreOf(pill));
+  }
+
+  function showPill() {
+    if (!cal.pill) {
+      const pill = el("button", "ppui-cal-pill");
+      pill.type = "button";
+      pill.addEventListener("click", () => openCalendar(pill));
+      document.body.appendChild(pill);
+      cal.pill = pill;
+      onNotes(() => updatePill());
+    }
+    updatePill();
+    cal.pill.hidden = false;
+    cal.pill.classList.remove("is-leaving");
+    return cal.pill;
+  }
+
+  function updatePill() {
+    if (!cal.pill) return;
+    const due = dueSoon().length;
+    cal.pill.replaceChildren(icon("calendar"), el("span", "ppui-cal-pill-text", "Calendar"),
+      el("span", "ppui-cal-pill-date", dayFromIso(isoAfter(0)).toLocaleDateString("en-AU", { weekday: "short", day: "numeric" })));
+    if (due) cal.pill.appendChild(el("span", "ppui-count", String(due)));
+    cal.pill.setAttribute("aria-label", "Open calendar" + (due ? ", " + due + " reminders due" : ""));
+  }
+
+  function hidePill() {
+    if (cal.pill) cal.pill.hidden = true;
+  }
+
+  // ---- Header buttons (every page): Calendar (with a count of what's due) and Notebook ----
+
+  function buildCalendarButton() {
+    const btn = el("button", "ppui-bar-button ppui-cal-button");
+    btn.type = "button";
+    btn.title = "Calendar";
+    btn.setAttribute("aria-label", "Calendar");
+    btn.appendChild(icon("calendar"));
+    btn.addEventListener("click", () => openCalendar(btn));
+    // After this script has finished starting up, keep the count of reminders due in step.
+    setTimeout(() => onNotes(() => {
+      const due = dueSoon().length;
+      btn.querySelector(".ppui-count")?.remove();
+      if (due) btn.appendChild(el("span", "ppui-count", String(due)));
+      btn.setAttribute("aria-label", "Calendar" + (due ? ", " + due + " reminders due" : ""));
+    }), 0);
+    return btn;
+  }
+
+  function buildNotebookButton() {
+    const btn = el("button", "ppui-bar-button ppui-notebook-button");
+    btn.type = "button";
+    btn.title = "Notebook";
+    btn.setAttribute("aria-label", "Notebook");
+    btn.appendChild(icon("notebook"));
+    btn.addEventListener("click", () => openNotebook());
+    return btn;
+  }
+
+  // ---- Due reminders: a small paper banner, once per note per day ----
+
+  function showDueBanner() {
+    const today = isoAfter(0);
+    const due = dueSoon().filter((n) => n.remindedOn !== today).sort((a, b) => a.date.localeCompare(b.date));
+    if (!due.length || document.querySelector(".ppui-due")) return;
+    const banner = el("aside", "ppui-due");
+    banner.setAttribute("role", "status");
+    banner.setAttribute("aria-label", "Reminders due");
+    const when = (n) => (n.date < today ? "Overdue" : n.date === today ? "Due today" : "Due tomorrow");
+    banner.appendChild(el("p", "ppui-due-title", due.length === 1 ? when(due[0]) : due.length + " reminders due"));
+    const ul = el("ul", "ppui-due-list");
+    due.slice(0, 3).forEach((n) => {
+      const li = el("li");
+      li.dataset.tone = String(noteTone(n));
+      li.appendChild(el("span", "ppui-due-text", n.text));
+      if (due.length > 1) li.appendChild(el("span", "ppui-due-when", when(n)));
+      ul.appendChild(li);
+    });
+    if (due.length > 3) ul.appendChild(el("li", "ppui-due-more", "and " + (due.length - 3) + " more"));
+    const actions = el("div", "ppui-due-actions");
+    const dismiss = () => {
+      banner.classList.add("is-leaving");
+      setTimeout(() => banner.remove(), 300);
+    };
+    if (due.length === 1) {
+      const done = el("button", "ppui-due-button is-primary", "Done");
+      done.type = "button";
+      done.addEventListener("click", () => {
+        saveNote(Object.assign({}, due[0], { done: true, remindedOn: today }));
+        dismiss();
+      });
+      actions.appendChild(done);
+    }
+    const open = el("button", "ppui-due-button", "Open notebook");
+    open.type = "button";
+    open.addEventListener("click", () => {
+      dismiss();
+      openNotebook();
+    });
+    const close = el("button", "ppui-due-close");
+    close.type = "button";
+    close.setAttribute("aria-label", "Dismiss");
+    close.appendChild(icon("close"));
+    close.addEventListener("click", dismiss);
+    actions.appendChild(open);
+    banner.append(ul, actions, close);
+    document.body.appendChild(banner);
+    // Shown today: don't show these again until tomorrow.
+    due.forEach((n) => saveNote(Object.assign({}, n, { remindedOn: today })));
+  }
+
+  loadNotes().then(() => setTimeout(showDueBanner, 1200));
+
   // The portal's list is hidden from the moment it appears (html.ppui-news-pending), so it never
   // flashes; early.js hides it even sooner on an address that was the News page last time.
   const hasStories = () => document.querySelector(SEL.article + " " + SEL.articleTitle);
@@ -2186,6 +3321,13 @@
 
   function buildTodayPanel() {
     const section = panel("ppui-today", "calendarClock", "Today", "Full schedule", SCHEDULE_URL);
+    const calButton = el("button", "ppui-head-button");
+    calButton.type = "button";
+    calButton.title = "Open calendar";
+    calButton.setAttribute("aria-label", "Open calendar");
+    calButton.appendChild(icon("calendar"));
+    calButton.addEventListener("click", () => openCalendar(calButton));
+    section.querySelector(".ppui-head").insertBefore(calButton, section.querySelector(".ppui-head .ppui-link"));
     const featured = el("div", "ppui-feature");
     featured.hidden = true;
     const progress = buildProgress();
@@ -2199,6 +3341,7 @@
         if (!res.ok) throw new Error("HTTP " + res.status);
         const items = parseSchedule(await res.text());
         if (!items) throw new Error("schedule markup not found");
+        writeJson(TODAY_KEY, { date: isoAfter(0), items: items.map((item) => ({ time: item.time, title: item.title })) });
         renderFeatured(featured, items);
         renderProgress(progress, items);
         renderRows(list, items);
@@ -2403,13 +3546,6 @@
     };
   }
 
-  // A steady tone per class (one of six blues and silvers from the crest), so a class keeps its colour.
-  function toneFor(name) {
-    let h = 2166136261;
-    for (const c of name) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
-    return (h >>> 0) % 6;
-  }
-
   function courseRow(course) {
     const row = el("li", "ppui-course");
     const badgeIcon = el("span", "ppui-subject");
@@ -2422,6 +3558,17 @@
     if (course.href) name.href = course.href;
     body.appendChild(name);
     if (course.teacher) body.appendChild(el("span", "ppui-meta", course.teacher));
+    const noteCount = el("button", "ppui-note-count");
+    noteCount.type = "button";
+    noteCount.hidden = true;
+    noteCount.addEventListener("click", () => openNotebook({ filter: course.name }));
+    body.appendChild(noteCount);
+    onNotes(() => {
+      const n = openNotes().filter((note) => note.subject === course.name).length;
+      noteCount.hidden = !n;
+      noteCount.replaceChildren(icon("notebook"), document.createTextNode(n + (n === 1 ? " note" : " notes")));
+      noteCount.setAttribute("aria-label", n + " open notes for " + course.name);
+    });
     row.appendChild(body);
 
     if (course.updates && course.updatesHref) {
@@ -2434,13 +3581,29 @@
       row.appendChild(el("span"));
     }
 
-    if (course.links.length) {
+    {
       const more = el("button", "ppui-more");
       more.type = "button";
       more.setAttribute("aria-label", "More for " + course.name);
       more.appendChild(icon("ellipsis"));
       const menu = el("ul", "ppui-menu");
       menu.setAttribute("aria-label", course.name);
+      // Notes first: write one for this class, or see the ones it has.
+      for (const [label, iconName, open] of [
+        ["Add note", "plus", () => openNotebook({ subject: course.name })],
+        ["Notes for this class", "notebook", () => openNotebook({ filter: course.name })],
+      ]) {
+        const li = el("li");
+        const b = el("button", "ppui-menu-item ppui-menu-note-item");
+        b.type = "button";
+        b.append(icon(iconName), el("span", null, label));
+        b.addEventListener("click", () => {
+          menu.hidePopover();
+          open();
+        });
+        li.appendChild(b);
+        menu.appendChild(li);
+      }
       for (const link of course.links) {
         const li = el("li");
         const a = linkTo(el("a", "ppui-menu-item", link.label), link.href);
@@ -2451,7 +3614,7 @@
       arrowNav(menu, ".ppui-menu-item");
       popover(more, menu);
       menu.addEventListener("toggle", (e) => {
-        if (e.newState === "open") menu.querySelector("a").focus();
+        if (e.newState === "open") menu.querySelector(".ppui-menu-item").focus();
       });
       row.appendChild(more);
     }
@@ -2461,6 +3624,7 @@
   function buildClassesPanel(listComp, classesHref) {
     const courses = [...listComp.querySelectorAll(SEL.course)].map(readCourse).filter((c) => c.name);
     if (!courses.length) return null;
+    writeJson(CLASSES_KEY, courses.map((c) => ({ name: c.name })));
     const today = courses.filter((c) => c.period).sort((a, b) => a.period - b.period);
     const later = courses.filter((c) => !c.period);
 
@@ -2555,6 +3719,17 @@
 
     const apps = harvestApps();
     if (apps.length) saveApps(apps);
+    const events = document.querySelector(SEL.eventsComponent);
+    if (events) {
+      try {
+        harvestEvents(events);
+      } catch (e) {}
+      const open = el("button", "ppui-events-open");
+      open.type = "button";
+      open.append(icon("calendar"), el("span", null, "Open calendar"));
+      open.addEventListener("click", () => openCalendar(open));
+      events.prepend(open);
+    }
     foldBlocks(grid, classesBuilt);
     showUnread();
     reveal();
