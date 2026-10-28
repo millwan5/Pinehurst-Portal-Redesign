@@ -4,6 +4,13 @@
   const root = document.documentElement;
   const PORTAL_ORIGIN = "https://portals.veracross.au";
 
+  // A class's assignment page (embedded old portal): restyle it from the first paint, and keep it
+  // hidden until embed.js has added its scores and summary (it removes ppui-class-pending).
+  if (location.hostname === "portals-embed.veracross.au" && /\/classes\/\d+/.test(location.pathname)) {
+    root.classList.add("ppui-class-page", "ppui-class-pending");
+    setTimeout(() => root.classList.remove("ppui-class-pending"), 3000);
+  }
+
   // Embedded old-portal pages (portals-embed.veracross.au) live on another origin, so they
   // can't read the saved theme; the top frame sends it. No hiding or dashboard here.
   if (window !== window.top) {
@@ -36,6 +43,12 @@
       setTimeout(() => root.classList.remove("ppui-news-pending"), 8000);
     }
   } catch (e) {}
+
+  // The Student Overview page: hide the portal's version until content.js has built ours.
+  if (/\/student\/student\/overview\/?$/.test(location.pathname)) {
+    root.classList.add("ppui-page-pending");
+    setTimeout(() => root.classList.remove("ppui-page-pending"), 8000);
+  }
 
   // Never leave the page blank if the portal or content.js is slow or fails.
   setTimeout(() => root.classList.remove("ppui-booting"), 4000);

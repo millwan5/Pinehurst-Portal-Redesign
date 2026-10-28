@@ -43,12 +43,18 @@
       "css": ["login.css"],
       "js": ["login-early.js"],
       "run_at": "document_start"
+    },
+    {
+      "matches": ["*://portals-embed.veracross.au/pinehurst/*"],
+      "js": ["embed.js"],
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   "web_accessible_resources": [
     {
       "resources": ["fonts/*", "assets/clouds.jpg"],
-      "matches": ["*://portals.veracross.au/*", "*://accounts.veracross.au/*"]
+      "matches": ["*://portals.veracross.au/*", "*://accounts.veracross.au/*", "*://portals-embed.veracross.au/*"]
     }
   ]
 }

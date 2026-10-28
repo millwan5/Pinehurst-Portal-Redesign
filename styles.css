@@ -1431,6 +1431,434 @@ html.ppui-home .component-my-events-student .day.today .day-header {
   color: var(--ppui-accent) !important;
 }
 
+/* ---------- Student Overview page (html.ppui-overview-page): section pills, documents, class cards ---------- */
+
+/* Until our view is built, none of the portal's page shows, so the old layout never flashes. */
+html.ppui-page-pending .app-container {
+  visibility: hidden !important;
+}
+
+html.ppui-overview-page .ppui-moved {
+  display: none !important;
+}
+
+.ppui-overview {
+  max-width: 1080px;
+  margin: 8px auto 72px;
+  padding: 0 20px;
+  box-sizing: border-box;
+  color: var(--ppui-text);
+  font-family: var(--ppui-font);
+}
+
+.ppui-ov-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 24px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--ppui-hairline);
+}
+
+.ppui-ov-head .ppui-room-title {
+  margin: 0 !important;
+}
+
+/* The portal's sections (Overview, Schedule, Updates, Assignments) as one row of pills. */
+.ppui-ov-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: auto;
+  padding: 4px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 999px;
+  background: var(--ppui-surface);
+}
+
+.ppui-ov-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  color: var(--ppui-muted) !important;
+  font-size: 13.5px;
+  font-weight: 650;
+  text-decoration: none !important;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ppui-ov-nav-link .ppui-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.ppui-ov-nav-link:hover {
+  background: var(--ppui-hover);
+  color: var(--ppui-text) !important;
+}
+
+.ppui-ov-nav-link[aria-current="page"] {
+  background: var(--ppui-crest);
+  color: #fff !important;
+}
+
+.ppui-ov-section {
+  margin-top: 30px;
+}
+
+.ppui-ov-heading {
+  margin: 0 0 14px !important;
+  color: var(--ppui-text) !important;
+  font-family: var(--ppui-font) !important;
+  font-size: 13px !important;
+  font-weight: 750 !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ppui-ov-heading-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-bottom: 14px;
+}
+
+.ppui-ov-heading-row .ppui-ov-heading {
+  margin: 0 !important;
+}
+
+/* Documents: four tiles, links inside each. */
+.ppui-ov-docs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ppui-ov-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: var(--ppui-radius-row);
+  background: var(--ppui-surface);
+}
+
+.ppui-ov-doc-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ppui-muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ppui-ov-doc-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent);
+}
+
+.ppui-ov-doc-icon .ppui-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.ppui-ov-doc-links {
+  display: grid;
+  gap: 2px;
+}
+
+.ppui-ov-doc-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 -8px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  color: var(--ppui-text) !important;
+  font-size: 14.5px;
+  font-weight: 650;
+  line-height: 1.3;
+  text-decoration: none !important;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ppui-ov-doc-link > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.ppui-ov-doc-link .ppui-ext {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--ppui-muted);
+}
+
+a.ppui-ov-doc-link:hover {
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent) !important;
+}
+
+a.ppui-ov-doc-link:hover .ppui-ext {
+  color: var(--ppui-accent);
+}
+
+.ppui-ov-doc-link.is-off {
+  color: var(--ppui-muted) !important;
+  font-weight: 500;
+}
+
+.ppui-ov-soon {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ppui-hover);
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
+/* Classes: Current / Upcoming / Past switch, then cards. */
+.ppui-ov-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 999px;
+  background: var(--ppui-surface);
+}
+
+.ppui-ov-switch-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ppui-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ppui-ov-switch-button:hover {
+  color: var(--ppui-text);
+}
+
+.ppui-ov-switch-button[aria-selected="true"] {
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent);
+}
+
+.ppui-ov-switch-count {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+.ppui-ov-summary {
+  margin: 0 0 0 auto !important;
+  color: var(--ppui-muted) !important;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.ppui-ov-summary.is-busy {
+  color: var(--ppui-accent) !important;
+}
+
+.ppui-ov-classes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ppui-ov-classes > .ppui-empty {
+  grid-column: 1 / -1;
+}
+
+.ppui-ov-class {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: var(--ppui-radius-row);
+  background: var(--ppui-surface);
+  transition: border-color 0.15s ease;
+}
+
+.ppui-ov-class:hover {
+  border-color: var(--ppui-silver);
+}
+
+/* A class with new updates: crest-blue edge so it stands out. */
+.ppui-ov-class.has-updates {
+  border-color: var(--ppui-accent);
+  border-left-width: 3px;
+  padding-left: 14px;
+}
+
+.ppui-ov-class-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ppui-ov-class-top .ppui-subject {
+  flex: none;
+}
+
+.ppui-ov-class-body {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+.ppui-ov-class-name {
+  overflow: hidden;
+  color: var(--ppui-text) !important;
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.3;
+  text-decoration: none !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+a.ppui-ov-class-name:hover {
+  color: var(--ppui-accent) !important;
+}
+
+.ppui-ov-class-meta {
+  overflow: hidden;
+  color: var(--ppui-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ppui-ov-updates,
+.ppui-ov-grade {
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.ppui-ov-updates {
+  background: var(--ppui-accent);
+  color: var(--ppui-surface) !important;
+  text-decoration: none !important;
+}
+
+.ppui-ov-grade {
+  background: var(--ppui-hover);
+  color: var(--ppui-text);
+}
+
+.ppui-ov-class-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ppui-ov-class-links > .is-main {
+  margin-right: auto;
+}
+
+.ppui-ov-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 999px;
+  color: var(--ppui-muted) !important;
+  font-size: 12.5px;
+  font-weight: 650;
+  text-decoration: none !important;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.ppui-ov-link .ppui-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.ppui-ov-link .ppui-ext {
+  display: none;
+}
+
+.ppui-ov-link:hover {
+  border-color: transparent;
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent) !important;
+}
+
+.ppui-ov-link.is-icon {
+  justify-content: center;
+  width: 30px;
+  padding: 0;
+}
+
+.ppui-ov-link.is-main {
+  border-color: transparent;
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent) !important;
+}
+
+.ppui-ov-link.is-main:hover {
+  background: var(--ppui-accent);
+  color: var(--ppui-surface) !important;
+}
+
+@media (max-width: 700px) {
+  .ppui-overview {
+    padding: 0 16px;
+  }
+  .ppui-ov-nav {
+    margin-left: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+  .ppui-ov-summary {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+  .ppui-ov-classes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* ---------- News page (html.ppui-newspage): tabs, full-text cards and a date timeline ---------- */
 
 /* The portal's own articles stay in the page (as a fallback) but out of sight. */
@@ -4419,15 +4847,15 @@ html body .app-container :where(h1, h2, h3, h4) {
   color: var(--ppui-text) !important;
 }
 
-:root[data-ppui-theme="dark"] .app-container :where(h1, h2, h3, h4, h5, h6, p, span, small, li, td, th, label, strong, b, div):not(.ppui-dash *):not(.ppui-newsroom *):not(.ppui-header *):not(.ppui-stub *) {
+:root[data-ppui-theme="dark"] .app-container :where(h1, h2, h3, h4, h5, h6, p, span, small, li, td, th, label, strong, b, div):not(.ppui-dash *):not(.ppui-newsroom *):not(.ppui-overview *):not(.ppui-header *):not(.ppui-stub *) {
   color: var(--ppui-text) !important;
 }
 
-:root[data-ppui-theme="dark"] .app-container :where(small, .vx-subtitle, .vx-tab-bar__description, .message-from-label, .message-category, .item-subtitle, .vx-heading-6, .day-number):not(.ppui-dash *):not(.ppui-newsroom *) {
+:root[data-ppui-theme="dark"] .app-container :where(small, .vx-subtitle, .vx-tab-bar__description, .message-from-label, .message-category, .item-subtitle, .vx-heading-6, .day-number):not(.ppui-dash *):not(.ppui-newsroom *):not(.ppui-overview *) {
   color: var(--ppui-muted) !important;
 }
 
-:root[data-ppui-theme="dark"] .app-container a:not(.ppui-dash a):not(.ppui-header a):not(.ppui-newsroom a),
+:root[data-ppui-theme="dark"] .app-container a:not(.ppui-dash a):not(.ppui-header a):not(.ppui-newsroom a):not(.ppui-overview a),
 :root[data-ppui-theme="dark"] .app-container .vx-button {
   color: var(--ppui-accent) !important;
 }
@@ -4465,7 +4893,7 @@ html body .app-container :where(h1, h2, h3, h4) {
   box-shadow: none !important;
 }
 
-:root[data-ppui-theme="dark"] .app-container :where(hr, table, tr, td, th, li, .course) {
+:root[data-ppui-theme="dark"] .app-container :where(hr, table, tr, td, th, li, .course):not(.ppui-overview *) {
   border-color: var(--ppui-hairline) !important;
 }
 

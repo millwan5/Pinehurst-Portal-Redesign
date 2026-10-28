@@ -166,6 +166,9 @@
     chevronDown: [["path", { d: "m6 9 6 6 6-6" }]],
     sliders: [["path", { d: "M20 7h-9M14 17H5" }], ["circle", { cx: 17, cy: 17, r: 3 }], ["circle", { cx: 7, cy: 7, r: 3 }]],
     check: [["path", { d: "M20 6 9 17l-5-5" }]],
+    list: [["path", { d: "M3 6h.01M3 12h.01M3 18h.01M8 6h13M8 12h13M8 18h13" }]],
+    fileText: [["path", { d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7zM14 2v5h6M16 13H8M16 17H8M10 9H8" }]],
+    clock: [["circle", { cx: 12, cy: 12, r: 10 }], ["path", { d: "M12 6v6l4 2" }]],
     notebook: [["path", { d: "M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4M2 6h4M2 10h4M2 14h4M2 18h4" }], ["path", { d: "M21.38 5.63a1 1 0 1 0-3-3l-5.02 5a2 2 0 0 0-.5.86l-.84 2.87a.5.5 0 0 0 .62.62l2.87-.84a2 2 0 0 0 .86-.5z" }]],
     plus: [["path", { d: "M5 12h14M12 5v14" }]],
     minimise: [["path", { d: "M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" }]],
@@ -3257,6 +3260,230 @@
         }
       }, 60);
     }, NEWS_WAIT_MS);
+  }
+
+  // ---- Student Overview page: the portal's section tabs, documents and classes, in our style ----
+
+  const OVERVIEW_PATH = /\/student\/student\/overview\/?$/;
+  const SECTION_ICONS = { overview: "grid", "daily-schedule": "calendarClock", "recent-updates": "activity", "upcoming-assignments": "list" };
+  const SECTION_NAMES = { overview: "Overview", "daily-schedule": "Schedule", "recent-updates": "Updates", "upcoming-assignments": "Assignments" };
+  const DOC_ICONS = [[/academic/i, "fileText"], [/progress/i, "chart"], [/timetable/i, "clock"], [/attendance/i, "check"]];
+  const COURSE_LISTS = [["active", "Current"], ["future", "Upcoming"], ["past", "Past"]];
+
+  function readOverviewCourse(node) {
+    const text = (sel) => clean((node.querySelector(sel) || {}).textContent);
+    const full = text(".course-description");
+    const nameLink = node.querySelector("a.course-description");
+    const notes = node.querySelector(SEL.notificationsLink);
+    const assignments = node.querySelector(SEL.assignmentsLink);
+    const grade = text(".course-list-grade-link");
+    return {
+      full,
+      name: shortName(full),
+      href: nameLink ? safeHref(nameLink.getAttribute("href")) : null,
+      teacher: text(SEL.courseTeacher),
+      grade: grade && grade !== "-" ? grade : "",
+      updates: parseInt(text(SEL.notificationBadge), 10) || 0,
+      updatesHref: notes ? sameOriginHref(notes.getAttribute("href")) : null,
+      assignmentsHref: assignments ? sameOriginHref(assignments.getAttribute("href")) : null,
+      links: [...node.querySelectorAll(".website-link")]
+        .map((a) => ({ label: clean(a.textContent), href: safeHref(a.getAttribute("href")) }))
+        .filter((l) => l.label && l.href),
+    };
+  }
+
+  function overviewCard(course) {
+    const card = el("li", "ppui-ov-class" + (course.updates ? " has-updates" : ""));
+    const top = el("div", "ppui-ov-class-top");
+    const tile = el("span", "ppui-subject");
+    tile.dataset.tone = String(toneFor(course.name));
+    tile.appendChild(icon(subjectIcon(course.name)));
+    const body = el("div", "ppui-ov-class-body");
+    const name = course.href ? linkTo(el("a", "ppui-ov-class-name", course.name), course.href) : el("span", "ppui-ov-class-name", course.name);
+    body.appendChild(name);
+    const meta = [course.teacher, course.full !== course.name ? course.full : ""].filter(Boolean).join(" · ");
+    if (meta) body.appendChild(el("span", "ppui-ov-class-meta", meta));
+    top.append(tile, body);
+    // New updates lead (they need a look); otherwise the grade, when the portal shows one.
+    if (course.updates && course.updatesHref) {
+      const badge = el("a", "ppui-ov-updates", course.updates + " new");
+      badge.href = course.updatesHref;
+      badge.setAttribute("aria-label", course.updates + " new updates in " + course.name);
+      top.appendChild(badge);
+    } else if (course.grade) {
+      const grade = el("span", "ppui-ov-grade", course.grade);
+      grade.title = "Current grade";
+      top.appendChild(grade);
+    }
+    card.appendChild(top);
+
+    const foot = el("div", "ppui-ov-class-links");
+    if (course.assignmentsHref) {
+      const a = el("a", "ppui-ov-link is-main");
+      a.href = course.assignmentsHref;
+      a.append(icon("list"), el("span", null, "Assignments"));
+      foot.appendChild(a);
+    }
+    for (const link of course.links) {
+      // Website and Calendar as round icon buttons, so a card's links stay on one line.
+      const a = linkTo(el("a", "ppui-ov-link is-icon"), link.href);
+      a.title = link.label + " (opens in new tab)";
+      a.append(icon(/calendar/i.test(link.label) ? "calendar" : "globe"), el("span", "ppui-sr", link.label));
+      externalMark(a);
+      foot.appendChild(a);
+    }
+    card.appendChild(foot);
+    return card;
+  }
+
+  function buildOverview() {
+    const source = document.querySelector(".student-overview");
+    if (!source || document.querySelector(".ppui-overview")) return;
+    const view = el("section", "ppui-overview");
+    view.setAttribute("aria-label", "Student overview");
+
+    // Heading row: title, then the portal's section tabs as pills.
+    const head = el("header", "ppui-ov-head");
+    head.appendChild(el("h1", "ppui-room-title", "Overview"));
+    const tabBar = document.querySelector(".vx-tab-bar.my-children-nav");
+    if (tabBar) {
+      const nav = el("nav", "ppui-ov-nav");
+      nav.setAttribute("aria-label", "Student sections");
+      for (const a of tabBar.querySelectorAll("a.vx-tab-bar__tab")) {
+        const href = sameOriginHref(a.getAttribute("href"));
+        if (!href) continue;
+        const key = new URL(href).pathname.split("/").filter(Boolean).pop();
+        const link = el("a", "ppui-ov-nav-link");
+        link.href = href;
+        link.append(icon(SECTION_ICONS[key] || "external"), el("span", null, SECTION_NAMES[key] || clean(a.textContent)));
+        if (a.classList.contains("vx-tab-bar__tab--active")) link.setAttribute("aria-current", "page");
+        nav.appendChild(link);
+      }
+      head.appendChild(nav);
+      tabBar.classList.add("ppui-moved");
+    }
+    view.appendChild(head);
+
+    // Documents: one tile per report group. Links not out yet stay listed, greyed, as "Not yet".
+    const groups = [...source.querySelectorAll(".report-group")];
+    if (groups.length) {
+      const docs = el("section", "ppui-ov-section");
+      docs.appendChild(el("h2", "ppui-ov-heading", "Documents"));
+      const grid = el("ul", "ppui-ov-docs");
+      for (const g of groups) {
+        const label = clean((g.querySelector(".vx-subtitle") || {}).textContent);
+        const tile = el("li", "ppui-ov-doc");
+        const iconName = (DOC_ICONS.find(([re]) => re.test(label)) || [null, "fileText"])[1];
+        const badge = el("span", "ppui-ov-doc-icon");
+        badge.appendChild(icon(iconName));
+        const title = el("div", "ppui-ov-doc-title");
+        title.append(badge, el("span", null, label));
+        tile.appendChild(title);
+        const links = el("div", "ppui-ov-doc-links");
+        for (const a of g.querySelectorAll(".report-links a")) {
+          const text = clean(a.textContent);
+          const href = a.classList.contains("disabled") ? null : safeHref(a.getAttribute("href"));
+          if (href) {
+            const link = linkTo(el("a", "ppui-ov-doc-link"), href);
+            link.append(el("span", null, text));
+            externalMark(link);
+            links.appendChild(link);
+          } else {
+            const off = el("span", "ppui-ov-doc-link is-off");
+            off.append(el("span", null, text), el("span", "ppui-ov-soon", "Not yet"));
+            links.appendChild(off);
+          }
+        }
+        tile.appendChild(links);
+        grid.appendChild(tile);
+      }
+      docs.appendChild(grid);
+      view.appendChild(docs);
+    }
+
+    // Classes: Current / Upcoming / Past, as cards.
+    const lists = COURSE_LISTS.map(([key, label]) => {
+      const ul = source.querySelector(".course-list." + key);
+      return { key, label, courses: ul ? [...ul.querySelectorAll(".course-list-item")].map(readOverviewCourse).filter((c) => c.name) : [] };
+    }).filter((l) => l.key === "active" || l.courses.length);
+    const classes = el("section", "ppui-ov-section");
+    const classHead = el("div", "ppui-ov-heading-row");
+    classHead.appendChild(el("h2", "ppui-ov-heading", "Classes"));
+    const switcher = el("div", "ppui-ov-switch");
+    switcher.setAttribute("role", "tablist");
+    switcher.setAttribute("aria-label", "Classes");
+    const grid = el("ul", "ppui-ov-classes");
+    grid.id = "ppui-ov-classes";
+    grid.setAttribute("role", "tabpanel");
+    const summary = el("p", "ppui-ov-summary");
+    let shown = "active";
+    const buttons = lists.map((l) => {
+      const b = el("button", "ppui-ov-switch-button");
+      b.type = "button";
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-controls", grid.id);
+      b.append(el("span", null, l.label), el("span", "ppui-ov-switch-count", String(l.courses.length)));
+      b.addEventListener("click", () => {
+        shown = l.key;
+        render();
+      });
+      return b;
+    });
+    switcher.append(...buttons);
+    classHead.append(switcher, summary);
+    classes.append(classHead, grid);
+    view.appendChild(classes);
+
+    function render() {
+      const list = lists.find((l) => l.key === shown);
+      buttons.forEach((b, i) => {
+        const on = lists[i].key === shown;
+        b.setAttribute("aria-selected", String(on));
+        b.tabIndex = on ? 0 : -1;
+      });
+      // Classes with new updates first: they're the ones that need a look.
+      const courses = list.courses.filter((c) => c.updates).concat(list.courses.filter((c) => !c.updates));
+      grid.replaceChildren(...courses.map(overviewCard));
+      if (!courses.length) grid.appendChild(emptyState("No " + list.label.toLowerCase() + " classes."));
+      const updates = list.courses.reduce((n, c) => n + c.updates, 0);
+      const busy = list.courses.filter((c) => c.updates).length;
+      summary.textContent = updates
+        ? updates + (updates === 1 ? " new update" : " new updates") + " in " + busy + (busy === 1 ? " class" : " classes")
+        : "No new updates";
+      summary.classList.toggle("is-busy", !!updates);
+    }
+    // Left / Right move between Current, Upcoming and Past.
+    switcher.addEventListener("keydown", (e) => {
+      const i = lists.findIndex((l) => l.key === shown);
+      const to = { ArrowRight: i + 1, ArrowLeft: i - 1 }[e.key];
+      if (to === undefined) return;
+      shown = lists[(to + lists.length) % lists.length].key;
+      render();
+      buttons[lists.findIndex((l) => l.key === shown)].focus();
+    });
+    render();
+
+    source.before(view);
+    source.classList.add("ppui-moved");
+  }
+
+  // The portal's page stays hidden (html.ppui-page-pending, set by early.js) until ours is built;
+  // if building fails, the portal's page comes back and the error is logged.
+  if (OVERVIEW_PATH.test(location.pathname)) {
+    root.classList.add("ppui-page-pending");
+    whenReady(() => document.querySelector(".student-overview .course-list-item"), () => {
+      try {
+        root.classList.add("ppui-overview-page");
+        buildOverview();
+      } catch (e) {
+        console.warn("[Pinehurst Dashboard] Overview view failed; showing the portal's page.", e);
+        root.classList.remove("ppui-overview-page");
+        document.querySelectorAll(".ppui-moved").forEach((n) => n.classList.remove("ppui-moved"));
+        document.querySelector(".ppui-overview")?.remove();
+      } finally {
+        root.classList.remove("ppui-page-pending");
+      }
+    }, WAIT_MS);
   }
 
   if (!HOME_PATH.test(location.pathname)) return;

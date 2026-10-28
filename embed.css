@@ -58,3 +58,863 @@
 :root[data-ppui-theme="dark"] .timeline-header-y a {
   color: var(--e-muted) !important;
 }
+
+/* ---------- A class's assignments (html.ppui-class-page, set by embed.js) ----------
+   The old page sits in a fixed 932px box, so on a narrow window the scores fall off the right.
+   Here it fills the frame: class chips to switch class, a title, filter pills, a summary,
+   then one card per assignment with its score as a percentage. */
+
+@font-face {
+  font-family: "Playfair Display";
+  src: url("chrome-extension://__MSG_@@extension_id__/fonts/PlayfairDisplay-Italic.ttf") format("truetype");
+  font-weight: 400 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("chrome-extension://__MSG_@@extension_id__/fonts/PlusJakartaSans.ttf") format("truetype");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --e-bg: #eef1f6;
+  --e-surface: #ffffff;
+  --e-raised: #f5f7fb;
+  --e-text: #0b1e45;
+  --e-muted: #5e6b82;
+  --e-accent: #1446a0;
+  --e-accent-soft: rgba(20, 70, 160, 0.09);
+  --e-line: rgba(11, 30, 69, 0.09);
+  --e-crest: #1446a0;
+  --e-high: #1b7f4b;
+  --e-good: #1446a0;
+  --e-fair: #b26a00;
+  --e-low: #b3261e;
+}
+
+:root[data-ppui-theme="dark"] {
+  --e-raised: #12224a;
+  --e-accent-soft: rgba(121, 167, 255, 0.14);
+  --e-crest: #1446a0;
+  --e-high: #5fd08f;
+  --e-good: #79a7ff;
+  --e-fair: #f0b45a;
+  --e-low: #ff8a80;
+}
+
+html.ppui-class-page,
+html.ppui-class-page body {
+  background: var(--e-bg) !important;
+  color: var(--e-text) !important;
+  font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif !important;
+}
+
+html.ppui-class-page body * {
+  font-family: inherit !important;
+}
+
+/* Fill the frame instead of a fixed box. */
+html.ppui-class-page .layout-header,
+html.ppui-class-page .secondary-nav,
+html.ppui-class-page .enrollment-overlay,
+html.ppui-class-page .enrollment-detail-tabs,
+html.ppui-class-page .class-list .teacher,
+html.ppui-class-page .group-chart {
+  display: none !important;
+}
+
+html.ppui-class-page #page-enrollment-details,
+html.ppui-class-page #page-enrollment-details .content,
+html.ppui-class-page .enrollment-sidebar,
+html.ppui-class-page .enrollment-detail,
+html.ppui-class-page .enrollment-assignments,
+html.ppui-class-page .assignment-list,
+html.ppui-class-page .section-toolbar,
+html.ppui-class-page .left-controls,
+html.ppui-class-page .right-controls,
+html.ppui-class-page .assignment-header,
+html.ppui-class-page .assignment-header > span,
+html.ppui-class-page .assignment-header > span > span,
+html.ppui-class-page .assignment-body {
+  position: static !important;
+  inset: auto !important;
+  float: none !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  margin: 0;
+  padding: 0;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html.ppui-class-page .assignment-header,
+html.ppui-class-page .assignment-header span {
+  line-height: 1.35 !important;
+}
+
+html.ppui-class-page .assignment-header > span {
+  margin: 0 !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  text-indent: 0 !important;
+}
+
+html.ppui-class-page .assignment-grade .ppui-pct {
+  position: relative !important;
+}
+
+html.ppui-class-page #page-enrollment-details {
+  max-width: 1000px;
+  margin: 0 auto !important;
+  padding: 20px 20px 64px !important;
+  box-sizing: border-box;
+}
+
+/* Class chips: every class, one tap away. */
+html.ppui-class-page .class-list {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  display: flex !important;
+  gap: 6px;
+  margin: 0 0 22px;
+  padding: 0 0 6px;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: thin;
+}
+
+html.ppui-class-page .class-list a {
+  display: inline-flex !important;
+  flex: none;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px !important;
+  border: 1px solid var(--e-line) !important;
+  border-radius: 999px;
+  background: var(--e-surface) !important;
+  color: var(--e-muted) !important;
+  font-size: 13px !important;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+
+/* Chips show the short code only ("10BIO E"); the full name is in the title. */
+html.ppui-class-page .class-list .description {
+  font-size: 0 !important;
+}
+
+html.ppui-class-page .class-list .description strong {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: inherit !important;
+}
+
+html.ppui-class-page .class-list a:hover {
+  border-color: transparent !important;
+  background: var(--e-accent-soft) !important;
+  color: var(--e-accent) !important;
+}
+
+html.ppui-class-page .class-list a.active {
+  border-color: transparent !important;
+  background: var(--e-crest) !important;
+  color: #fff !important;
+}
+
+/* Title: "10BIO E: IG1 Biology E", teacher and class website underneath. */
+html.ppui-class-page .enrollment-title {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 0 0 18px !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+html.ppui-class-page .enrollment-title > * {
+  position: static !important;
+  float: none !important;
+}
+
+/* Set in Playfair Display italic, like the dashboard's big headings. */
+html.ppui-class-page .enrollment-title .class-description,
+html.ppui-class-page .enrollment-title .class-description strong {
+  font-family: "Playfair Display", Georgia, "Times New Roman", serif !important;
+  font-style: italic !important;
+}
+
+html.ppui-class-page .enrollment-title .class-description {
+  flex-basis: 100%;
+  margin: 0 !important;
+  color: var(--e-text) !important;
+  font-size: clamp(28px, 3.8vw, 38px) !important;
+  font-weight: 700 !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.01em;
+}
+
+html.ppui-class-page .enrollment-title .class-description strong {
+  color: var(--e-accent) !important;
+  font-weight: 700 !important;
+}
+
+html.ppui-class-page .enrollment-title .class-teacher {
+  margin: 0 !important;
+  color: var(--e-muted) !important;
+  font-size: 14px !important;
+  font-style: normal !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  pointer-events: none;
+}
+
+html.ppui-class-page .enrollment-title .class-website {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--e-accent-soft) !important;
+  color: var(--e-accent) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+}
+
+/* Filters as pills; sort as a quiet pair on the right. */
+html.ppui-class-page .section-toolbar {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-bottom: 14px !important;
+}
+
+html.ppui-class-page .left-controls,
+html.ppui-class-page .right-controls {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+html.ppui-class-page .right-controls {
+  margin-left: auto !important;
+}
+
+html.ppui-class-page .section-toolbar a {
+  display: inline-flex !important;
+  align-items: center;
+  height: 30px;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  border: 0 !important;
+  border-radius: 999px;
+  background: transparent !important;
+  color: var(--e-muted) !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  text-decoration: none !important;
+}
+
+html.ppui-class-page .left-controls {
+  padding: 3px !important;
+  border: 1px solid var(--e-line) !important;
+  border-radius: 999px;
+  background: var(--e-surface) !important;
+}
+
+html.ppui-class-page .section-toolbar a:hover {
+  color: var(--e-text) !important;
+}
+
+html.ppui-class-page .left-controls a.active {
+  background: var(--e-crest) !important;
+  color: #fff !important;
+}
+
+html.ppui-class-page .right-controls label {
+  margin: 0 4px 0 0;
+  color: var(--e-muted) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+html.ppui-class-page .right-controls a.active {
+  background: var(--e-accent-soft) !important;
+  color: var(--e-accent) !important;
+}
+
+/* Summary tiles (embed.js). */
+.ppui-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 0 0 8px;
+}
+
+.ppui-summary-tile {
+  display: grid;
+  gap: 2px;
+  padding: 14px 16px;
+  border: 1px solid var(--e-line);
+  border-radius: 12px;
+  background: var(--e-surface);
+}
+
+.ppui-summary-label {
+  color: var(--e-muted);
+  font-size: 11.5px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ppui-summary-value {
+  color: var(--e-text);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ppui-summary-note {
+  color: var(--e-muted);
+  font-size: 12.5px;
+}
+
+.ppui-summary-tile.is-average .ppui-summary-value {
+  color: var(--band);
+}
+
+/* The average's bar along the bottom of its tile. */
+.ppui-summary-tile.is-average {
+  position: relative;
+  overflow: hidden;
+}
+
+.ppui-summary-tile.is-average::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 4px;
+  width: calc(var(--pct, 0) * 1%);
+  background: var(--band);
+}
+
+.ppui-summary-tile.is-busy .ppui-summary-value {
+  color: var(--e-accent);
+}
+
+[data-band="high"] { --band: var(--e-high); }
+[data-band="good"] { --band: var(--e-good); }
+[data-band="fair"] { --band: var(--e-fair); }
+[data-band="low"] { --band: var(--e-low); }
+[data-band="letter"] { --band: var(--e-accent); }
+
+/* Week headings. */
+html.ppui-class-page .group-header {
+  display: flex !important;
+  align-items: baseline;
+  gap: 8px;
+  margin: 22px 0 8px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+html.ppui-class-page .group-title {
+  color: var(--e-text) !important;
+  font-size: 13px !important;
+  font-weight: 750 !important;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+html.ppui-class-page .group-count {
+  color: var(--e-muted) !important;
+  font-size: 12.5px !important;
+}
+
+/* One card per assignment. */
+html.ppui-class-page .group-list {
+  display: grid;
+  gap: 8px;
+  border: 0 !important;
+}
+
+html.ppui-class-page .assignment {
+  overflow: hidden;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid var(--e-line) !important;
+  border-radius: 12px;
+  background: var(--e-surface) !important;
+  box-shadow: none !important;
+}
+
+html.ppui-class-page .assignment.unread {
+  border-left: 3px solid var(--e-accent) !important;
+}
+
+html.ppui-class-page .assignment-header {
+  display: grid !important;
+  grid-template-columns: 52px auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 14px;
+  padding: 12px 16px !important;
+  cursor: pointer;
+}
+
+html.ppui-class-page .assignment-header:hover {
+  background: var(--e-raised) !important;
+}
+
+/* Date block: "Aug 21" over "Fri". */
+html.ppui-class-page .assignment-due-date {
+  grid-column: 1;
+  grid-row: 1;
+  color: var(--e-text) !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  text-align: center;
+  white-space: nowrap;
+}
+
+html.ppui-class-page .assignment-due-day {
+  grid-column: 1;
+  grid-row: 2;
+  color: var(--e-muted) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-align: center;
+}
+
+html.ppui-class-page .assignment-header .assignment-type {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  padding: 3px 10px !important;
+  border: 0 !important;
+  border-radius: 999px;
+  background: var(--e-accent-soft) !important;
+  color: var(--e-accent) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  white-space: nowrap;
+}
+
+html.ppui-class-page .assignment-header .assignment-type.type-4 {
+  background: rgba(179, 38, 30, 0.1) !important;
+  color: var(--e-low) !important;
+}
+
+html.ppui-class-page .assignment-description {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  overflow: visible !important;
+  white-space: normal !important;
+  text-overflow: clip !important;
+  color: var(--e-text) !important;
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  line-height: 1.35;
+}
+
+/* Score: "66 / 100" with its percentage and a small bar; letters and statuses as chips. */
+html.ppui-class-page .assignment-grade {
+  grid-column: 4;
+  grid-row: 1 / span 2;
+  display: grid !important;
+  grid-template-columns: auto auto;
+  align-items: baseline;
+  justify-items: end;
+  column-gap: 8px;
+  row-gap: 4px;
+  min-width: 96px;
+  color: var(--e-text) !important;
+  text-align: right;
+}
+
+html.ppui-class-page .assignment-grade .raw-score {
+  color: var(--band, var(--e-text)) !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  font-variant-numeric: tabular-nums;
+}
+
+html.ppui-class-page .assignment-grade .max-score {
+  color: var(--e-muted) !important;
+  font-size: 12.5px !important;
+}
+
+html.ppui-class-page .assignment-grade .max-score::before {
+  content: "/ ";
+}
+
+html.ppui-class-page .assignment-grade .ppui-pct {
+  grid-column: 1 / -1;
+  position: relative;
+  width: 96px !important;
+  padding-top: 8px !important;
+  color: var(--e-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
+html.ppui-class-page .assignment-grade .ppui-pct::before,
+html.ppui-class-page .assignment-grade .ppui-pct::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 4px;
+  border-radius: 4px;
+}
+
+html.ppui-class-page .assignment-grade .ppui-pct::before {
+  right: 0;
+  background: var(--e-line);
+}
+
+html.ppui-class-page .assignment-grade .ppui-pct::after {
+  width: calc(var(--pct, 0) * 1%);
+  background: var(--band);
+}
+
+html.ppui-class-page .assignment-grade .status {
+  grid-column: 1 / -1;
+  padding: 3px 10px !important;
+  border-radius: 999px;
+  background: var(--e-raised) !important;
+  color: var(--e-muted) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+html.ppui-class-page .assignment.is-pending .assignment-grade .status {
+  background: var(--e-accent-soft) !important;
+  color: var(--e-accent) !important;
+}
+
+/* Opened assignment: dates, notes, attachments, feedback. */
+html.ppui-class-page .assignment.open .assignment-header {
+  background: var(--e-raised) !important;
+}
+
+html.ppui-class-page .assignment-body:empty {
+  display: none !important;
+}
+
+html.ppui-class-page .assignment.open .assignment-body {
+  display: grid !important;
+  gap: 14px;
+  padding: 16px 16px 18px 82px !important;
+  border-top: 1px solid var(--e-line) !important;
+}
+
+html.ppui-class-page .assignment-details,
+html.ppui-class-page .assignment-feedback {
+  float: none !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+html.ppui-class-page .assignment-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+}
+
+html.ppui-class-page .assignment-dates > span {
+  display: grid !important;
+  gap: 2px;
+  float: none !important;
+  margin: 0 !important;
+}
+
+html.ppui-class-page .assignment-dates label,
+html.ppui-class-page .assignment-feedback h4 {
+  margin: 0 !important;
+  color: var(--e-muted) !important;
+  font-size: 11.5px !important;
+  font-weight: 750 !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+html.ppui-class-page .assignment-dates .date {
+  color: var(--e-text) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+}
+
+html.ppui-class-page .assignment-notes {
+  max-width: 66ch;
+  margin: 12px 0 0 !important;
+  color: var(--e-text) !important;
+  font-size: 15px !important;
+  line-height: 1.6;
+}
+
+html.ppui-class-page .assignment-notes:empty,
+html.ppui-class-page .assignment-attachments:empty,
+html.ppui-class-page .assignment-feedback:empty {
+  display: none !important;
+}
+
+html.ppui-class-page .assignment-attachments a {
+  color: var(--e-accent) !important;
+  font-weight: 650;
+}
+
+html.ppui-class-page .new-feedback-message {
+  box-sizing: border-box;
+  width: 100% !important;
+  min-height: 72px;
+  margin: 8px 0 !important;
+  padding: 10px 12px !important;
+  border: 1px solid var(--e-line) !important;
+  border-radius: 10px;
+  background: var(--e-surface) !important;
+  color: var(--e-text) !important;
+  font-size: 14px !important;
+}
+
+html.ppui-class-page .new-feedback-button {
+  height: 34px;
+  padding: 0 16px !important;
+  border: 0 !important;
+  border-radius: 999px;
+  background: var(--e-crest) !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  cursor: pointer;
+}
+
+/* Phones: score drops under the title; the opened body loses its indent. */
+@media (max-width: 600px) {
+  html.ppui-class-page #page-enrollment-details {
+    padding: 14px 16px 48px !important;
+  }
+  html.ppui-class-page .right-controls {
+    margin-left: 0 !important;
+  }
+  html.ppui-class-page .left-controls {
+    flex-wrap: nowrap;
+    max-width: 100%;
+    overflow-x: auto !important;
+    scrollbar-width: none;
+  }
+  html.ppui-class-page .section-toolbar a {
+    flex: none;
+  }
+  html.ppui-class-page .assignment-header {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    row-gap: 6px;
+  }
+  html.ppui-class-page .assignment-header .assignment-type {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: start;
+  }
+  html.ppui-class-page .assignment-description {
+    grid-column: 2 / -1;
+    grid-row: 2;
+  }
+  html.ppui-class-page .assignment-grade {
+    grid-column: 3;
+    grid-row: 1;
+    min-width: 0;
+  }
+  html.ppui-class-page .assignment-grade .ppui-pct {
+    display: none;
+  }
+  html.ppui-class-page .assignment.open .assignment-body {
+    padding-left: 16px !important;
+  }
+}
+
+/* Hidden until embed.js has added scores and the summary (early.js sets it; never more than 3s). */
+html.ppui-class-pending body {
+  visibility: hidden !important;
+}
+
+html.ppui-class-page:not(.ppui-class-pending) body {
+  animation: ppui-embed-fade 0.25s ease-out both;
+}
+
+@keyframes ppui-embed-fade {
+  from { opacity: 0; }
+}
+
+/* ---- New scores: sealed behind a "?" until opened, then unboxed ---- */
+html.ppui-class-page .assignment.is-sealed .assignment-grade > :not(.ppui-mystery) {
+  visibility: hidden !important;
+}
+
+html.ppui-class-page .assignment-header .assignment-grade {
+  position: relative !important;
+}
+
+/* (Important throughout: the reset of the header's spans above would flatten it otherwise.) */
+html.ppui-class-page .assignment-header span.ppui-mystery {
+  position: absolute !important;
+  top: 50% !important;
+  right: 0 !important;
+  display: grid !important;
+  place-items: center;
+  width: 40px !important;
+  height: 40px !important;
+  margin: -20px 0 0 !important;
+  border-radius: 10px;
+  background: var(--e-crest) !important;
+  overflow: hidden !important;
+  color: #fff !important;
+  font-family: "Playfair Display", Georgia, serif !important;
+  font-size: 24px !important;
+  font-style: italic;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  cursor: pointer;
+}
+
+/* Once unboxed, the box is gone. */
+html.ppui-class-page .assignment:not(.is-sealed) .assignment-header span.ppui-mystery {
+  display: none !important;
+}
+
+/* The box's lid: a darker band across the top, with a little bow. */
+html.ppui-class-page .ppui-mystery::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 9px;
+  background: rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+}
+
+html.ppui-class-page .ppui-mystery::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  width: 10px;
+  height: 5px;
+  margin-left: -5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+}
+
+html.ppui-class-page .assignment-header span.ppui-mystery {
+  padding-top: 7px !important;
+  box-sizing: border-box;
+}
+
+html.ppui-class-page .assignment.is-sealed .assignment-header:hover .ppui-mystery {
+  animation: ppui-jiggle 0.5s ease-in-out;
+}
+
+@keyframes ppui-jiggle {
+  25% { transform: rotate(-9deg) scale(1.06); }
+  50% { transform: rotate(7deg) scale(1.06); }
+  75% { transform: rotate(-4deg); }
+}
+
+/* Unboxing: shake, swell, burst away. */
+html.ppui-class-page .assignment.is-revealing .ppui-mystery {
+  animation: ppui-unbox 0.65s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+
+@keyframes ppui-unbox {
+  0% { transform: none; }
+  15% { transform: rotate(-12deg) scale(1.05); }
+  30% { transform: rotate(12deg) scale(1.1); }
+  45% { transform: rotate(-8deg) scale(1.15); }
+  65% { transform: rotate(0) scale(1.35); opacity: 1; }
+  100% { transform: rotate(0) scale(2.2); opacity: 0; filter: blur(2px); }
+}
+
+/* Then the score pops in, a ring bursts out, and the bar fills. */
+html.ppui-class-page .assignment.is-revealed .raw-score,
+html.ppui-class-page .assignment.is-revealed .max-score {
+  display: inline-block;
+  animation: ppui-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+html.ppui-class-page .assignment.is-revealed .max-score {
+  animation-delay: 0.08s;
+}
+
+@keyframes ppui-pop {
+  from { transform: scale(0.2); opacity: 0; }
+}
+
+html.ppui-class-page .assignment.is-revealed .assignment-grade::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  margin: -20px -20px 0 0;
+  border: 3px solid var(--band, var(--e-accent));
+  border-radius: 50%;
+  pointer-events: none;
+  animation: ppui-burst 0.7s ease-out forwards;
+}
+
+@keyframes ppui-burst {
+  from { transform: scale(0.4); opacity: 1; }
+  to { transform: scale(2.6); opacity: 0; }
+}
+
+html.ppui-class-page .assignment.is-revealed .ppui-pct::after {
+  animation: ppui-fill 0.9s 0.15s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes ppui-fill {
+  from { width: 0; }
+}
+
+/* "New" tile in the summary, while scores are still sealed. */
+.ppui-summary-tile.is-new {
+  border-color: var(--e-crest);
+}
+
+.ppui-summary-tile.is-new .ppui-summary-value {
+  color: var(--e-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ppui-mystery,
+  html.ppui-class-page .assignment.is-revealed * ,
+  html.ppui-class-page .assignment.is-revealed .assignment-grade::before {
+    animation: none !important;
+  }
+}
