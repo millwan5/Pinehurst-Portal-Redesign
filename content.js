@@ -4531,17 +4531,16 @@
     const dash = el("div", "ppui-dash ppui-enter");
     dash.appendChild(buildTodayPanel());
 
-    let classesBuilt = false;
-    const classList = document.querySelector(SEL.classList);
-    if (classList) {
+    const makeClasses = () => {
+      const classList = document.querySelector(SEL.classList);
+      if (!classList) return null;
       const classesLink = [...document.querySelectorAll("a")]
         .find((a) => /classes\s*&\s*reports/i.test(a.textContent) && sameOriginHref(a.getAttribute("href")));
-      const classes = buildClassesPanel(classList, classesLink && sameOriginHref(classesLink.getAttribute("href")));
-      if (classes) {
-        dash.appendChild(classes);
-        classesBuilt = true;
-      }
-    }
+      return buildClassesPanel(classList, classesLink && sameOriginHref(classesLink.getAttribute("href")));
+    };
+    const firstClasses = makeClasses();
+    let classesBuilt = !!firstClasses;
+    if (firstClasses) dash.appendChild(firstClasses);
 
     const news = findNews();
     if (news) {
@@ -4569,6 +4568,21 @@
     foldBlocks(grid, classesBuilt);
     showUnread();
     reveal();
+
+    // The class list can render after the first blocks (often in Firefox); add the Classes
+    // card next to Today once it shows up.
+    if (!classesBuilt) {
+      whenReady(() => {
+        const list = document.querySelector(SEL.classList);
+        return list && list.querySelector(SEL.course);
+      }, () => {
+        if (dash.querySelector(".ppui-classes")) return;
+        const classes = makeClasses();
+        if (!classes) return;
+        dash.firstElementChild.after(classes);
+        foldBlocks(grid, true);
+      }, WAIT_MS);
+    }
   }
 
   // The portal hydrates after load; wait for its blocks, then build once.

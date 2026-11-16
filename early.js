@@ -1,6 +1,9 @@
 // Runs at document_start, before the portal paints: apply the saved theme and hide the
 // native page until content.js has built the dashboard (it removes ppui-booting).
 (function () {
+  // Lets background.js tell a styled tab from one that loaded before the extension did.
+  window.__ppuiLoaded = true;
+
   const root = document.documentElement;
   const PORTAL_ORIGIN = "https://portals.veracross.au";
 

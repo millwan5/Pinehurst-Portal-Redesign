@@ -4,7 +4,8 @@
 /* Playfair Display, bundled (SIL OFL), variable weight, roman and italic: the big headings only (set in italic). */
 @font-face {
   font-family: "Playfair Display";
-  src: url("chrome-extension://__MSG_@@extension_id__/fonts/PlayfairDisplay.ttf") format("truetype");
+  src: url("chrome-extension://__MSG_@@extension_id__/fonts/PlayfairDisplay.ttf") format("truetype"),
+       url("moz-extension://__MSG_@@extension_id__/fonts/PlayfairDisplay.ttf") format("truetype");
   font-weight: 400 900;
   font-style: normal;
   font-display: swap;
@@ -12,7 +13,8 @@
 
 @font-face {
   font-family: "Playfair Display";
-  src: url("chrome-extension://__MSG_@@extension_id__/fonts/PlayfairDisplay-Italic.ttf") format("truetype");
+  src: url("chrome-extension://__MSG_@@extension_id__/fonts/PlayfairDisplay-Italic.ttf") format("truetype"),
+       url("moz-extension://__MSG_@@extension_id__/fonts/PlayfairDisplay-Italic.ttf") format("truetype");
   font-weight: 400 900;
   font-style: italic;
   font-display: swap;
@@ -20,7 +22,8 @@
 
 @font-face {
   font-family: "Plus Jakarta Sans";
-  src: url("chrome-extension://__MSG_@@extension_id__/fonts/PlusJakartaSans.ttf") format("truetype");
+  src: url("chrome-extension://__MSG_@@extension_id__/fonts/PlusJakartaSans.ttf") format("truetype"),
+       url("moz-extension://__MSG_@@extension_id__/fonts/PlusJakartaSans.ttf") format("truetype");
   font-weight: 200 800;
   font-style: normal;
   font-display: swap;
