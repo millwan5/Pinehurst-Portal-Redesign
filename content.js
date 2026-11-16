@@ -4173,9 +4173,23 @@
     });
   }
 
+  // Which period is on: by the clock when the times are known (so it moves on between fetches),
+  // else the portal's own "now" marker.
+  function nowIndexOf(items) {
+    const timed = items.filter((item) => item.start !== null);
+    if (timed.length < 2) return items.findIndex((item) => item.now);
+    const d = new Date();
+    const minutes = d.getHours() * 60 + d.getMinutes();
+    const on = timed.findIndex((item, i) => {
+      const end = i + 1 < timed.length ? timed[i + 1].start : item.start + 50;
+      return minutes >= item.start && minutes < end;
+    });
+    return on < 0 ? -1 : items.indexOf(timed[on]);
+  }
+
   // The class on now, else the next one today, else nothing.
   function featuredItem(items) {
-    const nowIndex = items.findIndex((item) => item.now);
+    const nowIndex = nowIndexOf(items);
     if (nowIndex >= 0) return { item: items[nowIndex], next: items[nowIndex + 1], label: "Now" };
     const d = new Date();
     const minutes = d.getHours() * 60 + d.getMinutes();
@@ -4184,24 +4198,105 @@
     return null;
   }
 
+  // What the Classes card shows beside its rows: the class on now and the one after it.
+  const live = { now: null, next: null };
+
+  function markLiveClasses() {
+    document.querySelectorAll(".ppui-course[data-name]").forEach((row) => {
+      const name = row.dataset.name;
+      const state = name === live.now ? "now" : name === live.next ? "next" : "";
+      if ((row.dataset.live || "") === state) return;
+      row.dataset.live = state;
+      row.querySelector(".ppui-live-tag")?.remove();
+      if (!state) return;
+      const tag = el("span", "ppui-live-tag is-" + state);
+      if (state === "now") tag.appendChild(el("span", "ppui-live"));
+      tag.appendChild(document.createTextNode(state === "now" ? "Now" : "Next"));
+      row.querySelector(".ppui-class").after(tag);
+    });
+  }
+
+  // A ring round the subject icon that fills as the period goes on.
+  function progressRing(fraction) {
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("class", "ppui-ring");
+    svg.setAttribute("viewBox", "0 0 56 56");
+    svg.setAttribute("aria-hidden", "true");
+    for (const cls of ["ppui-ring-track", "ppui-ring-fill"]) {
+      const c = document.createElementNS(ns, "circle");
+      c.setAttribute("class", cls);
+      c.setAttribute("cx", "28");
+      c.setAttribute("cy", "28");
+      c.setAttribute("r", "26");
+      c.setAttribute("pathLength", "100");
+      svg.appendChild(c);
+    }
+    svg.style.setProperty("--ring", (Math.min(Math.max(fraction, 0), 1) * 100).toFixed(1));
+    return svg;
+  }
+
   function renderFeatured(box, items) {
-    box.replaceChildren();
     const pick = featuredItem(items);
+    const d = new Date();
+    const minutes = d.getHours() * 60 + d.getMinutes();
+
+    live.now = pick && pick.label === "Now" ? pick.item.title : null;
+    live.next = pick ? (pick.label === "Now" ? pick.next && pick.next.title : pick.item.title) : null;
+    markLiveClasses();
+
     box.hidden = !pick;
-    if (!pick) return;
+    if (!pick) {
+      box.replaceChildren();
+      delete box.dataset.key;
+      return;
+    }
+    // A new period slides in; the minute-by-minute refresh leaves the text still.
+    const key = pick.label + "|" + pick.item.title;
+    const changed = box.dataset.key && box.dataset.key !== key;
+    box.dataset.key = key;
+    box.replaceChildren();
     box.classList.toggle("is-next", pick.label === "Next");
+    box.classList.toggle("is-swapping", !!changed);
+
+    // How much of the period is gone, and how long is left (or how long until the next one).
+    let fraction = 0;
+    let count = null;
+    if (pick.label === "Now") {
+      const end = pick.next && pick.next.start !== null ? pick.next.start : pick.item.start !== null ? pick.item.start + 50 : null;
+      if (end !== null && pick.item.start !== null && end > pick.item.start) {
+        fraction = (minutes - pick.item.start) / (end - pick.item.start);
+        count = { value: Math.max(end - minutes, 0), label: "min left" };
+      }
+    } else if (pick.item.start !== null) {
+      count = { value: Math.max(pick.item.start - minutes, 0), label: "min to go" };
+    }
+    if (count && count.value > 99) count = null;
+
     const when = pick.label === "Now"
       ? (pick.next ? "until " + pick.next.time : "last one today")
       : "at " + pick.item.time;
     const art = el("span", "ppui-feature-icon");
     art.appendChild(icon(subjectIcon(pick.item.title)));
+    if (pick.label === "Now") art.appendChild(progressRing(fraction));
     const text = el("div", "ppui-feature-text");
     const label = el("span", "ppui-feature-label");
     if (pick.label === "Now") label.appendChild(el("span", "ppui-live"));
     label.appendChild(document.createTextNode(pick.label + " " + when));
     text.append(label, el("span", "ppui-feature-class", pick.item.title));
     if (pick.item.subtitle) text.appendChild(el("span", "ppui-meta", pick.item.subtitle));
+    if (pick.label === "Now" && pick.next) {
+      const then = el("span", "ppui-feature-then");
+      then.append(el("span", "ppui-feature-then-label", "Then"), document.createTextNode(pick.next.title));
+      text.appendChild(then);
+    }
     box.append(art, text);
+    if (count) {
+      const c = el("span", "ppui-feature-count");
+      c.append(el("span", "ppui-feature-count-value", String(count.value)), el("span", "ppui-feature-count-label", count.label));
+      c.setAttribute("aria-label", count.value + " " + (count.label === "min left" ? "minutes left" : "minutes to go"));
+      box.appendChild(c);
+    }
   }
 
   // How far through today's timetable we are: one segment per period, as wide as the period is long,
@@ -4266,9 +4361,10 @@
       list.appendChild(emptyState("Nothing scheduled today."));
       return;
     }
-    const nowIndex = items.findIndex((item) => item.now);
+    const nowIndex = nowIndexOf(items);
+    list.dataset.now = String(nowIndex);
     items.forEach((item, i) => {
-      const row = el("li", "ppui-row" + (item.now ? " is-now" : "") + (i < nowIndex ? " is-past" : ""));
+      const row = el("li", "ppui-row" + (i === nowIndex ? " is-now" : "") + (i < nowIndex ? " is-past" : ""));
       row.style.setProperty("--i", String(i));
       row.appendChild(el("span", "ppui-time", item.time));
       const body = el("div", "ppui-body");
@@ -4295,6 +4391,18 @@
     list.append(el("li", "ppui-sr", "Loading schedule..."), ...skeleton(5));
     section.append(featured, progress, list);
 
+    // The block counts down every minute from the last timetable, without fetching again.
+    let latest = null;
+    const tick = () => {
+      if (!latest || document.visibilityState !== "visible") return;
+      renderFeatured(featured, latest);
+      renderProgress(progress, latest);
+      // Redraw the list only when the period has changed.
+      if (list.dataset.now !== String(nowIndexOf(latest))) renderRows(list, latest);
+    };
+    setInterval(tick, 60 * 1000);
+    document.addEventListener("visibilitychange", tick);
+
     async function load() {
       try {
         const res = await fetch(SCHEDULE_URL, { credentials: "same-origin" });
@@ -4302,6 +4410,7 @@
         const items = parseSchedule(await res.text());
         if (!items) throw new Error("schedule markup not found");
         writeJson(TODAY_KEY, { date: isoAfter(0), items: items.map((item) => ({ time: item.time, title: item.title })) });
+        latest = items;
         renderFeatured(featured, items);
         renderProgress(progress, items);
         renderRows(list, items);
@@ -4566,6 +4675,7 @@
 
   function courseRow(course) {
     const row = el("li", "ppui-course");
+    row.dataset.name = course.name;
     const badgeIcon = el("span", "ppui-subject");
     badgeIcon.dataset.tone = String(toneFor(course.name));
     badgeIcon.appendChild(icon(subjectIcon(course.name)));
@@ -4606,6 +4716,17 @@
       more.appendChild(icon("ellipsis"));
       const menu = el("ul", "ppui-menu");
       menu.setAttribute("aria-label", course.name);
+      // The menu opens with the class it belongs to: its tile, name and teacher.
+      const head = el("li", "ppui-menu-class");
+      head.setAttribute("aria-hidden", "true");
+      const tile = el("span", "ppui-subject");
+      tile.dataset.tone = String(toneFor(course.name));
+      tile.appendChild(icon(subjectIcon(course.name)));
+      const who = el("span", "ppui-menu-class-text");
+      who.appendChild(el("span", "ppui-menu-class-name", course.name));
+      if (course.teacher) who.appendChild(el("span", "ppui-menu-class-meta", course.teacher));
+      head.append(tile, who);
+      menu.appendChild(head);
       // Notes first: write one for this class, or see the ones it has.
       for (const [label, iconName, open] of [
         ["Add note", "plus", () => openNotebook({ subject: course.name })],
@@ -4660,6 +4781,8 @@
       more.appendChild(rest);
       section.appendChild(more);
     }
+    // Tag the class on now and the next one, once the rows are on the page.
+    requestAnimationFrame(markLiveClasses);
     return section;
   }
 

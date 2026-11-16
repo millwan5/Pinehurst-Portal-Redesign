@@ -1260,11 +1260,11 @@ a.ppui-class:hover {
   position: relative;
   overflow: hidden;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   margin: 4px 0 12px;
-  padding: 16px;
+  padding: 18px 18px 18px 20px;
   border-radius: 16px;
   background: var(--ppui-crest);
   color: #fff;
@@ -1353,6 +1353,322 @@ a.ppui-class:hover {
 .ppui-feature.is-next .ppui-feature-label,
 .ppui-feature.is-next .ppui-meta {
   color: var(--ppui-muted);
+}
+
+/* Ring round the subject icon: fills as the period goes on. */
+.ppui-feature-icon {
+  position: relative;
+  z-index: 1;
+}
+
+.ppui-ring {
+  position: absolute;
+  inset: -6px;
+  width: calc(100% + 12px);
+  height: calc(100% + 12px);
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.ppui-ring circle {
+  fill: none;
+  stroke-width: 2.5;
+}
+
+.ppui-ring-track {
+  stroke: rgba(255, 255, 255, 0.16);
+}
+
+.ppui-ring-fill {
+  stroke: #fff;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: calc(100 - var(--ring, 0));
+  transition: stroke-dashoffset 1s var(--ppui-ease);
+}
+
+/* Big minutes on the right: "25 min left" / "15 min to go". */
+.ppui-feature-count {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: end;
+  padding-left: 16px;
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+  line-height: 1;
+}
+
+.ppui-feature-count-value {
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ppui-feature-count-label {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+  white-space: nowrap;
+}
+
+.ppui-feature.is-next .ppui-feature-count {
+  border-left-color: var(--ppui-hairline);
+}
+
+.ppui-feature.is-next .ppui-feature-count-value {
+  color: var(--ppui-accent);
+}
+
+.ppui-feature.is-next .ppui-feature-count-label {
+  color: var(--ppui-muted);
+}
+
+/* "Then English": what's after this one. */
+.ppui-feature-then {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin-top: 5px;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.ppui-feature-then-label {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 10.5px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* A slow band of light that crosses the blue now and then (motion only). */
+.ppui-feature::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.09) 50%, transparent 65%);
+  transform: translateX(-100%);
+}
+
+.ppui-feature.is-next::before {
+  display: none;
+}
+
+@media (max-width: 420px) {
+  .ppui-feature {
+    gap: 12px;
+    padding: 16px;
+  }
+  .ppui-feature-count {
+    padding-left: 10px;
+  }
+  .ppui-feature-count-value {
+    font-size: 26px;
+  }
+  .ppui-feature-count-label {
+    font-size: 9.5px;
+    letter-spacing: 0.04em;
+  }
+  .ppui-feature-class {
+    font-size: 22px;
+  }
+}
+
+/* ---------- Classes card extras ---------- */
+
+/* The class on now and the next one get a tag beside the name; the one on now is lit. */
+.ppui-course[data-live="now"],
+.ppui-course[data-live="next"] {
+  --live: 1;
+}
+
+.ppui-course[data-live] .ppui-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 8px;
+}
+
+.ppui-course[data-live] .ppui-body > .ppui-class {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.ppui-course[data-live] .ppui-body > :not(.ppui-class, .ppui-live-tag) {
+  flex-basis: 100%;
+}
+
+.ppui-live-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  height: 19px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.ppui-live-tag.is-now {
+  background: var(--ppui-crest);
+  color: #fff;
+}
+
+.ppui-live-tag .ppui-live {
+  width: 6px;
+  height: 6px;
+}
+
+.ppui-live-tag.is-next {
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent);
+}
+
+:root[data-ppui-theme="dark"] .ppui-live-tag.is-now {
+  background: var(--ppui-accent);
+  color: var(--ppui-bg);
+}
+
+:root[data-ppui-theme="dark"] .ppui-live-tag.is-now .ppui-live,
+:root[data-ppui-theme="dark"] .ppui-live-tag.is-now .ppui-live::after {
+  background: var(--ppui-bg);
+  border-color: var(--ppui-bg);
+}
+
+.ppui-course[data-live="now"] .ppui-subject {
+  outline: 2px solid var(--ppui-accent);
+  outline-offset: 2px;
+}
+
+/* Subject tiles: a soft light-to-tone sweep and a hairline edge, so they read as tiles, not flat squares. */
+.ppui-course .ppui-subject,
+.ppui-menu-class .ppui-subject {
+  background: linear-gradient(150deg, color-mix(in oklab, var(--tone-bg, var(--ppui-crest)) 72%, #fff), var(--tone-bg, var(--ppui-crest)) 70%);
+  border: 1px solid color-mix(in oklab, var(--tone-bg, var(--ppui-crest)) 80%, #000);
+  box-sizing: border-box;
+}
+
+:root[data-ppui-theme="dark"] :is(.ppui-course, .ppui-menu-class) .ppui-subject {
+  background: linear-gradient(150deg, color-mix(in oklab, var(--tone-bg, var(--ppui-crest)) 82%, #fff), var(--tone-bg, var(--ppui-crest)) 70%);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Update badges sit on a soft halo of their own colour. */
+.ppui-course .ppui-badge {
+  position: relative;
+  background: linear-gradient(180deg, #2a64cf, var(--ppui-crest));
+}
+
+.ppui-badge::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 2px solid var(--ppui-accent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Header of a class's menu: its tile, name and teacher. */
+.ppui-menu-class {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 4px;
+  padding: 6px 8px 10px;
+  border-bottom: 1px solid var(--ppui-hairline);
+}
+
+.ppui-menu-class .ppui-subject {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+}
+
+.ppui-menu-class .ppui-subject .ppui-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.ppui-menu-class-text {
+  display: grid;
+  min-width: 0;
+}
+
+.ppui-menu-class-name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 750;
+  color: var(--ppui-text);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ppui-menu-class-meta {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--ppui-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ppui-feature::before {
+    animation: ppui-sheen 9s ease-in-out 1.6s infinite;
+  }
+  .ppui-feature.is-swapping > * {
+    animation: ppui-swap 0.55s var(--ppui-ease) both;
+  }
+  .ppui-feature.is-swapping > :nth-child(2) { animation-delay: 0.05s; }
+  .ppui-feature.is-swapping > :nth-child(3) { animation-delay: 0.1s; }
+  .ppui-ring-fill {
+    animation: ppui-ring-in 1.1s var(--ppui-ease) 0.5s both;
+  }
+  .ppui-live-tag {
+    animation: ppui-boing 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .ppui-badge::after {
+    animation: ppui-halo 1.6s ease-out 1.2s 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ppui-ring-fill {
+    transition: none;
+  }
+}
+
+@keyframes ppui-sheen {
+  0% { transform: translateX(-100%); }
+  22%, 100% { transform: translateX(100%); }
+}
+
+@keyframes ppui-swap {
+  from { opacity: 0; transform: translateY(10px); }
+}
+
+@keyframes ppui-ring-in {
+  from { stroke-dashoffset: 100; }
+}
+
+@keyframes ppui-halo {
+  0% { opacity: 0.7; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.5); }
 }
 
 /* Live dot: a ring that keeps pulsing while a class is on. */
