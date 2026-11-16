@@ -3991,25 +3991,9 @@
     });
   }
 
-  // Which period is on: by the clock when the times are known (so it moves on between fetches),
-  // else the portal's own "now" marker.
-  function nowIndexOf(items) {
-    const d = new Date();
-    const minutes = d.getHours() * 60 + d.getMinutes();
-    const timed = items.filter((item) => item.start !== null);
-    if (timed.length >= 2) {
-      const on = timed.findIndex((item, i) => {
-        const end = i + 1 < timed.length ? timed[i + 1].start : item.start + 50;
-        return minutes >= item.start && minutes < end;
-      });
-      return on < 0 ? -1 : items.indexOf(timed[on]);
-    }
-    return items.findIndex((item) => item.now);
-  }
-
   // The class on now, else the next one today, else nothing.
   function featuredItem(items) {
-    const nowIndex = nowIndexOf(items);
+    const nowIndex = items.findIndex((item) => item.now);
     if (nowIndex >= 0) return { item: items[nowIndex], next: items[nowIndex + 1], label: "Now" };
     const d = new Date();
     const minutes = d.getHours() * 60 + d.getMinutes();
@@ -4018,57 +4002,24 @@
     return null;
   }
 
-  // "25 min", "1 h 5 min".
-  function spanOf(minutes) {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return h ? h + " h" + (m ? " " + m + " min" : "") : m + " min";
-  }
-
-  // The glance strip's lead tile: the class on now (with time left and what's after it),
-  // else the next one (with a countdown), else a quiet line for the rest of the day.
   function renderFeatured(box, items) {
     box.replaceChildren();
-    const tile = box.closest(".ppui-now-tile") || box;
     const pick = featuredItem(items);
-    const d = new Date();
-    const minutes = d.getHours() * 60 + d.getMinutes();
-    tile.classList.toggle("is-next", !!pick && pick.label === "Next");
-    tile.classList.toggle("is-off", !pick);
-
+    box.hidden = !pick;
+    if (!pick) return;
+    box.classList.toggle("is-next", pick.label === "Next");
+    const when = pick.label === "Now"
+      ? (pick.next ? "until " + pick.next.time : "last one today")
+      : "at " + pick.item.time;
     const art = el("span", "ppui-feature-icon");
+    art.appendChild(icon(subjectIcon(pick.item.title)));
     const text = el("div", "ppui-feature-text");
     const label = el("span", "ppui-feature-label");
-    box.append(art, text);
-    if (!pick) {
-      const timed = items.filter((item) => item.start !== null);
-      art.appendChild(icon("calendarClock"));
-      label.textContent = "Today";
-      const link = el("a", "ppui-feature-link", "Full schedule");
-      link.href = SCHEDULE_URL;
-      text.append(label, el("span", "ppui-feature-class", timed.length ? "School's out" : "No classes today"), link);
-      return;
-    }
-
-    art.appendChild(icon(subjectIcon(pick.item.title)));
-    let chip = "";
-    if (pick.label === "Now") {
-      label.appendChild(el("span", "ppui-live"));
-      label.appendChild(document.createTextNode(pick.next ? "Now until " + pick.next.time : "Now, last class today"));
-      if (pick.next && pick.next.start !== null && pick.next.start > minutes) chip = spanOf(pick.next.start - minutes) + " left";
-    } else {
-      const wait = pick.item.start - minutes;
-      label.textContent = "Next at " + pick.item.time;
-      if (wait > 0 && wait <= 120) chip = "in " + spanOf(wait);
-    }
-    if (chip) label.appendChild(el("span", "ppui-feature-chip", chip));
+    if (pick.label === "Now") label.appendChild(el("span", "ppui-live"));
+    label.appendChild(document.createTextNode(pick.label + " " + when));
     text.append(label, el("span", "ppui-feature-class", pick.item.title));
     if (pick.item.subtitle) text.appendChild(el("span", "ppui-meta", pick.item.subtitle));
-    if (pick.next) {
-      const then = el("span", "ppui-feature-then");
-      then.append(el("span", "ppui-feature-then-label", "Then"), document.createTextNode(pick.next.title + " at " + pick.next.time));
-      text.appendChild(then);
-    }
+    box.append(art, text);
   }
 
   // How far through today's timetable we are: one segment per period, as wide as the period is long,
@@ -4133,8 +4084,9 @@
       list.appendChild(emptyState("Nothing scheduled today."));
       return;
     }
+    const nowIndex = items.findIndex((item) => item.now);
     items.forEach((item, i) => {
-      const row = el("li", "ppui-row");
+      const row = el("li", "ppui-row" + (item.now ? " is-now" : "") + (i < nowIndex ? " is-past" : ""));
       row.style.setProperty("--i", String(i));
       row.appendChild(el("span", "ppui-time", item.time));
       const body = el("div", "ppui-body");
@@ -4143,29 +4095,9 @@
       row.appendChild(body);
       list.appendChild(row);
     });
-    markRows(list, items);
   }
 
-  // Dim the periods that are over and mark the one on now (kept in step every minute).
-  function markRows(list, items) {
-    const rows = list.querySelectorAll(".ppui-row");
-    if (rows.length !== items.length) return;
-    const nowIndex = nowIndexOf(items);
-    const d = new Date();
-    const minutes = d.getHours() * 60 + d.getMinutes();
-    const timed = items.filter((item) => item.start !== null);
-    items.forEach((item, i) => {
-      const t = timed.indexOf(item);
-      const end = t < 0 ? null : t + 1 < timed.length ? timed[t + 1].start : item.start + 50;
-      const over = nowIndex >= 0 ? i < nowIndex : end !== null && minutes >= end;
-      rows[i].classList.toggle("is-now", i === nowIndex);
-      rows[i].classList.toggle("is-past", over);
-    });
-  }
-
-  // Today's timetable card. The class on now (and the day's progress) shows in the glance
-  // strip's lead tile; this card keeps the full list.
-  function buildTodayPanel(glance) {
+  function buildTodayPanel() {
     const section = panel("ppui-today", "calendarClock", "Today", "Full schedule", SCHEDULE_URL);
     const calButton = el("button", "ppui-head-button");
     calButton.type = "button";
@@ -4174,33 +4106,25 @@
     calButton.appendChild(icon("calendar"));
     calButton.addEventListener("click", () => openCalendar(calButton));
     section.querySelector(".ppui-head").insertBefore(calButton, section.querySelector(".ppui-head .ppui-link"));
-    const { feature: featured, progress } = glance;
+    const featured = el("div", "ppui-feature");
+    featured.hidden = true;
+    const progress = buildProgress();
     const list = el("ul", "ppui-rows");
     list.append(el("li", "ppui-sr", "Loading schedule..."), ...skeleton(5));
-    section.append(list);
-
-    // Now / Next and the progress bar move on every minute, without fetching again.
-    let items = null;
-    const tick = () => {
-      if (!items) return;
-      renderFeatured(featured, items);
-      renderProgress(progress, items);
-      markRows(list, items);
-    };
+    section.append(featured, progress, list);
 
     async function load() {
       try {
         const res = await fetch(SCHEDULE_URL, { credentials: "same-origin" });
         if (!res.ok) throw new Error("HTTP " + res.status);
-        const parsed = parseSchedule(await res.text());
-        if (!parsed) throw new Error("schedule markup not found");
-        items = parsed;
+        const items = parseSchedule(await res.text());
+        if (!items) throw new Error("schedule markup not found");
         writeJson(TODAY_KEY, { date: isoAfter(0), items: items.map((item) => ({ time: item.time, title: item.title })) });
-        tick();
+        renderFeatured(featured, items);
+        renderProgress(progress, items);
         renderRows(list, items);
       } catch (e) {
-        if (items) return;
-        glance.scheduleFailed();
+        featured.hidden = true;
         progress.hidden = true;
         list.replaceChildren();
         const fallback = el("li", "ppui-empty");
@@ -4216,130 +4140,7 @@
     setInterval(() => {
       if (document.visibilityState === "visible") load();
     }, REFRESH_MS);
-    setInterval(() => {
-      if (document.visibilityState === "visible") tick();
-    }, 60 * 1000);
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") tick();
-    });
     return section;
-  }
-
-  // ---- Glance strip: what's on now, then three counts (due, unread, class updates) ----
-
-  // A count tile: icon, big number, label and a short line under it. A link, a button or plain.
-  function statTile(kind, iconName, label, tag) {
-    const node = el(tag, "ppui-stat ppui-stat-" + kind);
-    if (tag === "button") node.type = "button";
-    const art = el("span", "ppui-stat-icon");
-    art.appendChild(icon(iconName));
-    const value = el("span", "ppui-stat-value", "0");
-    const sub = el("span", "ppui-stat-sub");
-    node.append(art, value, el("span", "ppui-stat-label", label), sub);
-    node.classList.add("is-pending");
-    return {
-      node,
-      set(count, line, state) {
-        node.classList.remove("is-pending");
-        value.textContent = count > 99 ? "99+" : String(count);
-        sub.textContent = line || "";
-        node.classList.toggle("is-zero", !count);
-        node.classList.toggle("is-alert", state === "alert");
-        node.setAttribute("aria-label", count + " " + label.toLowerCase() + (line ? ", " + line : ""));
-      },
-    };
-  }
-
-  function buildGlance() {
-    const section = el("section", "ppui-glance");
-    section.setAttribute("aria-label", "At a glance");
-
-    const nowTile = el("div", "ppui-now-tile is-off");
-    const feature = el("div", "ppui-feature");
-    feature.setAttribute("aria-live", "polite");
-    feature.append(el("span", "ppui-feature-icon ppui-skel-box"), el("span", "ppui-sr", "Loading schedule..."));
-    const progress = buildProgress();
-    nowTile.append(feature, progress);
-
-    // Due soon: open notes dated today or tomorrow, plus anything overdue. Opens the notebook.
-    const due = statTile("due", "notebook", "Due soon", "button");
-    due.node.addEventListener("click", () => openNotebook());
-    onNotes(() => {
-      const today = isoAfter(0);
-      const list = dueSoon();
-      const late = list.filter((n) => n.date < today).length;
-      // The line under the count names the nearest note, so the tile answers "what?" too.
-      const first = list.slice().sort((a, b) => a.date.localeCompare(b.date) || a.created - b.created)[0];
-      const when = (n) => (n.date < today ? "overdue" : n.date === today ? "today" : "tomorrow");
-      const line = !first ? "None due"
-        : late > 1 ? late + " overdue"
-        : clean(first.text).slice(0, 60) + ", " + when(first);
-      due.set(list.length, line, late ? "alert" : null);
-    });
-
-    // Unread messages, from the portal's own tile. Links to the inbox.
-    const inbox = document.querySelector(SEL.inboxIcon);
-    const inboxHref = inbox && inbox.closest("a") && sameOriginHref(inbox.closest("a").getAttribute("href"));
-    const unread = statTile("unread", "mail", "Unread", inboxHref ? "a" : "div");
-    if (inboxHref) unread.node.href = inboxHref;
-    const unreadComp = document.querySelector(SEL.unreadCount);
-    const unreadCount = unreadComp ? parseInt((clean(unreadComp.textContent).match(/\d+/) || [])[0], 10) || 0 : 0;
-    unread.set(unreadCount, unreadCount ? "in Messages" : "Inbox clear");
-
-    // Class updates: the sum of the badges on the class list. With one class it links there;
-    // with more, a menu lists them.
-    const updates = statTile("updates", "bookOpen", "Class updates", "button");
-    updates.node.disabled = true;
-    const updatesMenu = el("ul", "ppui-menu ppui-updates-menu");
-    updatesMenu.setAttribute("aria-label", "Classes with updates");
-    arrowNav(updatesMenu, ".ppui-menu-item");
-    popover(updates.node, updatesMenu);
-    updatesMenu.addEventListener("toggle", (e) => {
-      if (e.newState === "open") updatesMenu.querySelector(".ppui-menu-item")?.focus();
-    });
-
-    // One strip for the three counts (fewer boxes to scan), divided by hairlines.
-    const stats = el("div", "ppui-stats");
-    stats.append(due.node, unread.node, updates.node);
-    section.append(nowTile, stats);
-
-    return {
-      section,
-      feature,
-      progress,
-      scheduleFailed() {
-        nowTile.classList.add("is-off");
-        nowTile.classList.remove("is-next");
-        feature.replaceChildren();
-        const art = el("span", "ppui-feature-icon");
-        art.appendChild(icon("calendarClock"));
-        const text = el("div", "ppui-feature-text");
-        const link = el("a", "ppui-feature-link", "Open Daily Schedule");
-        link.href = SCHEDULE_URL;
-        text.append(el("span", "ppui-feature-label", "Today"), el("span", "ppui-feature-class", "Schedule unavailable"), link);
-        feature.append(art, text);
-      },
-      setCourses(courses) {
-        const withUpdates = courses.filter((c) => c.updates && c.updatesHref).sort((a, b) => b.updates - a.updates);
-        const total = withUpdates.reduce((n, c) => n + c.updates, 0);
-        updates.set(total, withUpdates.length === 1 ? withUpdates[0].name
-          : withUpdates.length ? "in " + withUpdates.length + " classes" : "All caught up");
-        updates.node.disabled = !withUpdates.length;
-        updatesMenu.replaceChildren();
-        for (const c of withUpdates) {
-          const li = el("li");
-          const a = el("a", "ppui-menu-item");
-          a.href = c.updatesHref;
-          const name = el("span", "ppui-menu-name");
-          const tone = el("span", "ppui-menu-dot");
-          tone.dataset.tone = String(toneFor(c.name));
-          name.append(tone, document.createTextNode(c.name));
-          a.append(name, el("span", "ppui-menu-count", String(c.updates)));
-          li.appendChild(a);
-          updatesMenu.appendChild(li);
-        }
-      },
-    };
   }
 
   function renderNews(list, items, newsHref, actions) {
@@ -4728,17 +4529,14 @@
     }
 
     const dash = el("div", "ppui-dash ppui-enter");
-    const glance = buildGlance();
-    dash.append(glance.section, buildTodayPanel(glance));
+    dash.appendChild(buildTodayPanel());
 
     const makeClasses = () => {
       const classList = document.querySelector(SEL.classList);
       if (!classList) return null;
       const classesLink = [...document.querySelectorAll("a")]
         .find((a) => /classes\s*&\s*reports/i.test(a.textContent) && sameOriginHref(a.getAttribute("href")));
-      const card = buildClassesPanel(classList, classesLink && sameOriginHref(classesLink.getAttribute("href")));
-      if (card) glance.setCourses([...classList.querySelectorAll(SEL.course)].map(readCourse).filter((c) => c.name));
-      return card;
+      return buildClassesPanel(classList, classesLink && sameOriginHref(classesLink.getAttribute("href")));
     };
     const firstClasses = makeClasses();
     let classesBuilt = !!firstClasses;
@@ -4781,7 +4579,7 @@
         if (dash.querySelector(".ppui-classes")) return;
         const classes = makeClasses();
         if (!classes) return;
-        dash.querySelector(".ppui-today").after(classes);
+        dash.firstElementChild.after(classes);
         foldBlocks(grid, true);
       }, WAIT_MS);
     }
