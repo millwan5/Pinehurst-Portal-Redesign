@@ -928,8 +928,18 @@ a.ppui-class:hover {
    then what's due, unread messages and class updates. Each tile is one tap to the detail. */
 .ppui-glance {
   display: grid;
-  grid-template-columns: minmax(0, 2.2fr) repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
   gap: 16px;
+}
+
+/* The three counts share one card, split by hairlines. */
+.ppui-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: var(--ppui-radius-card);
+  background: var(--ppui-surface);
 }
 
 .ppui-now-tile {
@@ -1141,15 +1151,23 @@ a.ppui-class:hover {
   margin: 0;
   padding: 16px 18px;
   box-sizing: border-box;
-  border: 1px solid var(--ppui-hairline);
-  border-radius: var(--ppui-radius-card);
-  background: var(--ppui-surface);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--ppui-text) !important;
   font: inherit;
   text-align: left;
   text-decoration: none !important;
   cursor: pointer;
-  transition: border-color 0.15s var(--ppui-ease), transform 0.15s var(--ppui-ease);
+  transition: background-color 0.15s var(--ppui-ease);
+}
+
+.ppui-stat + .ppui-stat {
+  border-left: 1px solid var(--ppui-hairline);
+}
+
+.ppui-stat:focus-visible {
+  outline-offset: -3px;
 }
 
 div.ppui-stat,
@@ -1160,17 +1178,14 @@ div.ppui-stat,
 @media (hover: hover) {
   a.ppui-stat:hover,
   button.ppui-stat:not(:disabled):hover {
-    border-color: color-mix(in srgb, var(--ppui-accent) 45%, transparent);
+    background: var(--ppui-hover);
   }
 }
 
 a.ppui-stat:active,
-button.ppui-stat:not(:disabled):active {
-  transform: scale(0.98);
-}
-
+button.ppui-stat:not(:disabled):active,
 .ppui-stat[aria-expanded="true"] {
-  border-color: var(--ppui-accent);
+  background: var(--ppui-hover-2);
 }
 
 .ppui-stat-label {
@@ -1223,10 +1238,12 @@ button.ppui-stat:not(:disabled):active {
   text-overflow: ellipsis;
 }
 
+/* Zero stays visible (the strip never jumps) but steps back: muted, not faded,
+   so it still reads clearly in both themes. */
 .ppui-stat.is-zero .ppui-stat-value,
 .ppui-stat.is-pending .ppui-stat-value {
   color: var(--ppui-muted);
-  opacity: 0.55;
+  font-weight: 650;
 }
 
 .ppui-stat.is-pending .ppui-stat-sub::before {
@@ -1275,20 +1292,13 @@ button.ppui-stat:not(:disabled):active {
 
 @media (max-width: 1000px) {
   .ppui-glance {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .ppui-now-tile {
-    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ppui-stat {
     transition: none;
-  }
-  a.ppui-stat:active,
-  button.ppui-stat:not(:disabled):active {
-    transform: none;
   }
 }
 
@@ -1310,6 +1320,9 @@ button.ppui-stat:not(:disabled):active {
     height: 40px;
     border-radius: 12px;
   }
+  .ppui-stats {
+    border-radius: 16px;
+  }
   .ppui-stat {
     grid-template-areas:
       "icon icon"
@@ -1317,7 +1330,6 @@ button.ppui-stat:not(:disabled):active {
       "label label";
     min-height: 0;
     padding: 12px;
-    border-radius: 16px;
   }
   .ppui-stat-icon {
     width: 26px;
@@ -5400,8 +5412,6 @@ html body .app-container :where(h1, h2, h3, h4) {
   }
   .ppui-enter > .ppui-glance > :nth-child(1) { animation-delay: 0.16s; }
   .ppui-enter > .ppui-glance > :nth-child(2) { animation-delay: 0.22s; }
-  .ppui-enter > .ppui-glance > :nth-child(3) { animation-delay: 0.27s; }
-  .ppui-enter > .ppui-glance > :nth-child(4) { animation-delay: 0.32s; }
 
   .ppui-progress-seg::after {
     animation: ppui-grow 0.9s var(--ppui-ease) both;

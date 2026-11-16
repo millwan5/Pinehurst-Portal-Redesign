@@ -4241,7 +4241,7 @@
       node,
       set(count, line, state) {
         node.classList.remove("is-pending");
-        value.textContent = String(count);
+        value.textContent = count > 99 ? "99+" : String(count);
         sub.textContent = line || "";
         node.classList.toggle("is-zero", !count);
         node.classList.toggle("is-alert", state === "alert");
@@ -4268,9 +4268,13 @@
       const today = isoAfter(0);
       const list = dueSoon();
       const late = list.filter((n) => n.date < today).length;
-      const todayCount = list.filter((n) => n.date === today).length;
-      due.set(list.length, late ? late + " overdue" : todayCount ? todayCount + " today" : list.length ? "by tomorrow" : "Nothing due",
-        late ? "alert" : null);
+      // The line under the count names the nearest note, so the tile answers "what?" too.
+      const first = list.slice().sort((a, b) => a.date.localeCompare(b.date) || a.created - b.created)[0];
+      const when = (n) => (n.date < today ? "overdue" : n.date === today ? "today" : "tomorrow");
+      const line = !first ? "None due"
+        : late > 1 ? late + " overdue"
+        : clean(first.text).slice(0, 60) + ", " + when(first);
+      due.set(list.length, line, late ? "alert" : null);
     });
 
     // Unread messages, from the portal's own tile. Links to the inbox.
@@ -4294,7 +4298,10 @@
       if (e.newState === "open") updatesMenu.querySelector(".ppui-menu-item")?.focus();
     });
 
-    section.append(nowTile, due.node, unread.node, updates.node);
+    // One strip for the three counts (fewer boxes to scan), divided by hairlines.
+    const stats = el("div", "ppui-stats");
+    stats.append(due.node, unread.node, updates.node);
+    section.append(nowTile, stats);
 
     return {
       section,
