@@ -52,6 +52,7 @@
   --ppui-logo-blue: #1446a0;
   --ppui-ridge-mid: #123a86;
   --ppui-ridge-near: #0b1e45;
+  --ppui-hover-2: rgba(11, 30, 69, 0.1);
   --ppui-radius-card: 20px;
   --ppui-radius-pop: 16px;
   --ppui-radius-row: 12px;
@@ -79,6 +80,7 @@
   --ppui-logo-blue: #2f63c4;
   --ppui-ridge-mid: #0c2557;
   --ppui-ridge-near: #030817;
+  --ppui-hover-2: rgba(255, 255, 255, 0.11);
 }
 
 :root[data-ppui-theme="light"] {
@@ -164,6 +166,17 @@ html body .app-container *::after {
 html :focus-visible {
   outline: 2px solid var(--ppui-sky);
   outline-offset: 2px;
+}
+
+/* Box-shadow rings vanish in forced colors, so inputs that swap the outline for a ring get it back. */
+@media (forced-colors: active) {
+  html :focus-visible,
+  .ppui-apps-search:focus,
+  .ppui-apps-search:focus-visible,
+  .ppui-notebook-input:focus,
+  .ppui-inbox-search:focus-within {
+    outline: 2px solid Highlight;
+  }
 }
 
 .ppui-icon {
@@ -452,9 +465,14 @@ html :focus-visible {
   transition: background-color 0.15s var(--ppui-ease), transform 0.15s var(--ppui-ease);
 }
 
-.ppui-bar-button:hover,
 .ppui-bar-button[aria-expanded="true"] {
   background: rgba(255, 255, 255, 0.16);
+}
+
+@media (hover: hover) {
+  .ppui-bar-button:hover {
+    background: rgba(255, 255, 255, 0.16);
+  }
 }
 
 .ppui-bar-button:active {
@@ -641,12 +659,23 @@ html :focus-visible {
   text-decoration: none !important;
 }
 
-.ppui-app:hover,
 .ppui-app:focus-visible,
-.ppui-menu-item:hover,
 .ppui-menu-item:focus-visible {
   background: var(--ppui-accent-soft);
   color: var(--ppui-accent) !important;
+}
+
+@media (hover: hover) {
+  .ppui-app:hover,
+  .ppui-menu-item:hover {
+    background: var(--ppui-accent-soft);
+    color: var(--ppui-accent) !important;
+  }
+}
+
+.ppui-app:active,
+.ppui-menu-item:active {
+  background: var(--ppui-hover-2);
 }
 
 .ppui-icon.ppui-ext {
@@ -3855,6 +3884,7 @@ button.ppui-menu-item:has(.ppui-swatch) {
 .ppui-notebook-input:focus {
   outline: none;
   border-color: var(--ppui-sky);
+  box-shadow: 0 0 0 3px var(--ppui-accent-soft);
 }
 
 .ppui-notebook-add {
@@ -5059,8 +5089,28 @@ html body .app-container :where(h1, h2, h3, h4) {
     animation: ppui-spin 0.45s var(--ppui-ease);
   }
 
+  /* Enter and exit are transitions (top layer + display kept alive by allow-discrete), so closing animates too. */
+  .ppui-popover {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+    transform-origin: top center;
+    transition:
+      opacity 0.18s var(--ppui-ease),
+      transform 0.22s var(--ppui-ease),
+      overlay 0.22s allow-discrete,
+      display 0.22s allow-discrete;
+  }
+
   .ppui-popover:popover-open {
-    animation: ppui-pop 0.2s var(--ppui-ease);
+    opacity: 1;
+    transform: none;
+  }
+
+  @starting-style {
+    .ppui-popover:popover-open {
+      opacity: 0;
+      transform: translateY(-6px) scale(0.97);
+    }
   }
 
   .ppui-skel-a,
@@ -5074,8 +5124,24 @@ html body .app-container :where(h1, h2, h3, h4) {
   }
 
   @media (max-width: 640px) {
+    .ppui-popover {
+      opacity: 1;
+      transform: translateY(100%);
+      transition:
+        transform 0.28s var(--ppui-ease),
+        overlay 0.28s allow-discrete,
+        display 0.28s allow-discrete;
+    }
+
     .ppui-popover:popover-open {
-      animation: ppui-sheet 0.28s var(--ppui-ease);
+      transform: none;
+    }
+
+    @starting-style {
+      .ppui-popover:popover-open {
+        opacity: 1;
+        transform: translateY(100%);
+      }
     }
   }
 
@@ -5143,7 +5209,8 @@ html body .app-container :where(h1, h2, h3, h4) {
   .ppui-badge,
   .ppui-later-toggle,
   .ppui-app,
-  .ppui-menu-item {
+  .ppui-menu-item,
+  .ppui-inbox-row {
     transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s var(--ppui-ease);
   }
   .ppui-more:active,
@@ -5153,9 +5220,14 @@ html body .app-container :where(h1, h2, h3, h4) {
   .ppui-story-link:active {
     transform: scale(0.97);
   }
-  .ppui-app:hover,
-  .ppui-menu-item:hover {
-    transform: translateX(2px);
+  .ppui-inbox-row:active {
+    transform: scale(0.985);
+  }
+  @media (hover: hover) {
+    .ppui-app:hover,
+    .ppui-menu-item:hover {
+      transform: translateX(2px);
+    }
   }
 
   .ppui-link {
@@ -5262,10 +5334,6 @@ html body .app-container :where(h1, h2, h3, h4) {
 
 @keyframes ppui-spin {
   from { transform: rotate(-90deg) scale(0.6); opacity: 0; }
-}
-
-@keyframes ppui-pop {
-  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
 }
 
 @keyframes ppui-sheet {
@@ -5421,6 +5489,7 @@ html.ppui-inbox-page .ppui-moved {
 
 .ppui-inbox-search:focus-within {
   border-color: var(--ppui-accent);
+  box-shadow: 0 0 0 3px var(--ppui-accent-soft);
 }
 
 .ppui-inbox-search .ppui-icon {
@@ -5491,6 +5560,12 @@ html.ppui-inbox-page .ppui-moved {
   border: 0;
 }
 
+/* Long mailboxes: skip layout and paint for rows that are off screen (group headings are short, left alone). */
+.ppui-inbox-rows > li:not(.ppui-inbox-group) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 80px;
+}
+
 .ppui-inbox-group {
   padding: 14px 10px 6px;
   color: var(--ppui-muted);
@@ -5514,8 +5589,14 @@ html.ppui-inbox-page .ppui-moved {
   transition: background-color 0.15s ease;
 }
 
-.ppui-inbox-row:hover {
-  background: var(--ppui-hover);
+@media (hover: hover) {
+  .ppui-inbox-row:hover {
+    background: var(--ppui-hover);
+  }
+}
+
+.ppui-inbox-row:active {
+  background: var(--ppui-hover-2);
 }
 
 .ppui-inbox-row[aria-current="true"] {
