@@ -325,193 +325,11 @@
       const y = 78 - Math.sin(t * Math.PI) * 62;
       scene.style.setProperty("--orb-x", x.toFixed(1) + "%");
       scene.style.setProperty("--orb-y", y.toFixed(1) + "%");
-      scene.dataset.skyNow = !day ? "night" : f < 0.12 ? "dawn" : f > 0.85 ? "dusk" : "day";
-      scene.dataset.sky = banner.get().cycle ? scene.dataset.skyNow : "day";
+      scene.dataset.sky = !day ? "night" : f < 0.12 ? "dawn" : f > 0.85 ? "dusk" : "day";
     };
-    scene.ppuiUpdate = update;
-    banner.scenes.add(scene);
-    applyBanner(scene);
     update();
     setInterval(update, 60 * 1000);
     return scene;
-  }
-
-  // ---- Banner: colour and scene options, chosen in the header's Customise popover ----
-
-  // Colours are picked by hue (and how vivid) only. content.js and styles.css build every sky,
-  // ridge and night/dawn/dusk variant from fixed OKLCH lightness steps, so white text always
-  // reads and no pick can come out muddy or garish. "crest" keeps the hand-tuned original blues.
-  const BANNER_KEY = "ppui-banner";
-  const BANNER_PRESETS = [
-    { id: "crest", name: "Crest", h: 262, c: 0.15 },
-    { id: "midnight", name: "Midnight", h: 268, c: 0.08 },
-    { id: "lagoon", name: "Lagoon", h: 215, c: 0.11 },
-    { id: "pine", name: "Pine", h: 160, c: 0.09 },
-    { id: "plum", name: "Plum", h: 310, c: 0.13 },
-    { id: "berry", name: "Berry", h: 355, c: 0.14 },
-    { id: "ember", name: "Ember", h: 35, c: 0.14 },
-    { id: "slate", name: "Slate", h: 250, c: 0.03 },
-  ];
-  const BANNER_DEFAULT = { palette: "crest", hue: 262, orb: true, clouds: true, cycle: true };
-
-  const banner = {
-    scenes: new Set(),
-    get() {
-      let saved = null;
-      try {
-        saved = JSON.parse(localStorage.getItem(BANNER_KEY) || "null");
-      } catch (e) {}
-      const v = Object.assign({}, BANNER_DEFAULT, saved && typeof saved === "object" ? saved : {});
-      v.hue = Math.min(360, Math.max(0, Number(v.hue) || 0));
-      if (v.palette !== "custom" && !BANNER_PRESETS.some((p) => p.id === v.palette)) v.palette = "crest";
-      return v;
-    },
-    set(changes) {
-      const v = Object.assign(this.get(), changes);
-      try {
-        localStorage.setItem(BANNER_KEY, JSON.stringify(v));
-      } catch (e) {}
-      this.scenes.forEach(applyBanner);
-      return v;
-    },
-  };
-
-  // Hue and vividness for a setting: a preset's own, or the custom hue at a steady vividness.
-  function bannerColour(v) {
-    // Yellows and limes turn muddy at sky lightness, so the custom hue calms down around them.
-    if (v.palette === "custom") return { h: v.hue, c: 0.13 - 0.05 * Math.max(0, 1 - Math.abs(v.hue - 105) / 50) };
-    return BANNER_PRESETS.find((p) => p.id === v.palette);
-  }
-
-  function applyBanner(scene) {
-    const v = banner.get();
-    const { h, c } = bannerColour(v);
-    if (v.palette === "crest") {
-      delete scene.dataset.banner;
-      scene.style.removeProperty("--bh");
-      scene.style.removeProperty("--bc");
-    } else {
-      scene.dataset.banner = v.palette;
-      scene.style.setProperty("--bh", String(h));
-      scene.style.setProperty("--bc", String(c));
-    }
-    scene.classList.toggle("no-orb", !v.orb);
-    scene.classList.toggle("no-clouds", !v.clouds);
-    if (scene.ppuiUpdate) scene.ppuiUpdate();
-  }
-
-  // Other tabs pick up a change straight away.
-  addEventListener("storage", (e) => {
-    if (e.key === BANNER_KEY) banner.scenes.forEach(applyBanner);
-  });
-
-  function bannerSwitch(label, key) {
-    const row = el("label", "ppui-switch");
-    const input = el("input");
-    input.type = "checkbox";
-    input.setAttribute("role", "switch");
-    input.checked = !!banner.get()[key];
-    input.addEventListener("change", () => banner.set({ [key]: input.checked }));
-    row.append(el("span", "ppui-switch-label", label), input);
-    return row;
-  }
-
-  // The Customise button on the banner and its popover: colour swatches, a hue slider for
-  // any other colour, scene switches and a reset. Every change shows at once.
-  function buildBannerEditor() {
-    const btn = el("button", "ppui-banner-edit");
-    btn.type = "button";
-    btn.title = "Customise banner";
-    btn.setAttribute("aria-label", "Customise banner");
-    btn.append(icon("palette"), el("span", "ppui-banner-edit-text", "Customise"));
-
-    const pop = el("div", "ppui-banner-pop");
-    pop.setAttribute("role", "dialog");
-    pop.setAttribute("aria-label", "Customise banner");
-    pop.appendChild(el("p", "ppui-banner-pop-title", "Banner"));
-
-    pop.appendChild(el("p", "ppui-banner-pop-label", "Colour"));
-    const swatches = el("div", "ppui-bswatches");
-    swatches.setAttribute("role", "radiogroup");
-    swatches.setAttribute("aria-label", "Banner colour");
-    const choices = [];
-    const choose = (b) => {
-      choices.forEach((x) => x.setAttribute("aria-checked", String(x === b)));
-    };
-    for (const p of BANNER_PRESETS) {
-      const b = el("button", "ppui-bswatch");
-      b.type = "button";
-      b.setAttribute("role", "radio");
-      b.title = p.name;
-      b.setAttribute("aria-label", p.name);
-      b.dataset.banner = p.id;
-      b.style.setProperty("--bh", String(p.h));
-      b.style.setProperty("--bc", String(p.c));
-      b.addEventListener("click", () => {
-        banner.set({ palette: p.id });
-        choose(b);
-      });
-      choices.push(b);
-      swatches.appendChild(b);
-    }
-    pop.appendChild(swatches);
-
-    const hueRow = el("label", "ppui-hue");
-    hueRow.appendChild(el("span", "ppui-banner-pop-label", "Any colour"));
-    const hue = el("input", "ppui-hue-slider");
-    hue.type = "range";
-    hue.min = "0";
-    hue.max = "360";
-    hue.step = "1";
-    hue.setAttribute("aria-label", "Banner hue");
-    hue.addEventListener("input", () => {
-      banner.set({ palette: "custom", hue: Number(hue.value) });
-      choose(null);
-    });
-    hueRow.appendChild(hue);
-    pop.appendChild(hueRow);
-
-    const switches = el("div", "ppui-switches");
-    switches.append(
-      bannerSwitch("Sun and moon", "orb"),
-      bannerSwitch("Clouds", "clouds"),
-      bannerSwitch("Sky follows the time of day", "cycle"),
-    );
-    pop.appendChild(switches);
-
-    const reset = el("button", "ppui-banner-reset");
-    reset.type = "button";
-    reset.append(icon("rotateCcw"), el("span", null, "Reset to Crest"));
-    reset.addEventListener("click", () => {
-      try {
-        localStorage.removeItem(BANNER_KEY);
-      } catch (e) {}
-      banner.scenes.forEach(applyBanner);
-      sync();
-    });
-    pop.appendChild(reset);
-
-    // Show the saved choice each time it opens.
-    function sync() {
-      const v = banner.get();
-      choose(choices.find((b) => b.dataset.banner === v.palette) || null);
-      hue.value = String(v.palette === "custom" ? v.hue : bannerColour(v).h);
-      switches.querySelectorAll("input").forEach((input, i) => {
-        input.checked = !!v[["orb", "clouds", "cycle"][i]];
-      });
-    }
-    popover(btn, pop, sync);
-    pop.addEventListener("toggle", (e) => {
-      if (e.newState === "open") (pop.querySelector(".ppui-bswatch[aria-checked='true']") || choices[0]).focus();
-    });
-    // Left/Right arrows move between swatches.
-    swatches.addEventListener("keydown", (e) => {
-      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-      e.preventDefault();
-      const i = choices.indexOf(document.activeElement);
-      choices[(i + (e.key === "ArrowRight" ? 1 : -1) + choices.length) % choices.length].focus();
-    });
-    return btn;
   }
 
   function el(tag, className, text) {
@@ -961,7 +779,7 @@
 
     const top = el("div", "ppui-header-top");
     top.append(brand, pill);
-    header.append(top, buildBannerEditor());
+    header.appendChild(top);
 
     if (HOME_PATH.test(location.pathname)) {
       const name = studentName().split(" ")[0];
@@ -4173,23 +3991,9 @@
     });
   }
 
-  // Which period is on: by the clock when the times are known (so it moves on between fetches),
-  // else the portal's own "now" marker.
-  function nowIndexOf(items) {
-    const timed = items.filter((item) => item.start !== null);
-    if (timed.length < 2) return items.findIndex((item) => item.now);
-    const d = new Date();
-    const minutes = d.getHours() * 60 + d.getMinutes();
-    const on = timed.findIndex((item, i) => {
-      const end = i + 1 < timed.length ? timed[i + 1].start : item.start + 50;
-      return minutes >= item.start && minutes < end;
-    });
-    return on < 0 ? -1 : items.indexOf(timed[on]);
-  }
-
   // The class on now, else the next one today, else nothing.
   function featuredItem(items) {
-    const nowIndex = nowIndexOf(items);
+    const nowIndex = items.findIndex((item) => item.now);
     if (nowIndex >= 0) return { item: items[nowIndex], next: items[nowIndex + 1], label: "Now" };
     const d = new Date();
     const minutes = d.getHours() * 60 + d.getMinutes();
@@ -4198,105 +4002,24 @@
     return null;
   }
 
-  // What the Classes card shows beside its rows: the class on now and the one after it.
-  const live = { now: null, next: null };
-
-  function markLiveClasses() {
-    document.querySelectorAll(".ppui-course[data-name]").forEach((row) => {
-      const name = row.dataset.name;
-      const state = name === live.now ? "now" : name === live.next ? "next" : "";
-      if ((row.dataset.live || "") === state) return;
-      row.dataset.live = state;
-      row.querySelector(".ppui-live-tag")?.remove();
-      if (!state) return;
-      const tag = el("span", "ppui-live-tag is-" + state);
-      if (state === "now") tag.appendChild(el("span", "ppui-live"));
-      tag.appendChild(document.createTextNode(state === "now" ? "Now" : "Next"));
-      row.querySelector(".ppui-class").after(tag);
-    });
-  }
-
-  // A ring round the subject icon that fills as the period goes on.
-  function progressRing(fraction) {
-    const ns = "http://www.w3.org/2000/svg";
-    const svg = document.createElementNS(ns, "svg");
-    svg.setAttribute("class", "ppui-ring");
-    svg.setAttribute("viewBox", "0 0 56 56");
-    svg.setAttribute("aria-hidden", "true");
-    for (const cls of ["ppui-ring-track", "ppui-ring-fill"]) {
-      const c = document.createElementNS(ns, "circle");
-      c.setAttribute("class", cls);
-      c.setAttribute("cx", "28");
-      c.setAttribute("cy", "28");
-      c.setAttribute("r", "26");
-      c.setAttribute("pathLength", "100");
-      svg.appendChild(c);
-    }
-    svg.style.setProperty("--ring", (Math.min(Math.max(fraction, 0), 1) * 100).toFixed(1));
-    return svg;
-  }
-
   function renderFeatured(box, items) {
-    const pick = featuredItem(items);
-    const d = new Date();
-    const minutes = d.getHours() * 60 + d.getMinutes();
-
-    live.now = pick && pick.label === "Now" ? pick.item.title : null;
-    live.next = pick ? (pick.label === "Now" ? pick.next && pick.next.title : pick.item.title) : null;
-    markLiveClasses();
-
-    box.hidden = !pick;
-    if (!pick) {
-      box.replaceChildren();
-      delete box.dataset.key;
-      return;
-    }
-    // A new period slides in; the minute-by-minute refresh leaves the text still.
-    const key = pick.label + "|" + pick.item.title;
-    const changed = box.dataset.key && box.dataset.key !== key;
-    box.dataset.key = key;
     box.replaceChildren();
+    const pick = featuredItem(items);
+    box.hidden = !pick;
+    if (!pick) return;
     box.classList.toggle("is-next", pick.label === "Next");
-    box.classList.toggle("is-swapping", !!changed);
-
-    // How much of the period is gone, and how long is left (or how long until the next one).
-    let fraction = 0;
-    let count = null;
-    if (pick.label === "Now") {
-      const end = pick.next && pick.next.start !== null ? pick.next.start : pick.item.start !== null ? pick.item.start + 50 : null;
-      if (end !== null && pick.item.start !== null && end > pick.item.start) {
-        fraction = (minutes - pick.item.start) / (end - pick.item.start);
-        count = { value: Math.max(end - minutes, 0), label: "min left" };
-      }
-    } else if (pick.item.start !== null) {
-      count = { value: Math.max(pick.item.start - minutes, 0), label: "min to go" };
-    }
-    if (count && count.value > 99) count = null;
-
     const when = pick.label === "Now"
       ? (pick.next ? "until " + pick.next.time : "last one today")
       : "at " + pick.item.time;
     const art = el("span", "ppui-feature-icon");
     art.appendChild(icon(subjectIcon(pick.item.title)));
-    if (pick.label === "Now") art.appendChild(progressRing(fraction));
     const text = el("div", "ppui-feature-text");
     const label = el("span", "ppui-feature-label");
     if (pick.label === "Now") label.appendChild(el("span", "ppui-live"));
     label.appendChild(document.createTextNode(pick.label + " " + when));
     text.append(label, el("span", "ppui-feature-class", pick.item.title));
     if (pick.item.subtitle) text.appendChild(el("span", "ppui-meta", pick.item.subtitle));
-    if (pick.label === "Now" && pick.next) {
-      const then = el("span", "ppui-feature-then");
-      then.append(el("span", "ppui-feature-then-label", "Then"), document.createTextNode(pick.next.title));
-      text.appendChild(then);
-    }
     box.append(art, text);
-    if (count) {
-      const c = el("span", "ppui-feature-count");
-      c.append(el("span", "ppui-feature-count-value", String(count.value)), el("span", "ppui-feature-count-label", count.label));
-      c.setAttribute("aria-label", count.value + " " + (count.label === "min left" ? "minutes left" : "minutes to go"));
-      box.appendChild(c);
-    }
   }
 
   // How far through today's timetable we are: one segment per period, as wide as the period is long,
@@ -4361,10 +4084,9 @@
       list.appendChild(emptyState("Nothing scheduled today."));
       return;
     }
-    const nowIndex = nowIndexOf(items);
-    list.dataset.now = String(nowIndex);
+    const nowIndex = items.findIndex((item) => item.now);
     items.forEach((item, i) => {
-      const row = el("li", "ppui-row" + (i === nowIndex ? " is-now" : "") + (i < nowIndex ? " is-past" : ""));
+      const row = el("li", "ppui-row" + (item.now ? " is-now" : "") + (i < nowIndex ? " is-past" : ""));
       row.style.setProperty("--i", String(i));
       row.appendChild(el("span", "ppui-time", item.time));
       const body = el("div", "ppui-body");
@@ -4391,18 +4113,6 @@
     list.append(el("li", "ppui-sr", "Loading schedule..."), ...skeleton(5));
     section.append(featured, progress, list);
 
-    // The block counts down every minute from the last timetable, without fetching again.
-    let latest = null;
-    const tick = () => {
-      if (!latest || document.visibilityState !== "visible") return;
-      renderFeatured(featured, latest);
-      renderProgress(progress, latest);
-      // Redraw the list only when the period has changed.
-      if (list.dataset.now !== String(nowIndexOf(latest))) renderRows(list, latest);
-    };
-    setInterval(tick, 60 * 1000);
-    document.addEventListener("visibilitychange", tick);
-
     async function load() {
       try {
         const res = await fetch(SCHEDULE_URL, { credentials: "same-origin" });
@@ -4410,7 +4120,6 @@
         const items = parseSchedule(await res.text());
         if (!items) throw new Error("schedule markup not found");
         writeJson(TODAY_KEY, { date: isoAfter(0), items: items.map((item) => ({ time: item.time, title: item.title })) });
-        latest = items;
         renderFeatured(featured, items);
         renderProgress(progress, items);
         renderRows(list, items);
@@ -4675,7 +4384,6 @@
 
   function courseRow(course) {
     const row = el("li", "ppui-course");
-    row.dataset.name = course.name;
     const badgeIcon = el("span", "ppui-subject");
     badgeIcon.dataset.tone = String(toneFor(course.name));
     badgeIcon.appendChild(icon(subjectIcon(course.name)));
@@ -4716,17 +4424,6 @@
       more.appendChild(icon("ellipsis"));
       const menu = el("ul", "ppui-menu");
       menu.setAttribute("aria-label", course.name);
-      // The menu opens with the class it belongs to: its tile, name and teacher.
-      const head = el("li", "ppui-menu-class");
-      head.setAttribute("aria-hidden", "true");
-      const tile = el("span", "ppui-subject");
-      tile.dataset.tone = String(toneFor(course.name));
-      tile.appendChild(icon(subjectIcon(course.name)));
-      const who = el("span", "ppui-menu-class-text");
-      who.appendChild(el("span", "ppui-menu-class-name", course.name));
-      if (course.teacher) who.appendChild(el("span", "ppui-menu-class-meta", course.teacher));
-      head.append(tile, who);
-      menu.appendChild(head);
       // Notes first: write one for this class, or see the ones it has.
       for (const [label, iconName, open] of [
         ["Add note", "plus", () => openNotebook({ subject: course.name })],
@@ -4781,8 +4478,6 @@
       more.appendChild(rest);
       section.appendChild(more);
     }
-    // Tag the class on now and the next one, once the rows are on the page.
-    requestAnimationFrame(markLiveClasses);
     return section;
   }
 
