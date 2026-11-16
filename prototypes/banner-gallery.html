@@ -1,0 +1,1294 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Banner Styles</title>
+<!-- Throwaway spike: a gallery of header banner styles to pick from. Not loaded by the extension. -->
+<style>
+@font-face { font-family: "Playfair Display"; src: url("../fonts/PlayfairDisplay.ttf"); font-weight: 400 900; }
+@font-face { font-family: "Playfair Display"; src: url("../fonts/PlayfairDisplay-Italic.ttf"); font-weight: 400 900; font-style: italic; }
+@font-face { font-family: "Plus Jakarta Sans"; src: url("../fonts/PlusJakartaSans.ttf"); font-weight: 200 800; }
+
+:root {
+  --bg: #eef1f6; --card: #ffffff; --ink: #0b1e45; --muted: #5b6780; --line: rgba(11,30,69,.12);
+  --accent: #1446a0; --gold: #e2a72e;
+}
+:root[data-theme="dark"] .seg { background: #2c2c2e; }
+:root[data-theme="dark"] .seg button[aria-pressed="true"] { background: #0a84ff; color: #fff; }
+:root[data-theme="dark"] .star[aria-pressed="true"] { background: #0a84ff; color: #fff; }
+:root[data-theme="dark"] .btn:hover { color: #0a84ff; }
+:root[data-theme="dark"] .btn { background: #2c2c2e; }
+:root[data-theme="dark"] {
+  /* Neutral greys like iOS dark mode: black page, #1c1c1e cards, #2c2c2e raised fills. */
+  --bg: #000000; --card: #1c1c1e; --ink: #ffffff; --muted: #8e8e93; --line: rgba(84,84,88,.6);
+  --accent: #0a84ff; --gold: #f2c14e;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* ---------- Control bar ---------- */
+.bar {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;
+  padding: 12px max(16px, calc(50vw - 580px));
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(12px);
+}
+.bar h1 { margin: 0 8px 0 0; font: italic 700 20px "Playfair Display", serif; }
+.ctl { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.seg { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--line); }
+.seg button, .btn {
+  border: 0; background: transparent; color: var(--ink); cursor: pointer;
+  font: 600 12px "Plus Jakarta Sans", sans-serif; padding: 6px 11px; border-radius: 999px;
+}
+.seg button[aria-pressed="true"] { background: var(--card); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+.btn { background: var(--line); }
+.btn:hover { color: var(--accent); }
+.note { flex-basis: 100%; margin: 0; font-size: 12px; color: var(--muted); }
+
+/* ---------- Gallery ---------- */
+main { padding: 18px 0 60px; display: grid; gap: 26px; }
+.item.is-hidden { display: none; }
+.caption {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px max(16px, calc(50vw - 580px)) 0;
+}
+.num { font: 800 12px "Plus Jakarta Sans"; color: var(--accent); letter-spacing: .08em; }
+.cap-name { font: italic 700 19px "Playfair Display", serif; }
+.cap-desc { font-size: 13px; color: var(--muted); flex: 1; min-width: 0; }
+.star {
+  border: 1px solid var(--line); background: var(--card); color: var(--muted);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; font: 600 12px "Plus Jakarta Sans";
+  white-space: nowrap;
+}
+.star[aria-pressed="true"] { color: #1b1300; background: var(--gold); border-color: transparent; }
+
+/* ---------- Banner (mock of .ppui-header) ---------- */
+.banner {
+  --gutter: max(20px, calc(50vw - 580px));
+  position: relative; isolation: isolate; overflow: hidden;
+  padding: 18px var(--gutter) 150px; color: #fff;
+  background: #10388a;
+}
+.banner.compact { padding: 14px var(--gutter) 70px; }
+.banner canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -2; display: block; }
+.banner .grain {
+  position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: .14; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.brand { display: inline-flex; align-items: center; gap: 12px; }
+.plate { width: 40px; height: 40px; border-radius: 12px; background: #fff; display: grid; place-items: center; flex: none; }
+.plate img { width: 26px; height: 30px; }
+.bname { display: grid; line-height: 1.15; }
+.btitle { font-size: 18px; font-weight: 800; letter-spacing: -.02em; }
+.bsub { font-size: 12.5px; font-weight: 500; color: rgba(255,255,255,.72); }
+/* ---------- Liquid glass pill ----------
+   The backdrop is bent by a lens map that is strongest at the rim (built in JS per pill size),
+   and red, green and blue are bent by different amounts, so edges in the scene behind split into
+   real rainbow fringes, like light through a prism. Chromium only; other browsers get frosted blur. */
+.pill {
+  --hx: 30%; --hy: 0%;
+  position: relative; isolation: isolate;
+  display: inline-flex; gap: 2px; padding: 5px; border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.02) 50%, rgba(255,255,255,.06) 100%);
+  -webkit-backdrop-filter: blur(8px) saturate(1.6) brightness(1.08);
+  backdrop-filter: blur(8px) saturate(1.6) brightness(1.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.65),
+    inset 1px 0 0 rgba(255,255,255,.18),
+    inset 0 -1px 1px rgba(255,255,255,.2),
+    inset 0 0 0 1px rgba(255,255,255,.1),
+    0 10px 30px -8px rgba(0,8,30,.55),
+    0 2px 6px rgba(0,8,30,.25);
+}
+/* specular sheen that slides toward the pointer */
+.pill::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: -1;
+  background: radial-gradient(55% 120% at var(--hx) var(--hy), rgba(255,255,255,.38), transparent 60%);
+  mix-blend-mode: soft-light;
+}
+
+.pill span {
+  position: relative; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  transition: transform .25s cubic-bezier(.3,1.6,.5,1), background .2s, box-shadow .2s;
+}
+.pill svg { filter: drop-shadow(0 1px 1px rgba(0,10,40,.35)); }
+/* each button becomes a little glass bead on hover */
+.pill span:hover {
+  transform: scale(1.12);
+  background: radial-gradient(circle at 35% 25%, rgba(255,255,255,.5), rgba(255,255,255,.12) 55%, rgba(255,255,255,.04));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.7),
+    inset 0 -2px 4px rgba(120,180,255,.25),
+    0 0 0 1px rgba(255,255,255,.25),
+    0 0 14px rgba(160,140,255,.45),
+    0 4px 10px rgba(0,8,30,.35);
+}
+.pill span:active { transform: scale(.94); }
+.pill svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.intro { margin-top: 40px; max-width: 760px; pointer-events: none; }
+.hello {
+  margin: 0 0 8px; font: italic 700 clamp(36px, 5.6vw, 60px)/1.05 "Playfair Display", serif;
+  letter-spacing: -.01em; text-wrap: balance;
+}
+.date { margin: 0; font-size: 16px; font-weight: 500; color: rgba(255,255,255,.78); }
+.banner.compact .intro { display: none; }
+
+@media (max-width: 480px) {
+  .banner { padding-bottom: 104px; }
+  .pill span:nth-child(n+4) { display: none; }
+  .cap-desc { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <h1>Banner styles</h1>
+  <div class="ctl">Time
+    <div class="seg" data-ctl="sky">
+      <button data-v="auto">Auto</button><button data-v="dawn">Dawn</button><button data-v="day">Day</button><button data-v="dusk">Dusk</button><button data-v="night">Night</button>
+    </div>
+  </div>
+  <div class="ctl">Motion
+    <div class="seg" data-ctl="motion">
+      <button data-v="static">Static</button><button data-v="drift">Drift</button><button data-v="interactive">Interactive</button>
+    </div>
+  </div>
+  <div class="ctl">Theme
+    <div class="seg" data-ctl="theme"><button data-v="light">Light</button><button data-v="dark">Dark</button></div>
+  </div>
+  <div class="ctl">Size
+    <div class="seg" data-ctl="size"><button data-v="home">Home</button><button data-v="compact">Compact</button></div>
+  </div>
+  <button class="btn" id="reseed">Reseed</button>
+  <button class="btn" id="favs" aria-pressed="false">Show starred only</button>
+  <p class="note">Interactive: move the mouse over a banner. Star the ones you like; stars are saved in this browser.</p>
+</div>
+
+<main id="gallery"></main>
+
+<!-- Lens filters for the liquid glass pill are added here by makeLens(). -->
+<svg id="lens-defs" width="0" height="0" style="position:absolute" aria-hidden="true"><defs></defs></svg>
+
+<script>
+"use strict";
+
+/* ================= Utilities ================= */
+
+function seeded(seed) {
+  return () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function makeNoise(seed) {
+  const rand = seeded(seed);
+  const P = new Uint16Array(512), V = new Float32Array(256);
+  const p = [...Array(256).keys()];
+  for (let i = 255; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; }
+  for (let i = 0; i < 512; i++) P[i] = p[i & 255];
+  for (let i = 0; i < 256; i++) V[i] = rand();
+  const hash = (x, y) => V[P[P[x & 255] + (y & 255)]];
+  const sm = (t) => t * t * (3 - 2 * t);
+  const n2 = (x, y) => {
+    const ix = Math.floor(x), iy = Math.floor(y), fx = sm(x - ix), fy = sm(y - iy);
+    const a = hash(ix, iy), b = hash(ix + 1, iy), c = hash(ix, iy + 1), d = hash(ix + 1, iy + 1);
+    return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
+  };
+  const fbm = (x, y, oct = 4) => {
+    let s = 0, amp = 0.5, f = 1, norm = 0;
+    for (let o = 0; o < oct; o++) { s += amp * n2(x * f, y * f); norm += amp; amp *= 0.5; f *= 2.03; }
+    return s / norm;
+  };
+  return { n2, fbm, hash };
+}
+
+const hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+const lighten = (c, t) => mix(c, [255, 255, 255], t);
+const darken = (c, t) => mix(c, [0, 0, 0], t);
+const css = (c, a = 1) => a >= 1 ? `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})` : `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const TAU = Math.PI * 2;
+
+/* ================= Palettes (from styles.css) ================= */
+
+const SKIES = {
+  day:     { sky: ["#2a64cf", "#1446a0", "#10388a"], stops: [0, .58, 1], mid: "#123a86", near: "#0b1e45", orb: "#f4f6fa", warm: "#f2c14e", night: 0 },
+  dawn:    { sky: ["#17336f", "#3f70c9", "#c3cde0"], stops: [0, .55, 1], mid: "#1d4189", near: "#0b1e45", orb: "#fff0d8", warm: "#f6b679", night: .25 },
+  dusk:    { sky: ["#0e2862", "#2b59b2", "#a7a9ac"], stops: [0, .55, 1], mid: "#163a80", near: "#0a1a3e", orb: "#ffe1c2", warm: "#f09a6b", night: .4 },
+  night:   { sky: ["#040a1a", "#0b1e45", "#142f69"], stops: [0, .6, 1],  mid: "#081a40", near: "#030817", orb: "#dfe3ea", warm: "#e8c36a", night: 1 },
+  darkday: { sky: ["#13357c", "#0f2c69", "#0b2457"], stops: [0, .6, 1],  mid: "#0c2557", near: "#030817", orb: "#e9edf4", warm: "#e9b949", night: .3 },
+};
+
+function palette(sky, dark) {
+  const src = SKIES[sky];
+  const p = {
+    name: sky, night: src.night, stops: src.stops,
+    sky: src.sky.map(hex), mid: hex(src.mid), near: hex(src.near), orb: hex(src.orb), warm: hex(src.warm),
+  };
+  // Banner keeps the original navy dark-mode colours from styles.css; only the page around it goes iOS grey.
+  if (dark && sky === "day") { p.sky = SKIES.darkday.sky.map(hex); p.stops = SKIES.darkday.stops; p.night = SKIES.darkday.night; }
+  if (dark && sky !== "night") { p.mid = hex("#0c2557"); p.near = hex("#030817"); }
+  p.dark = dark;
+  p.at = (y) => { // sky colour at 0..1 down the banner
+    y = clamp(y, 0, 1);
+    const s = p.stops;
+    for (let i = 1; i < s.length; i++) if (y <= s[i]) return mix(p.sky[i - 1], p.sky[i], (y - s[i - 1]) / (s[i] - s[i - 1]));
+    return p.sky[p.sky.length - 1];
+  };
+  return p;
+}
+
+// Same arc as content.js: sun 6 am to 7 pm, moon 7 pm to 6 am.
+const FORCED_MINUTES = { dawn: 6 * 60 + 40, day: 12 * 60 + 30, dusk: 18 * 60 + 20, night: 22 * 60 };
+function skyState(mode) {
+  const d = new Date();
+  const m = mode === "auto" ? d.getHours() * 60 + d.getMinutes() : FORCED_MINUTES[mode];
+  const f = (m - 360) / 780;
+  const day = f >= 0 && f <= 1;
+  const t = day ? f : ((m - 1140 + 1440) % 1440) / 660;
+  return {
+    sky: !day ? "night" : f < 0.12 ? "dawn" : f > 0.85 ? "dusk" : "day",
+    ox: (8 + t * 84) / 100,
+    oy: (78 - Math.sin(t * Math.PI) * 62) / 100,
+  };
+}
+
+/* ================= Shared drawing ================= */
+
+function fillSky(ctx, S) {
+  const g = ctx.createLinearGradient(0, 0, 0, S.h);
+  S.pal.sky.forEach((c, i) => g.addColorStop(S.pal.stops[i], css(c)));
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, S.w, S.h);
+}
+
+function drawStars(ctx, S, twinkle = true) {
+  if (S.pal.name !== "night") return;
+  const r = seeded(99);
+  for (let i = 0; i < 70; i++) {
+    const x = r() * S.w, y = r() * S.h * 0.6, s = 0.6 + r() * 1.1;
+    const a = twinkle ? 0.45 + 0.4 * Math.sin(S.t * (0.6 + r()) + i) : 0.7;
+    ctx.fillStyle = `rgba(255,255,255,${a.toFixed(2)})`;
+    ctx.fillRect(x + S.px * 4, y, s, s);
+  }
+}
+
+function drawOrb(ctx, S, r = 15) {
+  const x = S.orb.x + S.px * 6, y = S.orb.y + S.py * 4;
+  if (S.pal.name === "night") {
+    ctx.fillStyle = css(S.pal.orb);
+    ctx.beginPath(); ctx.arc(x, y, r + 2, 0, TAU); ctx.fill();
+    ctx.fillStyle = "#b9bec7";
+    ctx.save(); ctx.beginPath(); ctx.arc(x, y, r + 2, 0, TAU); ctx.clip();
+    ctx.beginPath(); ctx.arc(x + 9, y + 3, r + 2, 0, TAU); ctx.fill(); ctx.restore();
+    // re-light the lit crescent
+    ctx.save(); ctx.beginPath(); ctx.arc(x, y, r + 2, 0, TAU); ctx.clip();
+    ctx.fillStyle = css(S.pal.orb); ctx.beginPath(); ctx.arc(x - 6, y - 2, r + 1, 0, TAU); ctx.fill(); ctx.restore();
+  } else {
+    const g = ctx.createRadialGradient(x, y, r * 0.5, x, y, r * 5);
+    g.addColorStop(0, css(S.pal.orb, 0.35)); g.addColorStop(1, css(S.pal.orb, 0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 5, 0, TAU); ctx.fill();
+    ctx.fillStyle = css(S.pal.orb);
+    ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+  }
+}
+
+// Light comes from the orb's side.
+const lightRight = (S) => S.orb.x > S.w / 2;
+
+/* ---------- Isometric prisms ---------- */
+function prism(ctx, cx, cy, a, b, hp, top, left, right) {
+  ctx.beginPath(); ctx.moveTo(cx, cy - b); ctx.lineTo(cx + a, cy); ctx.lineTo(cx, cy + b); ctx.lineTo(cx - a, cy); ctx.closePath();
+  ctx.fillStyle = ctx.strokeStyle = top; ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx - a, cy); ctx.lineTo(cx, cy + b); ctx.lineTo(cx, cy + b + hp); ctx.lineTo(cx - a, cy + hp); ctx.closePath();
+  ctx.fillStyle = ctx.strokeStyle = left; ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, cy + b); ctx.lineTo(cx + a, cy); ctx.lineTo(cx + a, cy + hp); ctx.lineTo(cx, cy + b + hp); ctx.closePath();
+  ctx.fillStyle = ctx.strokeStyle = right; ctx.fill(); ctx.stroke();
+}
+function shades(c, S) {
+  const lit = lighten(c, 0.08), dim = darken(c, 0.32);
+  const r = lightRight(S);
+  return [css(lighten(c, 0.24)), css(r ? dim : lit), css(r ? lit : dim)];
+}
+function cube(ctx, S, cx, cy, s, c, hp = s) {
+  const [t, l, r] = shades(c, S);
+  ctx.lineWidth = 1;
+  prism(ctx, cx, cy, s * 0.866, s * 0.5, hp, t, l, r);
+}
+
+/*
+ Iso world: rows u go from the horizon toward the viewer, v runs across.
+ cell(I, J) returns { layers, color, extra?(ctx, cx, topY, a, b, s, shade) }.
+*/
+function isoWorld(ctx, S, opts) {
+  const s = opts.s, a = s * 0.866, b = s * 0.5, L = s * (opts.layerH || 0.5);
+  const y0 = S.h * opts.horizon;
+  const U = Math.ceil((S.h - y0) / b) + 4;
+  const V = Math.ceil(S.w / 2 / a) + 3;
+  const pan = opts.pan || 0, n = Math.floor(pan), fr = pan - n;
+  const fadeTo = S.pal.at(opts.horizon + 0.05);
+  ctx.lineWidth = 1;
+  for (let u = 0; u <= U; u++) {
+    const depth = u / U;
+    const ox = S.px * (6 + 26 * depth) - fr * 2 * a, oy = S.py * 6 * depth;
+    const fade = Math.pow(1 - depth, 1.6) * (opts.fade ?? 0.6);
+    for (let v = -V; v <= V; v++) {
+      if ((u + v) & 1) continue;
+      const I = (u + v) / 2 + n, J = (u - v) / 2 - n;
+      const cell = opts.cell(I, J, u);
+      if (!cell) continue;
+      const cx = S.w / 2 + v * a + ox;
+      if (cx < -2 * a || cx > S.w + 2 * a) continue;
+      const topY = y0 + u * b - cell.layers * L + oy;
+      const shade = (c) => mix(mix(c, S.pal.near, S.pal.night * 0.62), fadeTo, fade);
+      const [t, l, r] = shades(shade(cell.color), S);
+      prism(ctx, cx, topY, a, b, cell.layers * L + S.h * 0.6, t, l, r);
+      if (cell.extra) cell.extra(ctx, cx, topY, a, b, s, shade);
+    }
+  }
+}
+
+/* ---------- Classic pines (copied from content.js) ---------- */
+function pinePath(rand, x, g, h) {
+  const n = 3 + Math.floor(rand() * 3), w = h * (0.42 + rand() * 0.12), trunk = Math.max(2, w * 0.07);
+  const tierH = (h * 0.88) / n, tip = x + (rand() - 0.4) * w * 0.12;
+  const p = (px, py) => " L" + px.toFixed(1) + " " + py.toFixed(1);
+  let right = "", left = "";
+  for (let t = 0; t < n; t++) {
+    const yb = g - h * 0.1 - t * tierH * 0.92, hw = (w / 2) * (1 - t / (n + 0.6));
+    const droop = tierH * (0.12 + rand() * 0.1), inner = hw * (0.42 + rand() * 0.12);
+    right += p(x + hw * (0.94 + rand() * 0.12), yb + droop) + p(x + inner, yb - tierH * 0.34);
+    left = p(x - inner, yb - tierH * 0.34) + p(x - hw * (0.94 + rand() * 0.12), yb + droop * (0.8 + rand() * 0.4)) + left;
+  }
+  return " M" + (x - trunk).toFixed(1) + " " + (g + 8).toFixed(1) + p(x + trunk, g + 8) + p(x + trunk, g - h * 0.1) +
+    right + p(tip, g - h) + left + p(x - trunk, g - h * 0.1) + "Z";
+}
+function ridgePath(rand, o, W, H) {
+  const ground = (x) => H - o.base - Math.cos((x / W) * Math.PI * 2) * o.dip;
+  let d = "M0 " + H + " L0 " + ground(0).toFixed(1);
+  for (let x = 0; x <= W; x += 40) d += " L" + x + " " + ground(x).toFixed(1);
+  d += " L" + W + " " + H + "Z";
+  for (let x = -20; x < W + 40;) {
+    const h = o.height * (0.45 + rand() * 0.7);
+    d += pinePath(rand, x, ground(x) + 4, h);
+    const r = rand();
+    x += o.gap * (r < 0.25 ? 0.35 + rand() * 0.2 : r > 0.9 ? 1.8 + rand() : 0.7 + rand() * 0.6);
+  }
+  return d;
+}
+const RIDGES = [
+  { key: "far", seed: 7, base: 64, dip: 10, gap: 38, height: 96 },
+  { key: "mid", seed: 21, base: 36, dip: 16, gap: 52, height: 92 },
+  { key: "near", seed: 3, base: 14, dip: 22, gap: 90, height: 120 },
+];
+const ridgeCache = {};
+function ridges(compact, seed) {
+  const key = compact + ":" + seed;
+  if (ridgeCache[key]) return ridgeCache[key];
+  const W = compact ? 6000 : 2600, H = compact ? 120 : 240, k = compact ? 0.5 : 1;
+  return (ridgeCache[key] = {
+    W, H, paths: RIDGES.map((r) => ({
+      key: r.key,
+      path: new Path2D(ridgePath(seeded(r.seed + seed), { base: r.base * k, dip: r.dip * k, gap: r.gap * k, height: r.height * k }, W, H)),
+    })),
+  });
+}
+function drawRidges(ctx, S, which = ["far", "mid", "near"], colors = {}) {
+  const R = ridges(S.compact, S.seed);
+  const fh = S.compact ? 68 : 254;
+  const sc = Math.max(S.w / R.W, fh / R.H);
+  const night = S.pal.name === "night";
+  const fill = {
+    far: colors.far || (night ? "rgba(167,169,172,.14)" : "rgba(199,204,214,.2)"),
+    mid: colors.mid || css(S.pal.mid),
+    near: colors.near || css(S.pal.near),
+  };
+  const depth = { far: 0.3, mid: 0.6, near: 1 };
+  for (const p of R.paths) {
+    if (!which.includes(p.key)) continue;
+    if (S.compact && p.key === "far") continue;
+    ctx.save();
+    const sway = Math.sin(S.t * 0.07) * 18 * depth[p.key];
+    ctx.translate((S.w - R.W * sc) / 2 + S.px * 26 * depth[p.key] + sway, S.h + 4 - R.H * sc);
+    ctx.scale(sc, sc);
+    ctx.fillStyle = fill[p.key];
+    ctx.fill(p.path);
+    ctx.restore();
+  }
+}
+
+/* ---------- Low-poly layer ---------- */
+function lowpolyLayer(rand, w, baseY, peakY, step, rows, rough) {
+  const pts = [];
+  const cols = Math.ceil((w + 240) / step) + 1;
+  for (let r = 0; r <= rows; r++) {
+    const row = [];
+    for (let c = 0; c <= cols; c++) {
+      const off = r % 2 ? step / 2 : 0;
+      const x = -120 + c * step + off + (rand() - 0.5) * step * 0.4;
+      let y;
+      if (r === 0) {
+        const peak = c % 2 === 0;
+        y = peakY + (peak ? 0 : (baseY - peakY) * (0.25 + rand() * 0.35)) + (rand() - 0.5) * rough;
+      } else y = 0;
+      row.push({ x, y, ph: rand() * TAU });
+    }
+    pts.push(row);
+  }
+  for (let r = 1; r <= rows; r++) for (let c = 0; c <= cols; c++) {
+    const above = pts[0][Math.min(c, cols)].y;
+    pts[r][c].y = above + ((baseY + 40) - above) * (r / rows) + (rand() - 0.5) * 14;
+  }
+  return { pts, cols, rows };
+}
+function drawLowpoly(ctx, S, layer, color, depth, snow = false) {
+  const { pts, cols, rows } = layer;
+  const ox = S.px * 30 * depth + Math.sin(S.t * 0.08) * 22 * depth;
+  const lx = lightRight(S) ? 0.7 : -0.7;
+  const tri = (p0, p1, p2) => {
+    // fake 3D: elevation = how high on screen, depth = y order
+    const e = (p) => (S.h - p.y);
+    const ax = p1.x - p0.x, ay = p1.y - p0.y, az = e(p1) - e(p0);
+    const bx = p2.x - p0.x, by = p2.y - p0.y, bz = e(p2) - e(p0);
+    let nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
+    const len = Math.hypot(nx, ny, nz) || 1; nx /= len; ny /= len; nz /= len;
+    if (nz < 0) { nx = -nx; ny = -ny; nz = -nz; }
+    const lit = clamp(0.5 + nx * lx * 2.2 + ny * 0.6, 0, 1);
+    let c = mix(darken(color, 0.45), mix(color, S.pal.sky[0], 0.5), lit);
+    if (snow && Math.min(p0.y, p1.y, p2.y) < layer.snowLine) c = mix(c, [240, 244, 250], 0.55 * lit + 0.2);
+    c = mix(c, S.pal.near, S.pal.night * 0.3);
+    ctx.fillStyle = ctx.strokeStyle = css(c);
+    ctx.beginPath(); ctx.moveTo(p0.x + ox, p0.y); ctx.lineTo(p1.x + ox, p1.y); ctx.lineTo(p2.x + ox, p2.y); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+  };
+  ctx.lineWidth = 0.8;
+  for (let r = 0; r < rows; r++) {
+    const A = pts[r], B = pts[r + 1], shifted = r % 2 === 0; // B is offset right by half a step
+    for (let c = 0; c < cols; c++) {
+      if (shifted) { tri(A[c], B[c], A[c + 1]); tri(B[c], A[c + 1], B[c + 1]); }
+      else { tri(A[c], B[c], A[c + 1]); tri(A[c + 1], B[c], B[c + 1]); }
+    }
+  }
+}
+
+/* ================= Styles ================= */
+
+const STYLES = [
+  {
+    id: "classic", name: "Classic", desc: "Today's banner: sky, sun or moon, three ridges of pines.",
+    draw(ctx, S) { fillSky(ctx, S); drawStars(ctx, S); drawOrb(ctx, S); drawRidges(ctx, S); },
+  },
+
+  {
+    id: "voxel-pines", name: "Voxel Pines", fps: 30,
+    desc: "Isometric cube hills and stepped cube pines, lit from the sun's side.",
+    init(S) { S.noise = makeNoise(S.seed + 11); },
+    draw(ctx, S) {
+      fillSky(ctx, S); drawStars(ctx, S); drawOrb(ctx, S);
+      const N = S.noise, groundC = mix(S.pal.mid, [70, 110, 160], 0.25), pineC = mix(S.pal.near, [30, 80, 90], 0.3);
+      const s = S.compact ? 9 : 16;
+      isoWorld(ctx, S, {
+        s, horizon: S.compact ? 0.52 : 0.66, layerH: 0.45, pan: S.t * 0.25,
+        cell(I, J) {
+          const hgt = N.fbm(I * 0.09, J * 0.09);
+          const layers = 1 + Math.floor(hgt * 3.2);
+          const jitter = (N.hash(I * 3, J * 7) - 0.5) * 0.1;
+          const color = lighten(groundC, (layers - 1) * 0.05 + jitter);
+          const tree = N.hash(I, J) < 0.13;
+          return {
+            layers, color,
+            extra: tree ? (c, cx, topY, a, b, s, shade) => {
+              const tiers = 4 + Math.floor(N.hash(J, I) * 2);
+              const [tt, tl, tr] = shades(shade(darken(pineC, 0.2)), S);
+              let base = topY;
+              prism(c, cx, base - s * 0.35, a * 0.22, b * 0.22, s * 0.35, tt, tl, tr);
+              base -= s * 0.35;
+              for (let k = 0; k < tiers; k++) {
+                const sc = 0.95 - (k / tiers) * 0.75, hh = s * 0.42;
+                const [t2, l2, r2] = shades(shade(lighten(pineC, k * 0.06)), S);
+                prism(c, cx, base - hh, a * sc, b * sc, hh, t2, l2, r2);
+                base -= hh * 0.8;
+              }
+            } : null,
+          };
+        },
+      });
+    },
+  },
+
+  {
+    id: "voxel-terrain", name: "Voxel Terrain", fps: 30,
+    desc: "Cube landscape with water, sand, grass, rock and snowy peaks.",
+    init(S) { S.noise = makeNoise(S.seed + 23); },
+    draw(ctx, S) {
+      fillSky(ctx, S); drawStars(ctx, S); drawOrb(ctx, S);
+      const N = S.noise, WATER = 2;
+      const C = { water: mix(S.pal.at(0.5), [40, 120, 200], 0.4), sand: hex("#d9c79a"), grass: hex("#4f8f6b"), dark: hex("#2f6b55"), rock: hex("#7d8796"), snow: hex("#f2f5fa") };
+      isoWorld(ctx, S, {
+        s: S.compact ? 8 : 14, horizon: S.compact ? 0.5 : 0.64, layerH: 0.36, pan: S.t * 0.2, fade: 0.5,
+        cell(I, J) {
+          const e = Math.pow(N.fbm(I * 0.05, J * 0.05), 1.5) * 1.45;
+          let layers = Math.floor(e * 9);
+          let color;
+          if (layers <= WATER) { layers = WATER; color = lighten(C.water, Math.sin(I * 0.7 + J * 0.4 + S.t) * 0.04 + 0.04); }
+          else if (layers === WATER + 1) color = C.sand;
+          else if (layers <= 5) color = N.hash(I, J) < 0.5 ? C.grass : C.dark;
+          else if (layers <= 7) color = C.rock;
+          else if (layers <= 8) color = mix(C.rock, C.snow, 0.5);
+          else color = C.snow;
+          const tree = layers > WATER + 1 && layers <= 5 && N.hash(I + 5, J) < 0.18;
+          return {
+            layers, color,
+            extra: tree ? (c, cx, topY, a, b, s, shade) => {
+              const [t, l, r] = shades(shade(hex("#2a5a45")), S);
+              prism(c, cx, topY - s * 0.9, a * 0.45, b * 0.45, s * 0.9, t, l, r);
+            } : null,
+          };
+        },
+      });
+    },
+  },
+
+  {
+    id: "floating-blocks", name: "Floating Blocks", fps: 60,
+    desc: "Cubes of different sizes hovering over the sky. They bob, and push away from the mouse.",
+    init(S) {
+      const r = seeded(S.seed + 31);
+      const n = Math.round(S.w / 50);
+      const colors = [lighten(S.pal.sky[1], 0.6), [255, 255, 255], lighten(S.pal.sky[0], 0.3), S.pal.mid, S.pal.warm];
+      S.cubes = [...Array(n)].map(() => {
+        const size = 6 + Math.pow(r(), 2) * (S.compact ? 16 : 34);
+        return {
+          x: r() * S.w, y: S.h * (0.15 + r() * 0.8), size, ph: r() * TAU,
+          c: colors[r() < 0.07 ? 4 : Math.floor(r() * 4)], vx: 0, vy: 0, dx: 0, dy: 0,
+        };
+      }).sort((a, b) => a.size - b.size);
+    },
+    draw(ctx, S) {
+      fillSky(ctx, S); drawStars(ctx, S); drawOrb(ctx, S);
+      const smax = S.compact ? 22 : 40;
+      for (const q of S.cubes) {
+        const d = q.size / smax;
+        if (S.mx != null) {
+          const ex = q.x + q.dx - S.mx, ey = q.y + q.dy - S.my, dist = Math.hypot(ex, ey);
+          if (dist < 140) { q.vx += (ex / dist) * (140 - dist) * 0.012; q.vy += (ey / dist) * (140 - dist) * 0.012; }
+        }
+        q.vx += -q.dx * 0.02; q.vy += -q.dy * 0.02; q.vx *= 0.9; q.vy *= 0.9; q.dx += q.vx; q.dy += q.vy;
+        const x = q.x + q.dx + S.px * 40 * d + Math.sin(S.t * 0.2 + q.ph) * 10 * d;
+        const y = q.y + q.dy + Math.sin(S.t * 0.6 + q.ph) * 6 * d + S.py * 10 * d;
+        const c = mix(q.c, S.pal.at(q.y / S.h), (1 - d) * 0.55);
+        cube(ctx, S, x, y, q.size, mix(c, S.pal.near, S.pal.night * 0.5));
+      }
+      drawRidges(ctx, S, ["near"]);
+    },
+  },
+
+  {
+    id: "lowpoly-mountains", name: "Low-poly Mountains", fps: 30,
+    desc: "Faceted mountain ranges, each triangle lit by the sun's side, snow on the far peaks.",
+    init(S) {
+      const r = seeded(S.seed + 41), h = S.h;
+      S.layers = [
+        Object.assign(lowpolyLayer(r, S.w, h * 0.82, h * (S.compact ? 0.3 : 0.5), S.compact ? 90 : 150, 3, 30), { snowLine: h * (S.compact ? 0.42 : 0.6) }),
+        lowpolyLayer(r, S.w, h * 0.9, h * (S.compact ? 0.5 : 0.66), S.compact ? 70 : 110, 3, 24),
+        lowpolyLayer(r, S.w, h * 1.0, h * (S.compact ? 0.7 : 0.8), S.compact ? 60 : 90, 2, 18),
+      ];
+    },
+    draw(ctx, S) {
+      fillSky(ctx, S); drawStars(ctx, S); drawOrb(ctx, S);
+      drawLowpoly(ctx, S, S.layers[0], mix(S.pal.at(0.9), [200, 210, 228], 0.25), 0.3, true);
+      drawLowpoly(ctx, S, S.layers[1], S.pal.mid, 0.6);
+      drawLowpoly(ctx, S, S.layers[2], lighten(S.pal.near, 0.08), 1);
+    },
+  },
+
+  {
+    id: "lowpoly-sky", name: "Low-poly Mesh", fps: 30,
+    desc: "The whole sky as a rippling triangle mesh. By day it runs bright and saturated, with a warm glow round the sun and two faceted ridges.",
+    init(S) {
+      const r = seeded(S.seed + 51), cell = S.compact ? 46 : 66;
+      const cols = Math.ceil(S.w / cell) + 2, rows = Math.ceil(S.h / cell) + 2;
+      S.mesh = [];
+      for (let j = 0; j <= rows; j++) {
+        const row = [];
+        for (let i = 0; i <= cols; i++)
+          row.push({ x: (i - 1) * cell + (r() - 0.5) * cell * 0.7, y: (j - 1) * cell + (r() - 0.5) * cell * 0.7, ph: r() * TAU, jit: (r() - 0.5) });
+        S.mesh.push(row);
+      }
+      S.ridgeFar = lowpolyLayer(r, S.w, S.h, S.h * (S.compact ? 0.5 : 0.62), S.compact ? 80 : 130, 2, 20);
+      S.ridge = lowpolyLayer(r, S.w, S.h, S.h * (S.compact ? 0.66 : 0.76), S.compact ? 60 : 90, 2, 16);
+    },
+    draw(ctx, S) {
+      // Daytime in light mode gets its own vivid sky; other times use the shared palette.
+      const rich = S.pal.name === "day" && !S.pal.dark;
+      const RICH = [hex("#5cb2ff"), hex("#3488ff"), hex("#1b63e6"), hex("#1450c4")];
+      const at = rich
+        ? (y) => { y = clamp(y, 0, 1) * 3; const i = Math.min(2, Math.floor(y)); return mix(RICH[i], RICH[i + 1], y - i); }
+        : S.pal.at;
+      const contrast = rich ? 0.2 : 0.12;
+      const warm = rich ? hex("#ffd27a") : S.pal.orb;
+      const P = (p) => ({ x: p.x + Math.sin(S.t * 0.5 + p.ph) * 6 + S.px * 8, y: p.y + Math.cos(S.t * 0.4 + p.ph) * 6, jit: p.jit });
+      ctx.lineWidth = 0.8;
+      const tri = (a, b, c) => {
+        const cx = (a.x + b.x + c.x) / 3, cy = (a.y + b.y + c.y) / 3;
+        let col = at(cy / S.h);
+        // Facets catch light from the sun's side, plus a little per-facet variation.
+        const side = ((cx - S.orb.x) / S.w) * (lightRight(S) ? -1 : 1);
+        const j = a.jit * contrast + side * 0.06;
+        col = j > 0 ? lighten(col, j) : darken(col, -j);
+        const d = Math.hypot(cx - S.orb.x, cy - S.orb.y);
+        const glow = Math.max(0, 1 - d / (rich ? 360 : 260));
+        col = mix(col, warm, glow * glow * (rich ? 0.5 : 0.35));
+        if (rich) col = lighten(col, Math.max(0, 1 - d / 140) * 0.35);
+        if (S.mx != null) col = lighten(col, Math.max(0, 1 - Math.hypot(cx - S.mx, cy - S.my) / 160) * 0.25);
+        ctx.fillStyle = ctx.strokeStyle = css(col);
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.closePath(); ctx.fill(); ctx.stroke();
+      };
+      const M = S.mesh;
+      for (let j = 0; j < M.length - 1; j++) for (let i = 0; i < M[j].length - 1; i++) {
+        const a = P(M[j][i]), b = P(M[j][i + 1]), c = P(M[j + 1][i]), d = P(M[j + 1][i + 1]);
+        if ((i + j) % 2) { tri(a, b, c); tri(b, d, c); } else { tri(a, b, d); tri(a, d, c); }
+      }
+      drawStars(ctx, S); drawOrb(ctx, S, rich ? 18 : 15);
+      if (rich) {
+        drawLowpoly(ctx, S, S.ridgeFar, hex("#4f8fe8"), 0.5);
+        drawLowpoly(ctx, S, S.ridge, hex("#1645a8"), 1);
+      } else {
+        drawLowpoly(ctx, S, S.ridgeFar, S.pal.dark ? lighten(S.pal.at(0.85), 0.08) : mix(S.pal.mid, S.pal.at(0.8), 0.5), 0.5);
+        drawLowpoly(ctx, S, S.ridge, S.pal.dark ? darken(S.pal.at(1), 0.3) : lighten(S.pal.near, 0.06), 1);
+      }
+    },
+  },
+
+  {
+    id: "pixel-dither", name: "Pixel Dither", fps: 20,
+    desc: "Chunky pixel art: dithered sky bands, pixel clouds drifting, pixel pine skyline.",
+    init(S) {
+      S.P = S.compact ? 3 : 4;
+      S.lw = Math.ceil(S.w / S.P); S.lh = Math.ceil(S.h / S.P);
+      S.off = document.createElement("canvas"); S.off.width = S.lw; S.off.height = S.lh;
+      S.img = S.off.getContext("2d").createImageData(S.lw, S.lh);
+      S.noise = makeNoise(S.seed + 61);
+      const r = seeded(S.seed + 62), pad = 60;
+      const skyline = (base, hMax, gap) => {
+        const top = new Float32Array(S.lw + pad * 2).fill(0);
+        for (let x = 0; x < top.length; x = Math.floor(x)) {
+          const H = hMax * (0.5 + r() * 0.6), hw = H * 0.32, tiers = 3 + Math.floor(r() * 2);
+          for (let dx = -Math.ceil(hw); dx <= hw; dx++) {
+            const k = 1 - Math.abs(dx) / hw;
+            let hh = H * k;
+            hh -= (hh % (H / tiers)) * 0.55; // stepped tiers
+            if (x + dx >= 0 && x + dx < top.length) top[x + dx] = Math.max(top[x + dx], hh);
+          }
+          x += Math.max(3, gap * (0.5 + r()));
+        }
+        const ground = new Float32Array(top.length);
+        for (let x = 0; x < top.length; x++) ground[x] = base + Math.sin(x * 0.03) * 2;
+        return { top, ground };
+      };
+      const lhh = S.lh;
+      S.far = skyline(lhh * (S.compact ? 0.18 : 0.22), lhh * (S.compact ? 0.4 : 0.3), 7);
+      S.near = skyline(lhh * (S.compact ? 0.06 : 0.08), lhh * (S.compact ? 0.5 : 0.38), 14);
+      S.pad = pad;
+    },
+    draw(ctx, S) {
+      const { lw, lh, img, noise: N } = S, d = img.data;
+      const BAY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+      const bands = [0, 0.25, 0.5, 0.75, 1].map((y) => S.pal.at(y));
+      const cloudC = lighten(S.pal.at(0.3), S.pal.name === "night" ? 0.12 : 0.55);
+      const farC = mix(S.pal.mid, S.pal.at(0.9), 0.35), nearC = S.pal.near;
+      const ox = S.orb.x / S.P, oy = S.orb.y / S.P, orR = S.compact ? 4 : 5;
+      const shiftF = Math.round(S.px * 4), shiftN = Math.round(S.px * 9);
+      const night = S.pal.name === "night";
+      for (let y = 0; y < lh; y++) for (let x = 0; x < lw; x++) {
+        const th = BAY[(y & 3) * 4 + (x & 3)] / 16;
+        const v = (y / lh) * 4, i0 = Math.floor(v);
+        let c = bands[Math.min(4, i0 + (v - i0 > th ? 1 : 0))];
+        // clouds
+        const cn = N.fbm((x + S.t * 1.5) / 26, y / 9, 3) - (y / lh) * 0.5;
+        if (y < lh * 0.5 && cn > 0.46 + th * 0.1) c = cloudC;
+        // orb + dithered halo
+        const od = Math.hypot(x - ox, y - oy);
+        if (od < orR) c = night && Math.hypot(x - ox - 2.2, y - oy + 0.6) < orR ? bands[1] : S.pal.orb;
+        else if (!night && od < orR * 2.4 && (od - orR) / (orR * 1.4) < th) c = mix(c, S.pal.orb, 0.35);
+        // stars
+        if (night && y < lh * 0.55 && N.hash(x, y) > 0.993 && Math.sin(S.t * 2 + x) > -0.3) c = [255, 255, 255];
+        // pines
+        const fi = x + S.pad + shiftF, ni = x + S.pad + shiftN;
+        const yb = lh - y;
+        if (yb < S.far.ground[fi] + S.far.top[fi]) c = farC;
+        if (yb < S.near.ground[ni] + S.near.top[ni]) c = nearC;
+        const k = (y * lw + x) * 4;
+        d[k] = c[0]; d[k + 1] = c[1]; d[k + 2] = c[2]; d[k + 3] = 255;
+      }
+      S.off.getContext("2d").putImageData(img, 0, 0);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(S.off, 0, 0, lw * S.P, lh * S.P);
+    },
+  },
+
+  {
+    id: "bauhaus", name: "Bauhaus", fps: 60,
+    desc: "Flat geometric tiles along the bottom (half-discs, quarters, stripes). Tiles turn now and then; the one under the mouse spins.",
+    init(S) {
+      const r = seeded(S.seed + 71);
+      S.tile = S.compact ? 34 : 74;
+      const rowsN = S.compact ? 1 : 2;
+      const cols = Math.ceil(S.w / S.tile) + 2;
+      S.tiles = [];
+      for (let j = 0; j < rowsN; j++) for (let i = -1; i < cols; i++)
+        S.tiles.push({ i, j, motif: Math.floor(r() * 7), rot: Math.floor(r() * 4), bg: Math.floor(r() * 5), fg: Math.floor(r() * 5), ph: r() * 40, spin: 0 });
+      S.rowsN = rowsN;
+      S.bars = [...Array(4)].map(() => ({ x: 0.58 + r() * 0.3, y: 0.2 + r() * 0.3, w: 0.04 + r() * 0.08 }));
+    },
+    draw(ctx, S) {
+      fillSky(ctx, S); drawStars(ctx, S, false);
+      const P = S.pal, night = P.name === "night";
+      const cols = [P.near, P.mid, night ? [210, 216, 228] : [244, 246, 250], P.warm, lighten(P.sky[1], 0.35)];
+      // big sun disc + echo ring
+      const R = S.h * (S.compact ? 0.32 : 0.22), ox = S.orb.x + S.px * 14, oy = S.orb.y + S.py * 6;
+      ctx.fillStyle = css(night ? P.orb : P.warm); ctx.beginPath(); ctx.arc(ox, oy, R, 0, TAU); ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(ox - R * 0.5, oy + R * 0.3, R * 1.15, 0, TAU); ctx.stroke();
+      // floating bars and dot row
+      ctx.fillStyle = "rgba(255,255,255,.75)";
+      for (const b of S.bars) ctx.fillRect(b.x * S.w + S.px * 22, b.y * S.h, b.w * S.w, 3);
+      ctx.fillStyle = "rgba(255,255,255,.35)";
+      for (let i = 0; i < 12; i++) { ctx.beginPath(); ctx.arc(S.w * 0.62 + i * 14 + S.px * 18, S.h * 0.56, 2.5, 0, TAU); ctx.fill(); }
+      // tile frieze
+      const T = S.tile, y0 = S.h - S.rowsN * T, slide = (S.t * 6) % T;
+      for (const t of S.tiles) {
+        const x = t.i * T - slide + S.px * 10, y = y0 + t.j * T;
+        let bg = t.bg, fg = t.fg === bg ? (bg + 2) % 5 : t.fg;
+        // occasional quarter turn
+        const cyc = (S.t + t.ph) % 14;
+        let ang = t.rot * (Math.PI / 2) + (cyc > 13 ? (cyc - 13) * (Math.PI / 2) : 0);
+        if (S.mx != null && S.mx > x && S.mx < x + T && S.my > y && S.my < y + T) t.spin += 0.08;
+        ang += t.spin;
+        ctx.save(); ctx.beginPath(); ctx.rect(x, y, T + 0.5, T + 0.5); ctx.clip();
+        ctx.fillStyle = css(cols[bg]); ctx.fillRect(x, y, T + 1, T + 1);
+        ctx.translate(x + T / 2, y + T / 2); ctx.rotate(ang); ctx.translate(-T / 2, -T / 2);
+        ctx.fillStyle = ctx.strokeStyle = css(cols[fg]);
+        ctx.beginPath();
+        switch (t.motif) {
+          case 0: ctx.arc(T / 2, T, T / 2, Math.PI, 0); ctx.fill(); break;            // half disc
+          case 1: ctx.moveTo(0, 0); ctx.arc(0, 0, T, 0, Math.PI / 2); ctx.fill(); break; // quarter
+          case 2: ctx.arc(T / 2, T / 2, T * 0.32, 0, TAU); ctx.fill(); break;        // circle
+          case 3: ctx.moveTo(0, T); ctx.lineTo(T, T); ctx.lineTo(0, 0); ctx.fill(); break; // triangle
+          case 4: for (let k = 0; k < 4; k++) ctx.fillRect(0, k * T / 4, T, T / 8); break; // stripes
+          case 5: for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) { ctx.moveTo(T / 6 + a * T / 3 + 4, T / 6 + b * T / 3); ctx.arc(T / 6 + a * T / 3, T / 6 + b * T / 3, 4, 0, TAU); } ctx.fill(); break;
+          case 6: ctx.lineWidth = T * 0.12; ctx.arc(0, T, T * 0.6, -Math.PI / 2, 0); ctx.stroke(); break; // arc
+        }
+        ctx.restore();
+      }
+    },
+  },
+
+  {
+    id: "flow-lines", name: "Flow Lines", fps: 30,
+    desc: "Long strokes following a noise field, seeded by the date. The field swirls around the mouse.",
+    init(S) {
+      S.noise = makeNoise(S.seed + new Date().getDate() * 7);
+      const r = seeded(S.seed + 81);
+      S.seeds = [...Array(Math.round((S.w * S.h) / 700))].map(() => ({ x: r() * S.w, y: r() * S.h, gold: r() < 0.04, wgt: 0.6 + r() * 1.2 }));
+    },
+    draw(ctx, S) {
+      fillSky(ctx, S); drawStars(ctx, S); drawOrb(ctx, S);
+      const N = S.noise, z = S.t * 0.03, steps = S.compact ? 22 : 38;
+      ctx.lineCap = "round";
+      for (const p of S.seeds) {
+        let x = p.x + S.px * 10, y = p.y;
+        ctx.beginPath(); ctx.moveTo(x, y);
+        for (let k = 0; k < steps; k++) {
+          let ang = N.fbm(x * 0.0032 + z, y * 0.0045, 3) * TAU * 2.2;
+          if (S.mx != null) {
+            const dx = x - S.mx, dy = y - S.my, dist = Math.hypot(dx, dy);
+            if (dist < 170) { const w = 1 - dist / 170; ang = ang * (1 - w) + (Math.atan2(dy, dx) + Math.PI / 2) * w; }
+          }
+          x += Math.cos(ang) * 3.2; y += Math.sin(ang) * 3.2;
+          ctx.lineTo(x, y);
+        }
+        const a = 0.1 + 0.32 * (p.y / S.h);
+        ctx.strokeStyle = p.gold ? css(S.pal.warm, 0.75) : `rgba(255,255,255,${a.toFixed(2)})`;
+        ctx.lineWidth = p.wgt;
+        ctx.stroke();
+      }
+    },
+  },
+
+  {
+    id: "topographic", name: "Topographic", fps: 24,
+    desc: "Contour lines like a map. They drift slowly, and the mouse raises a little hill.",
+    init(S) { S.noise = makeNoise(S.seed + 91); },
+    draw(ctx, S) {
+      fillSky(ctx, S); drawStars(ctx, S); drawOrb(ctx, S);
+      const N = S.noise, c = S.compact ? 7 : 9;
+      const gw = Math.ceil(S.w / c) + 1, gh = Math.ceil(S.h / c) + 1;
+      const F = new Float32Array(gw * gh);
+      for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
+        const x = i * c, y = j * c;
+        let v = N.fbm(x * 0.003 + S.t * 0.012 + S.px * 0.05, y * 0.0055 - S.t * 0.004, 4) + (y / S.h) * 0.35;
+        if (S.mx != null) { const d2 = (x - S.mx) ** 2 + (y - S.my) ** 2; v += 0.22 * Math.exp(-d2 / (2 * 80 * 80)); }
+        F[j * gw + i] = v;
+      }
+      const levels = 16;
+      for (let l = 1; l < levels; l++) {
+        const iso = 0.2 + (l / levels) * 1.0;
+        ctx.beginPath();
+        for (let j = 0; j < gh - 1; j++) for (let i = 0; i < gw - 1; i++) {
+          const a = F[j * gw + i], b = F[j * gw + i + 1], cc = F[(j + 1) * gw + i + 1], d = F[(j + 1) * gw + i];
+          const idx = (a > iso) | ((b > iso) << 1) | ((cc > iso) << 2) | ((d > iso) << 3);
+          if (idx === 0 || idx === 15) continue;
+          const x = i * c, y = j * c;
+          const top = [x + c * (iso - a) / (b - a), y], right = [x + c, y + c * (iso - b) / (cc - b)];
+          const bot = [x + c * (iso - d) / (cc - d), y + c], left = [x, y + c * (iso - a) / (d - a)];
+          const seg = (p, q) => { ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); };
+          switch (idx) {
+            case 1: case 14: seg(left, top); break;
+            case 2: case 13: seg(top, right); break;
+            case 3: case 12: seg(left, right); break;
+            case 4: case 11: seg(right, bot); break;
+            case 5: seg(left, top); seg(right, bot); break;
+            case 6: case 9: seg(top, bot); break;
+            case 7: case 8: seg(left, bot); break;
+            case 10: seg(top, right); seg(left, bot); break;
+          }
+        }
+        const major = l % 5 === 0;
+        ctx.strokeStyle = l === 10 ? css(S.pal.warm, 0.8) : `rgba(255,255,255,${(0.1 + 0.3 * (l / levels) + (major ? 0.15 : 0)).toFixed(2)})`;
+        ctx.lineWidth = major ? 1.6 : 0.9;
+        ctx.stroke();
+      }
+    },
+  },
+
+  {
+    id: "aurora", name: "Aurora Blobs", fps: 30,
+    desc: "Soft colour shapes moving slowly behind a pine silhouette. One follows the mouse.",
+    init(S) {
+      const r = seeded(S.seed + 101);
+      S.blobs = [...Array(6)].map((_, i) => ({ cx: r(), cy: 0.2 + r() * 0.6, ax: 0.1 + r() * 0.25, ay: 0.08 + r() * 0.15, sp: 0.05 + r() * 0.08, ph: r() * TAU, r: 0.5 + r() * 0.5, i, fx: null, fy: null }));
+    },
+    draw(ctx, S) {
+      fillSky(ctx, S);
+      const night = S.pal.name === "night";
+      const C = night
+        ? ["#39e3b4", "#7a5cff", "#2fb3ff", "#c14bff", "#1fd18a", "#3a6bff"]
+        : ["#7fc4ff", "#a493ff", "#55e0cb", S.pal.name === "day" ? "#f2c14e" : "#ff9f7a", "#ffffff", "#5b8bff"];
+      ctx.save(); ctx.globalCompositeOperation = "screen";
+      for (const b of S.blobs) {
+        let x = S.w * (b.cx + b.ax * Math.sin(S.t * b.sp + b.ph)), y = S.h * (b.cy + b.ay * Math.cos(S.t * b.sp * 1.3 + b.ph));
+        if (b.i === 0 && S.mx != null) {
+          b.fx = b.fx == null ? x : b.fx + (S.mx - b.fx) * 0.06; b.fy = b.fy == null ? y : b.fy + (S.my - b.fy) * 0.06;
+          x = b.fx; y = b.fy;
+        } else if (b.i === 0) { b.fx = b.fy = null; }
+        const R = S.h * b.r * (S.compact ? 1.6 : 0.9);
+        const g = ctx.createRadialGradient(x, y, 0, x, y, R);
+        g.addColorStop(0, css(hex(C[b.i]), night ? 0.55 : 0.6)); g.addColorStop(1, css(hex(C[b.i]), 0));
+        ctx.fillStyle = g; ctx.fillRect(0, 0, S.w, S.h);
+      }
+      ctx.restore();
+      drawStars(ctx, S);
+      drawRidges(ctx, S, ["mid", "near"]);
+    },
+  },
+
+  {
+    id: "iso-campus", name: "Iso Campus", fps: 30,
+    desc: "A tiny isometric town of cube buildings and voxel trees. Windows light up at night.",
+    init(S) { S.noise = makeNoise(S.seed + 111); },
+    draw(ctx, S) {
+      fillSky(ctx, S); drawStars(ctx, S); drawOrb(ctx, S);
+      const N = S.noise, night = S.pal.name === "night" || S.pal.name === "dusk";
+      const road = mix(S.pal.near, [60, 70, 90], 0.35), lawn = mix(S.pal.mid, [60, 120, 100], 0.35);
+      const bcols = [hex("#e9edf4"), hex("#c9d6ea"), hex("#9fb6dc"), hex("#f0e6d2")];
+      isoWorld(ctx, S, {
+        s: S.compact ? 9 : 16, horizon: S.compact ? 0.55 : 0.68, layerH: 0.4, pan: S.t * 0.3, fade: 0.55,
+        cell(I, J) {
+          const isRoad = ((I % 6) + 6) % 6 === 0 || ((J % 5) + 5) % 5 === 0;
+          if (isRoad) return { layers: 1, color: road };
+          const hsh = N.hash(I, J), park = N.fbm(I * 0.12, J * 0.12) < 0.5;
+          if (park || hsh < 0.4) {
+            const tree = hsh < 0.45;
+            return { layers: 1, color: lawn, extra: tree ? (c, cx, topY, a, b, s, shade) => {
+              const [t, l, r] = shades(shade(darken(lawn, 0.25)), S);
+              prism(c, cx, topY - s * 0.75, a * 0.55, b * 0.55, s * 0.75, t, l, r);
+            } : null };
+          }
+          const floors = 1 + Math.floor(N.hash(J, I) * 4);
+          const col = bcols[Math.floor(N.hash(I * 2, J) * 4)];
+          return {
+            layers: 1 + floors, color: col,
+            extra: (c, cx, topY, a, b, s) => {
+              const hp = floors * s * 0.4;
+              const lit = (k) => night ? N.hash(I * 13 + k, J * 7 + Math.floor(S.t / 4)) < 0.55 : false;
+              for (let f = 0; f < floors; f++) for (let w = 0; w < 2; w++) {
+                const q = (f + 0.3) / floors, ph = 0.25 + w * 0.4;
+                const on = lit(f * 2 + w);
+                c.fillStyle = on ? "rgba(255,210,120,.95)" : "rgba(20,40,80,.35)";
+                // left face window
+                const lx = cx - a + ph * a, ly = topY + ph * b + q * hp;
+                c.beginPath(); c.moveTo(lx, ly); c.lineTo(lx + a * 0.18, ly + b * 0.18); c.lineTo(lx + a * 0.18, ly + b * 0.18 + hp / floors * 0.45); c.lineTo(lx, ly + hp / floors * 0.45); c.fill();
+                // right face window
+                const rx = cx + ph * a, ry = topY + b - ph * b + q * hp;
+                c.beginPath(); c.moveTo(rx, ry); c.lineTo(rx + a * 0.18, ry - b * 0.18); c.lineTo(rx + a * 0.18, ry - b * 0.18 + hp / floors * 0.45); c.lineTo(rx, ry + hp / floors * 0.45); c.fill();
+              }
+            },
+          };
+        },
+      });
+    },
+  },
+
+  {
+    id: "mosaic", name: "Mosaic", fps: 30,
+    desc: "Small square tiles: waves of light, two layers of drifting tile clouds, sparkles. Tiles lift around the mouse, and a click sends a ripple.",
+    init(S) {
+      S.noise = makeNoise(S.seed + 121);
+      S.q = S.compact ? 7 : 11;
+      const r = seeded(S.seed + 122), cols = Math.ceil(S.w / S.q) + 1;
+      S.sky = new Float32Array(cols);
+      for (let x = 0; x < cols;) {
+        const H = (S.compact ? 4 : 7) + Math.floor(r() * (S.compact ? 4 : 8)), hw = Math.max(1, Math.floor(H * 0.32));
+        for (let d = -hw; d <= hw; d++) if (x + d >= 0 && x + d < cols) S.sky[x + d] = Math.max(S.sky[x + d], H - Math.abs(d) * 2.4);
+        x += 2 + Math.floor(r() * 5);
+      }
+    },
+    draw(ctx, S) {
+      const q = S.q, N = S.noise, t = S.t, cols = Math.ceil(S.w / q) + 1, rows = Math.ceil(S.h / q) + 1;
+      ctx.fillStyle = css(darken(S.pal.at(0.5), 0.35)); ctx.fillRect(0, 0, S.w, S.h);
+      const night = S.pal.name === "night";
+      const sunR = S.compact ? 10 : 18;
+      // Cloud field: soft noise, kept to two horizontal bands; the near layer drifts faster.
+      const CLOUD = 0.34, cloudMemo = new Map();
+      const cloudAt = (i, j, layer) => {
+        const k = (layer * 4096 + j) * 4096 + i;
+        let v = cloudMemo.get(k);
+        if (v === undefined) {
+          const y = (j * q) / S.h, centre = layer ? 0.32 : 0.16, spread = layer ? 0.15 : 0.11;
+          const band = Math.exp(-(((y - centre) / spread) ** 2));
+          v = N.fbm((i + t * (layer ? 2.6 : 1.1) + layer * 300) / (layer ? 13 : 20), j / (layer ? 3.4 : 2.8) + layer * 7, 4) * band * 1.05;
+          cloudMemo.set(k, v);
+        }
+        return v;
+      };
+      // Click ripples: rings that lift tiles as they spread.
+      const now = S.now || 0;
+      S.ripples = (S.ripples || []).filter((r) => now - r.t0 < 1.8);
+      for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+        const x = i * q, y = j * q;
+        let c = S.pal.at(y / S.h);
+        const n = N.hash(i, j);
+        // per-tile texture and slow breathing
+        const breathe = Math.sin(t * 1.3 + n * TAU) * 0.05;
+        c = n > 0.5 ? lighten(c, Math.max(0, (n - 0.5) * 0.16 + breathe)) : darken(c, Math.max(0, (0.5 - n) * 0.2 - breathe));
+        // two crossing waves of light
+        const w1 = Math.sin(i * 0.16 + j * 0.22 - t * 1.7), w2 = Math.sin(i * 0.07 - j * 0.3 - t * 0.9);
+        const wave = Math.max(0, w1) * 0.07 + Math.max(0, w2) * 0.04;
+        c = lighten(c, wave);
+        // two layers of drifting tile clouds: lit tops, shaded undersides
+        for (let layer = 0; layer < 2; layer++) {
+          const v = cloudAt(i, j, layer);
+          if (v < CLOUD) continue;
+          const above = cloudAt(i, j - 1, layer) < CLOUD, below = cloudAt(i, j + 1, layer) < CLOUD;
+          let cc = lighten(c, night ? 0.1 + layer * 0.05 : 0.38 + layer * 0.18 + (v - CLOUD) * 0.5);
+          if (above) cc = lighten(cc, night ? 0.08 : 0.35);
+          if (below) cc = mix(darken(cc, 0.12), S.pal.warm, S.pal.name === "dawn" || S.pal.name === "dusk" ? 0.35 : 0.06);
+          c = cc;
+        }
+        const od = Math.hypot(x - S.orb.x, y - S.orb.y);
+        if (od < sunR) c = S.pal.orb;
+        else c = mix(c, S.pal.orb, Math.max(0, 1 - od / 220) * 0.28);
+        if (night && N.hash(i + 9, j) > 0.988) c = lighten(c, 0.35 + 0.35 * Math.sin(t * 3 + i));
+        // pine skyline built from tiles
+        const tiles = S.sky[i] || 0, fromBottom = rows - 1 - j;
+        if (fromBottom < 2) c = S.pal.near;
+        else if (fromBottom < 2 + tiles) c = fromBottom >= 1 + tiles - 0.5 ? S.pal.mid : mix(S.pal.near, S.pal.mid, 0.3 * ((i + j) % 2) + wave);
+        // lift: the crest of the main wave, random sparkles, and the mouse
+        let lift = w1 > 0.93 && fromBottom >= 2 + tiles ? (w1 - 0.93) * 8 : 0;
+        if (N.hash(i * 7 + Math.floor(t * 2.5), j * 3) > 0.996) lift = Math.max(lift, 0.8);
+        if (S.mx != null) lift = Math.max(lift, Math.max(0, 1 - Math.hypot(x + q / 2 - S.mx, y + q / 2 - S.my) / 130) * 1.2);
+        for (const r of S.ripples) {
+          const age = now - r.t0, ring = age * 480, dd = Math.hypot(x + q / 2 - r.x, y + q / 2 - r.y);
+          const hit = Math.exp(-(((dd - ring) / 26) ** 2)) * (1 - age / 1.8);
+          if (hit > 0.02) { lift = Math.max(lift, hit * 1.6); c = lighten(c, hit * 0.25); }
+        }
+        if (lift > 0) {
+          ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.fillRect(x + 1, y + 1 + lift * 2, q - 1, q - 1);
+          c = lighten(c, lift * 0.18);
+        }
+        ctx.fillStyle = css(c);
+        ctx.fillRect(x + 0.5, y + 0.5 - lift * 2.5, q - 1, q - 1);
+      }
+    },
+  },
+];
+
+/* ================= Gallery ================= */
+
+const ICONS = {
+  mail: '<path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/>',
+  cal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+  book: '<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/>',
+  apps: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>',
+  moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+};
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("banner-gallery:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("banner-gallery:" + k, JSON.stringify(v)); } catch {} },
+};
+
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const opts = {
+  sky: store.get("sky", "auto"),
+  motion: store.get("motion", reduced ? "static" : "drift"),
+  theme: store.get("theme", matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
+  size: store.get("size", "home"),
+  seed: store.get("seed", 1),
+};
+let favs = new Set(store.get("favs", []));
+let favsOnly = false;
+
+function greeting() {
+  const h = new Date().getHours();
+  return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+}
+const dateLabel = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+
+const items = [];
+const gallery = document.getElementById("gallery");
+
+STYLES.forEach((style, idx) => {
+  const item = document.createElement("section");
+  item.className = "item";
+  item.innerHTML = `
+    <div class="banner">
+      <canvas></canvas><div class="grain"></div>
+      <div class="top">
+        <span class="brand"><span class="plate"><img src="../assets/pinehurst-dashboard-logo.svg" alt=""></span>
+          <span class="bname"><span class="btitle">Pinehurst</span><span class="bsub">Dashboard</span></span></span>
+        <span class="pill">${Object.values(ICONS).map((p) => `<span><svg viewBox="0 0 24 24">${p}</svg></span>`).join("")}</span>
+      </div>
+      <div class="intro"><h2 class="hello">${greeting()}, Alex</h2><p class="date">${dateLabel}</p></div>
+    </div>
+    <div class="caption">
+      <span class="num">${String(idx + 1).padStart(2, "0")}</span>
+      <span class="cap-name">${style.name}</span>
+      <span class="cap-desc">${style.desc}</span>
+      <button class="star" aria-pressed="false">☆ Star</button>
+    </div>`;
+  gallery.appendChild(item);
+
+  const banner = item.querySelector(".banner"), canvas = item.querySelector("canvas"), star = item.querySelector(".star");
+  const rec = { style, item, banner, canvas, ctx: canvas.getContext("2d"), S: null, visible: false, last: 0, ptr: null, px: 0, py: 0 };
+  items.push(rec);
+
+  const setStar = () => {
+    const on = favs.has(style.id);
+    star.setAttribute("aria-pressed", on); star.textContent = on ? "★ Starred" : "☆ Star";
+  };
+  setStar();
+  star.addEventListener("click", () => {
+    favs.has(style.id) ? favs.delete(style.id) : favs.add(style.id);
+    store.set("favs", [...favs]); setStar(); applyFavFilter();
+  });
+
+  banner.addEventListener("pointermove", (e) => {
+    const r = banner.getBoundingClientRect();
+    rec.ptr = { x: e.clientX - r.left, y: e.clientY - r.top, w: r.width, h: r.height };
+  });
+  banner.addEventListener("pointerleave", () => { rec.ptr = null; });
+  banner.addEventListener("pointerdown", (e) => {
+    if (opts.motion !== "interactive" || !rec.S || e.target.closest(".pill")) return;
+    const r = banner.getBoundingClientRect();
+    (rec.S.ripples ||= []).push({ x: e.clientX - r.left, y: e.clientY - r.top, t0: performance.now() / 1000 });
+  });
+
+  // Glass sheen follows the pointer across the pill.
+  const pill = item.querySelector(".pill");
+  pill.addEventListener("pointermove", (e) => {
+    const r = pill.getBoundingClientRect();
+    pill.style.setProperty("--hx", ((e.clientX - r.left) / r.width * 100).toFixed(1) + "%");
+    pill.style.setProperty("--hy", ((e.clientY - r.top) / r.height * 100).toFixed(1) + "%");
+  });
+  pill.addEventListener("pointerleave", () => { pill.style.removeProperty("--hx"); pill.style.removeProperty("--hy"); });
+});
+
+function setup(rec) {
+  const r = rec.banner.getBoundingClientRect();
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  const w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
+  rec.canvas.width = Math.round(w * dpr); rec.canvas.height = Math.round(h * dpr);
+  const sky = skyState(opts.sky);
+  rec.S = {
+    w, h, dpr, compact: opts.size === "compact", seed: opts.seed, t: 0, px: 0, py: 0, mx: null, my: null,
+    pal: palette(sky.sky, opts.theme === "dark"), orb: { x: sky.ox * w, y: sky.oy * h },
+  };
+  if (rec.style.init) rec.style.init(rec.S);
+  rec.last = 0;
+  render(rec, performance.now());
+}
+
+const t0 = performance.now();
+function render(rec, now) {
+  const S = rec.S, ctx = rec.ctx;
+  if (!S) return;
+  const moving = opts.motion !== "static";
+  S.t = moving ? (now - t0) / 1000 : 0;
+  S.now = now / 1000;
+  const interactive = opts.motion === "interactive";
+  const tx = interactive && rec.ptr ? (rec.ptr.x / rec.ptr.w - 0.5) * 2 : 0;
+  const ty = interactive && rec.ptr ? (rec.ptr.y / rec.ptr.h - 0.5) * 2 : 0;
+  rec.px += (tx - rec.px) * 0.08; rec.py += (ty - rec.py) * 0.08;
+  S.px = rec.px; S.py = rec.py;
+  S.mx = interactive && rec.ptr ? rec.ptr.x : null; S.my = interactive && rec.ptr ? rec.ptr.y : null;
+  ctx.setTransform(S.dpr, 0, 0, S.dpr, 0, 0);
+  ctx.clearRect(0, 0, S.w, S.h);
+  rec.style.draw(ctx, S);
+}
+
+function frame(now) {
+  if (opts.motion !== "static") {
+    for (const rec of items) {
+      if (!rec.visible || rec.item.classList.contains("is-hidden")) continue;
+      const fps = rec.style.fps || 30;
+      if (now - rec.last < 1000 / fps - 2) continue;
+      rec.last = now;
+      render(rec, now);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+const io = new IntersectionObserver((entries) => {
+  for (const e of entries) { const rec = items.find((r) => r.banner === e.target); if (rec) rec.visible = e.isIntersecting; }
+});
+items.forEach((rec) => io.observe(rec.banner));
+
+let resizeTimer;
+const ro = new ResizeObserver(() => { clearTimeout(resizeTimer); resizeTimer = setTimeout(setupAll, 120); });
+ro.observe(gallery);
+
+function setupAll() { for (const rec of items) setup(rec); applyGlass(); }
+
+/*
+ Lens map for a pill of w x h: a displacement image where R and G hold how far to shift the backdrop
+ in x and y (128 = none). The shift is zero in the flat middle and rises along a rounded bevel near
+ the rim, pointing inward, so the rim magnifies and bends what's behind it like a thick glass edge.
+*/
+const lensCache = new Map();
+const supportsUrlBackdrop = CSS.supports("backdrop-filter", "url(#x)") && !/Firefox/.test(navigator.userAgent);
+function makeLens(w, h) {
+  const key = w + "x" + h;
+  if (lensCache.has(key)) return lensCache.get(key);
+  const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+  const g = cv.getContext("2d"), img = g.createImageData(w, h), d = img.data;
+  const r = h / 2, bevel = Math.min(16, h * 0.42), cx = w / 2, cy = h / 2;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const px = x + 0.5 - cx, py = y + 0.5 - cy;
+    const qx = Math.abs(px) - (w / 2 - r), qy = Math.abs(py) - (h / 2 - r);
+    // signed distance to the rounded-rect edge (negative inside) and the outward normal
+    let dist, nx, ny;
+    if (qx > 0 && qy > 0) { const L = Math.hypot(qx, qy) || 1; dist = L - r; nx = (qx / L) * Math.sign(px); ny = (qy / L) * Math.sign(py); }
+    else if (qx > qy) { dist = qx - r; nx = Math.sign(px); ny = 0; }
+    else { dist = qy - r; nx = 0; ny = Math.sign(py); }
+    const t = clamp(1 + dist / bevel, 0, 1);       // 0 in the middle, 1 at the rim
+    const s = 1 - Math.sqrt(1 - t * t);             // circular bevel profile
+    const k = (y * w + x) * 4;
+    d[k] = 128 - nx * s * 127; d[k + 1] = 128 - ny * s * 127; d[k + 2] = 128; d[k + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  const mapURL = cv.toDataURL();
+  // Rim light: a soft white band just inside the edge, brightest at the top. It is added to the backdrop
+  // before the bend, so the lens disperses the glass's own rim light into a rainbow even over a plain sky.
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const px = x + 0.5 - cx, py = y + 0.5 - cy;
+    const qx = Math.abs(px) - (w / 2 - r), qy = Math.abs(py) - (h / 2 - r);
+    const dist = qx > 0 && qy > 0 ? Math.hypot(qx, qy) - r : Math.max(qx, qy) - r;
+    const t = 1 + dist / bevel;
+    const band = Math.exp(-(((t - 0.8) / 0.16) ** 2));
+    const light = clamp(0.4 - (py / (h / 2)) * 0.45 - (px / (w / 2)) * 0.1, 0.1, 1);
+    const k = (y * w + x) * 4;
+    d[k] = d[k + 1] = d[k + 2] = 255; d[k + 3] = dist > 0 ? 0 : Math.round(band * light * 255);
+  }
+  g.putImageData(img, 0, 0);
+  const ringURL = cv.toDataURL();
+  const id = "lens-" + key, NS = "http://www.w3.org/2000/svg";
+  const f = document.createElementNS(NS, "filter");
+  f.setAttribute("id", id);
+  f.setAttribute("x", "0"); f.setAttribute("y", "0"); f.setAttribute("width", "100%"); f.setAttribute("height", "100%");
+  f.setAttribute("color-interpolation-filters", "sRGB");
+  // Red bends least, blue most: dispersion. Each channel is isolated, then screened back together.
+  const chans = [["r", 34, "1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"], ["g", 46, "0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0"], ["b", 58, "0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"]];
+  f.innerHTML =
+    `<feImage href="${mapURL}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" result="map"/>
+     <feImage href="${ringURL}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" result="ring"/>
+     <feGaussianBlur in="SourceGraphic" stdDeviation="0.6" result="blurred"/>
+     <feComposite in="ring" in2="blurred" operator="over" result="src"/>` +
+    chans.map(([c, sc, m]) =>
+      `<feDisplacementMap in="src" in2="map" scale="${sc}" xChannelSelector="R" yChannelSelector="G" result="d${c}"/>
+       <feColorMatrix in="d${c}" type="matrix" values="${m}" result="${c}"/>`).join("") +
+    `<feBlend in="r" in2="g" mode="screen" result="rg"/><feBlend in="rg" in2="b" mode="screen"/>`;
+  document.querySelector("#lens-defs defs").appendChild(f);
+  lensCache.set(key, id);
+  return id;
+}
+function applyGlass() {
+  if (!supportsUrlBackdrop) return;
+  for (const rec of items) {
+    const pill = rec.item.querySelector(".pill"), b = pill.getBoundingClientRect();
+    if (!b.width) continue;
+    const id = makeLens(Math.round(b.width), Math.round(b.height));
+    pill.style.backdropFilter = `url(#${id}) saturate(1.5) brightness(1.1)`;
+  }
+}
+
+function applyFavFilter() {
+  for (const rec of items) rec.item.classList.toggle("is-hidden", favsOnly && !favs.has(rec.style.id));
+}
+
+function applyOpts() {
+  document.documentElement.dataset.theme = opts.theme;
+  for (const rec of items) rec.banner.classList.toggle("compact", opts.size === "compact");
+  document.querySelectorAll(".seg").forEach((seg) => {
+    seg.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === opts[seg.dataset.ctl]));
+  });
+  for (const k of ["sky", "motion", "theme", "size", "seed"]) store.set(k, opts[k]);
+  setupAll();
+}
+
+document.querySelectorAll(".seg").forEach((seg) => seg.addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  opts[seg.dataset.ctl] = b.dataset.v; applyOpts();
+}));
+document.getElementById("reseed").addEventListener("click", () => { opts.seed = (opts.seed % 997) + 1 + Math.floor(Math.random() * 50); applyOpts(); });
+const favBtn = document.getElementById("favs");
+favBtn.addEventListener("click", () => {
+  favsOnly = !favsOnly; favBtn.setAttribute("aria-pressed", favsOnly);
+  favBtn.textContent = favsOnly ? "Show all" : "Show starred only"; applyFavFilter();
+});
+
+// Keep the Auto sky honest as the clock moves.
+setInterval(() => { if (opts.sky === "auto") setupAll(); }, 60 * 1000);
+
+applyOpts();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
