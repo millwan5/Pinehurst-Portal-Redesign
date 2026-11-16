@@ -725,8 +725,8 @@ html.ppui-home .app-container {
   box-sizing: border-box;
 }
 
-/* Bento grid: a tall timetable, a squarer classes card, a news column.
-   The cards rise into the forest's foot. */
+/* Dashboard: a glance strip (now / next, then three counts) over three equal cards
+   (timetable, classes, news). The strip rises into the forest's foot. */
 .ppui-dash {
   position: relative;
   display: grid;
@@ -736,17 +736,18 @@ html.ppui-home .app-container {
   margin: -56px 0 20px;
 }
 
-.ppui-today { grid-column: span 5; }
+.ppui-glance { grid-column: 1 / -1; }
+.ppui-today { grid-column: span 4; }
 .ppui-classes { grid-column: span 4; }
-.ppui-news { grid-column: span 3; }
+.ppui-news { grid-column: span 4; }
 
-.ppui-dash:not(:has(.ppui-classes)) .ppui-today { grid-column: span 7; }
-.ppui-dash:not(:has(.ppui-classes)) .ppui-news { grid-column: span 5; }
+.ppui-dash:not(:has(.ppui-classes)) .ppui-today,
+.ppui-dash:not(:has(.ppui-classes)) .ppui-news { grid-column: span 6; }
 
 @media (max-width: 1000px) {
   .ppui-today,
-  .ppui-dash:not(:has(.ppui-classes)) .ppui-today { grid-column: span 7; }
-  .ppui-classes { grid-column: span 5; }
+  .ppui-classes,
+  .ppui-dash:not(:has(.ppui-classes)) .ppui-today { grid-column: span 6; }
   .ppui-news,
   .ppui-dash:not(:has(.ppui-classes)) .ppui-news { grid-column: 1 / -1; }
 
@@ -922,104 +923,419 @@ a.ppui-class:hover {
   color: var(--ppui-accent) !important;
 }
 
-/* Today: the class on now (or next) is the one solid crest-blue block on the page. */
-.ppui-feature {
+/* ---------- Glance strip ----------
+   Read left to right: the class on now (the one solid crest-blue block on the page),
+   then what's due, unread messages and class updates. Each tile is one tap to the detail. */
+.ppui-glance {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.ppui-now-tile {
   position: relative;
   overflow: hidden;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
-  align-items: center;
+  align-content: center;
   gap: 14px;
-  margin: 4px 0 12px;
-  padding: 16px;
-  border-radius: 16px;
+  min-height: 132px;
+  padding: 18px 20px;
+  box-sizing: border-box;
+  border-radius: var(--ppui-radius-card);
   background: var(--ppui-crest);
   color: #fff;
 }
 
+.ppui-feature {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+}
+
 /* A large crest pine leaning out of the corner. */
-.ppui-feature::after {
+.ppui-now-tile::after {
   content: "";
   position: absolute;
-  right: -14px;
-  bottom: -26px;
-  width: 96px;
-  height: 120px;
+  right: -10px;
+  bottom: -30px;
+  width: 120px;
+  height: 150px;
   background: rgba(255, 255, 255, 0.1);
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M11.9 2.2 18.9 18.5l-5.8 1.4v1.9l-4.4-1.2L5 19.7Z'/%3E%3C/svg%3E") center / contain no-repeat;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M11.9 2.2 18.9 18.5l-5.8 1.4v1.9l-4.4-1.2L5 19.7Z'/%3E%3C/svg%3E") center / contain no-repeat;
-}
-
-.ppui-feature[hidden] {
-  display: none;
 }
 
 .ppui-feature-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.16);
 }
 
 .ppui-feature-icon .ppui-icon {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
 }
 
 .ppui-feature-text {
-  position: relative;
-  z-index: 1;
   display: grid;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
 
 .ppui-feature-label {
-  display: inline-flex;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 7px;
+  gap: 4px 8px;
   font-size: 13px;
   font-weight: 650;
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(255, 255, 255, 0.84);
   font-variant-numeric: tabular-nums;
+}
+
+/* Time left / countdown, a small pill beside the label. */
+.ppui-feature-chip {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 18px;
 }
 
 .ppui-feature-class {
   overflow: hidden;
   font-family: var(--ppui-display);
   font-style: italic;
-  font-size: 26px;
+  font-size: clamp(24px, 2.6vw, 30px);
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.12;
   letter-spacing: -0.005em;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .ppui-feature .ppui-meta {
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.74);
 }
 
-.ppui-feature.is-next {
-  background: var(--ppui-accent-soft);
+/* "Then English at 10:40": what comes after, so now and next read in one glance. */
+.ppui-feature-then {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 4px;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: rgba(255, 255, 255, 0.9);
+  font-variant-numeric: tabular-nums;
+}
+
+.ppui-feature-then-label {
+  flex: none;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.ppui-feature-link {
+  justify-self: start;
+  margin-top: 2px;
+  color: var(--ppui-accent) !important;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none !important;
+}
+
+.ppui-feature-link:hover {
+  text-decoration: underline !important;
+  text-underline-offset: 3px;
+}
+
+/* Next class, or nothing left today: a quiet card instead of the blue block. */
+.ppui-now-tile.is-next,
+.ppui-now-tile.is-off {
+  background: var(--ppui-surface);
+  border: 1px solid var(--ppui-hairline);
   color: var(--ppui-text);
 }
 
-.ppui-feature.is-next::after {
+.ppui-now-tile.is-next::after,
+.ppui-now-tile.is-off::after {
   background: var(--ppui-accent-soft);
 }
 
-.ppui-feature.is-next .ppui-feature-icon {
-  background: var(--ppui-surface);
+.ppui-now-tile:is(.is-next, .is-off) .ppui-feature-icon {
+  background: var(--ppui-accent-soft);
   color: var(--ppui-accent);
 }
 
-.ppui-feature.is-next .ppui-feature-label,
-.ppui-feature.is-next .ppui-meta {
+.ppui-now-tile:is(.is-next, .is-off) .ppui-feature-label,
+.ppui-now-tile:is(.is-next, .is-off) .ppui-meta,
+.ppui-now-tile:is(.is-next, .is-off) .ppui-feature-then-label {
   color: var(--ppui-muted);
+}
+
+.ppui-now-tile:is(.is-next, .is-off) .ppui-feature-then {
+  color: var(--ppui-text);
+}
+
+.ppui-now-tile:is(.is-next, .is-off) .ppui-feature-chip {
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent);
+}
+
+/* While the timetable loads: a soft block where the subject icon goes. */
+.ppui-skel-box {
+  background: var(--ppui-hover) !important;
+}
+
+/* Day progress inside the blue block: white on crest. */
+.ppui-now-tile .ppui-progress {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+}
+
+.ppui-now-tile:not(.is-next, .is-off) .ppui-progress-seg {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.ppui-now-tile:not(.is-next, .is-off) .ppui-progress-seg::after {
+  background: #fff;
+}
+
+.ppui-now-tile:not(.is-next, .is-off) .ppui-progress-seg.is-now::after {
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.ppui-now-tile:not(.is-next, .is-off) .ppui-progress-label {
+  color: rgba(255, 255, 255, 0.84);
+}
+
+/* Count tiles: label and icon on top, the number big, a short line under it. */
+.ppui-stat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "label icon"
+    "value value"
+    "sub sub";
+  grid-template-rows: auto 1fr auto;
+  row-gap: 2px;
+  min-width: 0;
+  min-height: 132px;
+  margin: 0;
+  padding: 16px 18px;
+  box-sizing: border-box;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: var(--ppui-radius-card);
+  background: var(--ppui-surface);
+  color: var(--ppui-text) !important;
+  font: inherit;
+  text-align: left;
+  text-decoration: none !important;
+  cursor: pointer;
+  transition: border-color 0.15s var(--ppui-ease), transform 0.15s var(--ppui-ease);
+}
+
+div.ppui-stat,
+.ppui-stat:disabled {
+  cursor: default;
+}
+
+@media (hover: hover) {
+  a.ppui-stat:hover,
+  button.ppui-stat:not(:disabled):hover {
+    border-color: color-mix(in srgb, var(--ppui-accent) 45%, transparent);
+  }
+}
+
+a.ppui-stat:active,
+button.ppui-stat:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+.ppui-stat[aria-expanded="true"] {
+  border-color: var(--ppui-accent);
+}
+
+.ppui-stat-label {
+  grid-area: label;
+  align-self: center;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ppui-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ppui-stat-icon {
+  grid-area: icon;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent);
+}
+
+.ppui-stat-icon .ppui-icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+.ppui-stat-value {
+  grid-area: value;
+  align-self: end;
+  margin-top: 6px;
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ppui-stat-sub {
+  grid-area: sub;
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 550;
+  color: var(--ppui-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ppui-stat.is-zero .ppui-stat-value,
+.ppui-stat.is-pending .ppui-stat-value {
+  color: var(--ppui-muted);
+  opacity: 0.55;
+}
+
+.ppui-stat.is-pending .ppui-stat-sub::before {
+  content: "Loading";
+}
+
+/* Something waiting: the number turns crest blue. Overdue notes turn the line red. */
+.ppui-stat:not(.is-zero, .is-pending) .ppui-stat-value {
+  color: var(--ppui-accent);
+}
+
+.ppui-stat.is-alert .ppui-stat-sub {
+  color: #b42318;
+  font-weight: 700;
+}
+
+:root[data-ppui-theme="dark"] .ppui-stat.is-alert .ppui-stat-sub {
+  color: #ff9b8f;
+}
+
+.ppui-menu-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.ppui-menu-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tone-bg, var(--ppui-crest));
+}
+
+.ppui-updates-menu .ppui-menu-count {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent);
+  font-weight: 750;
+  line-height: 20px;
+  text-align: center;
+}
+
+@media (max-width: 1000px) {
+  .ppui-glance {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .ppui-now-tile {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ppui-stat {
+    transition: none;
+  }
+  a.ppui-stat:active,
+  button.ppui-stat:not(:disabled):active {
+    transform: none;
+  }
+}
+
+/* Phones: the three counts sit in a tight row under the now tile. */
+@media (max-width: 680px) {
+  .ppui-glance {
+    gap: 10px;
+  }
+  .ppui-now-tile {
+    min-height: 0;
+    padding: 16px;
+  }
+  .ppui-feature {
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .ppui-feature-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+  .ppui-stat {
+    grid-template-areas:
+      "icon icon"
+      "value value"
+      "label label";
+    min-height: 0;
+    padding: 12px;
+    border-radius: 16px;
+  }
+  .ppui-stat-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+  }
+  .ppui-stat-value {
+    margin-top: 8px;
+    font-size: 26px;
+  }
+  .ppui-stat-sub {
+    display: none;
+  }
+  .ppui-stat-label {
+    font-size: 12px;
+    line-height: 1.25;
+    white-space: normal;
+  }
 }
 
 /* Live dot: a ring that keeps pulsing while a class is on. */
@@ -5075,6 +5391,17 @@ html body .app-container :where(h1, h2, h3, h4) {
   .ppui-enter > :nth-child(1) { animation-delay: 0.22s; }
   .ppui-enter > :nth-child(2) { animation-delay: 0.3s; }
   .ppui-enter > :nth-child(3) { animation-delay: 0.38s; }
+  .ppui-enter > :nth-child(4) { animation-delay: 0.46s; }
+
+  /* The glance strip itself arrives with its tiles a beat apart. */
+  .ppui-enter > .ppui-glance { animation: none; }
+  .ppui-enter > .ppui-glance > * {
+    animation: ppui-settle 0.6s var(--ppui-ease) both;
+  }
+  .ppui-enter > .ppui-glance > :nth-child(1) { animation-delay: 0.16s; }
+  .ppui-enter > .ppui-glance > :nth-child(2) { animation-delay: 0.22s; }
+  .ppui-enter > .ppui-glance > :nth-child(3) { animation-delay: 0.27s; }
+  .ppui-enter > .ppui-glance > :nth-child(4) { animation-delay: 0.32s; }
 
   .ppui-progress-seg::after {
     animation: ppui-grow 0.9s var(--ppui-ease) both;
@@ -5183,14 +5510,14 @@ html body .app-container :where(h1, h2, h3, h4) {
   .ppui-panel:hover .ppui-title-icon {
     transform: rotate(-6deg);
   }
-  .ppui-feature:hover .ppui-feature-icon {
+  .ppui-now-tile:hover .ppui-feature-icon {
     transform: scale(1.08) rotate(4deg);
   }
 
-  .ppui-feature::after {
+  .ppui-now-tile::after {
     transition: transform 0.8s var(--ppui-ease);
   }
-  .ppui-feature:hover::after {
+  .ppui-now-tile:hover::after {
     transform: translate(-6px, -4px) rotate(-4deg);
   }
 
