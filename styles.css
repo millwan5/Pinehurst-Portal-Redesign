@@ -7295,3 +7295,81 @@ html .detail-email .email-body {
   74% { box-shadow: 0 0 22px 7px color-mix(in srgb, var(--ppui-sky) 90%, #fff); }
   100% { box-shadow: 0 0 12px 2px color-mix(in srgb, var(--ppui-sky) 70%, transparent); }
 }
+
+/* School-day progress as liquid. Ripples flow along every filled period (two wave layers moving
+   at different speeds), the front of the current period is a soft wobbling bulge like the edge of
+   a pour, and little bubbles (added by content.js) drift along inside. */
+.ppui-progress-seg::before,
+.ppui-progress-seg.is-now::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(var(--fill, 0) * 100%);
+  border-radius: inherit;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='10'%3E%3Cpath d='M0 5.5C8 3 16 3 24 5.5S40 8 48 5.5V10H0Z' fill='white' fill-opacity='0.2'/%3E%3C/svg%3E") 0 0 / 48px 100% repeat-x,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='10'%3E%3Cpath d='M0 7C5 5.6 10 5.6 15 7S25 8.4 30 7V10H0Z' fill='white' fill-opacity='0.16'/%3E%3C/svg%3E") 0 0 / 30px 100% repeat-x,
+    linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0 1.5px, transparent 3px);
+  mix-blend-mode: normal;
+  opacity: 1;
+  pointer-events: none;
+}
+
+.ppui-progress-spark {
+  z-index: 2;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -8px;
+  border-radius: 55% 45% 50% 50% / 50% 55% 45% 50%;
+  background:
+    radial-gradient(circle at 62% 32%, rgba(255, 255, 255, 0.95) 0 1.4px, transparent 2.4px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 60%),
+    color-mix(in srgb, var(--ppui-sky) 88%, #fff);
+  box-shadow: 0 0 8px 1px color-mix(in srgb, var(--ppui-sky) 55%, transparent);
+}
+
+.ppui-bubble {
+  position: absolute;
+  z-index: 2;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff 0 25%, rgba(255, 255, 255, 0.35) 45%, rgba(255, 255, 255, 0.12) 70%);
+  box-shadow: inset 0 0 0 0.6px rgba(255, 255, 255, 0.8);
+  opacity: 0;
+  pointer-events: none;
+  animation: ppui-bubble 2s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ppui-progress-seg::before,
+  .ppui-progress-seg.is-now::before {
+    animation: ppui-flow 2.8s linear infinite;
+  }
+  .ppui-progress-seg.is-now::before {
+    animation-duration: 1.9s;
+  }
+  .ppui-progress-spark {
+    animation: ppui-blob 2.4s ease-in-out infinite, ppui-flare 2.6s ease-out 1.2s infinite;
+  }
+}
+
+@keyframes ppui-flow {
+  from { background-position: 0 0, 0 0, 0 0; }
+  to { background-position: 48px 0, 60px 0, 0 0; }
+}
+
+@keyframes ppui-blob {
+  0%, 100% { border-radius: 55% 45% 50% 50% / 50% 55% 45% 50%; transform: translateX(0) scale(1, 1); }
+  25% { border-radius: 45% 60% 55% 40% / 60% 45% 55% 40%; transform: translateX(1px) scale(1.08, 0.92); }
+  50% { border-radius: 50% 50% 40% 60% / 45% 60% 40% 55%; transform: translateX(0.5px) scale(0.94, 1.06); }
+  75% { border-radius: 60% 40% 50% 50% / 55% 40% 60% 45%; transform: translateX(1.5px) scale(1.05, 0.97); }
+}
+
+@keyframes ppui-bubble {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.3); }
+  20% { opacity: 0.95; }
+  70% { opacity: 0.8; }
+  100% { opacity: 0; transform: translate(var(--dx, 20px), var(--dy, -2px)) scale(1); }
+}

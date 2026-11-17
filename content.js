@@ -4269,7 +4269,34 @@
     bar.setAttribute("aria-valuemax", "100");
     bar.append(el("span", "ppui-progress-track"), el("span", "ppui-progress-label"));
     bar.hidden = true;
+    startBubbles(bar);
     return bar;
+  }
+
+  // Little bubbles drifting along the filled part of the day bar, as if it were liquid. One every
+  // so often, only while the bar is on screen, the tab is showing and motion is welcome.
+  function startBubbles(bar) {
+    let onScreen = false;
+    new IntersectionObserver(([entry]) => (onScreen = entry.isIntersecting)).observe(bar);
+    setInterval(() => {
+      if (!onScreen || bar.hidden || document.hidden || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const track = bar.querySelector(".ppui-progress-track");
+      const done = parseFloat(track.style.getPropertyValue("--done")) || 0;
+      const width = track.clientWidth * done;
+      if (width < 16 || track.querySelectorAll(".ppui-bubble").length > 10) return;
+      const size = 2 + Math.random() * 3;
+      const b = el("span", "ppui-bubble");
+      b.setAttribute("aria-hidden", "true");
+      b.style.left = (Math.random() * (width - 12)).toFixed(1) + "px";
+      b.style.top = (3 + Math.random() * 3).toFixed(1) + "px";
+      b.style.width = b.style.height = size.toFixed(1) + "px";
+      // Drift with the flow (but never past the front of the liquid), rising a touch.
+      b.style.setProperty("--dx", Math.min(14 + Math.random() * 26, width - parseFloat(b.style.left) - 4).toFixed(1) + "px");
+      b.style.setProperty("--dy", (-1 - Math.random() * 2.5).toFixed(1) + "px");
+      b.style.animationDuration = (1.4 + Math.random() * 1.4).toFixed(2) + "s";
+      b.addEventListener("animationend", () => b.remove());
+      track.appendChild(b);
+    }, 260);
   }
 
   // Placeholder rows that shimmer while a card loads.
