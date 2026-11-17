@@ -6980,3 +6980,58 @@ html .detail-email .email-body {
     animation: none;
   }
 }
+
+/* News: pinned rows wear the accent (tinted, with a bar down the left) and sit at the top;
+   starred stories get a gold star that stays visible. */
+.ppui-room-story.is-row.is-pinned {
+  background: color-mix(in srgb, var(--ppui-accent) 9%, transparent);
+  box-shadow: inset 3px 0 0 var(--ppui-accent);
+  border-bottom-color: transparent;
+  margin-bottom: 4px;
+}
+
+.ppui-room-story.is-row.is-pinned:hover {
+  background: color-mix(in srgb, var(--ppui-accent) 14%, transparent);
+}
+
+.ppui-room-section.is-pinned .ppui-room-section-name {
+  color: var(--ppui-accent);
+}
+
+.ppui-story.is-pinned {
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ppui-accent) 9%, transparent);
+  box-shadow: inset 3px 0 0 var(--ppui-accent);
+}
+
+.ppui-story.is-pinned .ppui-story-link {
+  padding-left: 12px;
+  padding-right: 8px;
+}
+
+.ppui-story-star[aria-pressed="true"] {
+  color: #e8a400;
+}
+
+.ppui-story-star[aria-pressed="true"] .ppui-icon {
+  fill: currentColor;
+}
+
+.ppui-story-star .ppui-icon {
+  transition: transform 0.35s cubic-bezier(0.34, 1.6, 0.64, 1);
+}
+
+.ppui-story-star[aria-pressed="true"] .ppui-icon {
+  transform: scale(1.08);
+}
+
+.ppui-room-story.is-row .ppui-story-star {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.ppui-room-story.is-row:hover .ppui-story-star,
+.ppui-room-story.is-row:focus-within .ppui-story-star,
+.ppui-room-story.is-row .ppui-story-star[aria-pressed="true"] {
+  opacity: 1;
+}

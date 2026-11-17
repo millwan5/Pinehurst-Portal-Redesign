@@ -163,6 +163,7 @@
     chevronLeft: [["path", { d: "m15 18-6-6 6-6" }]],
     chevronRight: [["path", { d: "m9 18 6-6-6-6" }]],
     close: [["path", { d: "M18 6 6 18M6 6l12 12" }]],
+    star: [["path", { d: "M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" }]],
     pin: [["path", { d: "M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" }]],
     filter: [["path", { d: "M3 6h18M7 12h10M10 18h4" }]],
     calendar: [["rect", { x: 3, y: 4, width: 18, height: 18, rx: 2 }], ["path", { d: "M16 2v4M8 2v4M3 10h18" }]],
@@ -1525,15 +1526,15 @@
     try {
       const p = JSON.parse(localStorage.getItem(NEWS_PREFS_KEY) || "{}");
       const list = (v) => (Array.isArray(v) ? v : []);
-      return { pinned: list(p.pinned), trash: [...new Set(list(p.trash).concat(list(p.hidden)))] };
+      return { pinned: list(p.pinned), starred: list(p.starred), trash: [...new Set(list(p.trash).concat(list(p.hidden)))] };
     } catch (e) {
-      return { pinned: [], trash: [] };
+      return { pinned: [], starred: [], trash: [] };
     }
   }
 
   function saveNewsPrefs(prefs) {
     try {
-      localStorage.setItem(NEWS_PREFS_KEY, JSON.stringify({ pinned: prefs.pinned.slice(-100), trash: prefs.trash.slice(-200) }));
+      localStorage.setItem(NEWS_PREFS_KEY, JSON.stringify({ pinned: prefs.pinned.slice(-100), starred: prefs.starred.slice(-300), trash: prefs.trash.slice(-200) }));
     } catch (e) {}
   }
 
@@ -1582,6 +1583,7 @@
   const NEWS_VIEWS = [
     ["all", "All stories"],
     ["pinned", "Pinned"],
+    ["starred", "Starred"],
     ["trash", "Read"],
   ];
 
@@ -1599,6 +1601,13 @@
       view: "all",
       isPinned: (item) => prefs.pinned.includes(storyKey(item)),
       isTrashed: (item) => prefs.trash.includes(storyKey(item)),
+      isStarred: (item) => prefs.starred.includes(storyKey(item)),
+      toggleStar(item) {
+        const key = storyKey(item);
+        change(() => {
+          prefs.starred = prefs.starred.includes(key) ? prefs.starred.filter((k) => k !== key) : prefs.starred.concat(key);
+        });
+      },
       togglePin(item) {
         const key = storyKey(item);
         change(() => {
@@ -1609,7 +1618,6 @@
         const key = storyKey(item);
         change(() => {
           if (!prefs.trash.includes(key)) prefs.trash.push(key);
-          prefs.pinned = prefs.pinned.filter((k) => k !== key);
         });
         toast("Marked as read", "Undo", () => actions.restore(item));
       },
@@ -1625,16 +1633,20 @@
           prefs.trash = prefs.trash.filter((k) => !keys.has(k));
         });
       },
-      // Trash shows only in "trash"; "all" puts pinned stories first.
+      // Read stories leave "all" (except pinned ones) and show in "trash". "pinned" and "starred"
+      // keep theirs whether read or not. "all" puts pinned stories first.
       visible(view = actions.view) {
         const items = getItems();
         if (view === "trash") return items.filter(actions.isTrashed);
-        const kept = items.filter((item) => !actions.isTrashed(item) && (view === "all" || actions.isPinned(item)));
+        if (view === "pinned") return items.filter(actions.isPinned);
+        if (view === "starred") return items.filter(actions.isStarred);
+        const kept = items.filter((item) => actions.isPinned(item) || !actions.isTrashed(item));
         return kept.filter(actions.isPinned).concat(kept.filter((item) => !actions.isPinned(item)));
       },
-      counts: () => ({ all: actions.visible("all").length, pinned: actions.visible("pinned").length, trash: actions.visible("trash").length }),
+      counts: () => Object.fromEntries(NEWS_VIEWS.map(([view]) => [view, actions.visible(view).length])),
       get emptyText() {
         if (actions.view === "pinned") return "Nothing pinned yet. Pin a story to keep it at the top.";
+        if (actions.view === "starred") return "Nothing starred yet. Star a story to keep it here for good.";
         if (actions.view === "trash") return "Nothing here yet. Tick a story once you've read it.";
         return "No news right now.";
       },
@@ -1958,7 +1970,7 @@
       (item.searchText || item.summary || "").toLowerCase().includes(query);
     // "All stories" with no search or day picked shows the page's own stories, plus older ones on request.
     const browsing = () => actions.view === "all" && !query && dayFilter === null;
-    const inWindow = (item) => !browsing() || item.rank < pageCount + olderShown;
+    const inWindow = (item) => !browsing() || actions.isPinned(item) || item.rank < pageCount + olderShown;
 
     // Undated stories keep their place at the end; pinned ones lead in "All stories".
     function arrange(stories) {
@@ -2018,15 +2030,17 @@
       const side = el("div", "ppui-room-side");
       const ago = el("span", "ppui-room-ago" + (item.time !== null && daysBack(item.time) <= 0 ? " is-today" : ""), item.date.ago || "");
       side.appendChild(ago);
-      if (actions.view !== "trash") {
-        const pin = storyButton("ppui-story-pin", pinned ? "Unpin" : "Pin to the top", "pin", () => actions.togglePin(item));
-        pin.setAttribute("aria-pressed", String(pinned));
-        side.appendChild(pin);
-      }
+      const starred = actions.isStarred(item);
+      if (starred) card.classList.add("is-starred");
+      const star = storyButton("ppui-story-star", starred ? "Unstar" : "Star", "star", () => actions.toggleStar(item));
+      star.setAttribute("aria-pressed", String(starred));
+      const pin = storyButton("ppui-story-pin", pinned ? "Unpin" : "Pin to the top", "pin", () => actions.togglePin(item));
+      pin.setAttribute("aria-pressed", String(pinned));
+      side.append(star, pin);
       card.append(readBox(item, card), ...(lead ? [lead] : []), text, side);
       // Anywhere on the row (but the tick box and pin) opens the reader.
       card.addEventListener("click", (e) => {
-        if (e.target.closest(".ppui-read-box, .ppui-story-pin")) return;
+        if (e.target.closest(".ppui-read-box, .ppui-story-action")) return;
         openStory(index);
       });
       return card;
@@ -2041,10 +2055,11 @@
       }, { once: true });
     }
 
-    // Tick a story once you've read it: its headline is crossed out, then it leaves the list for
-    // "Read" (with Undo). In "Read" the box is ticked; untick it to bring the story back.
+    // Tick a story once you've read it: its headline is crossed out and it moves to "Read" (with
+    // Undo). It leaves "All stories" unless pinned; "Pinned" and "Starred" keep it, crossed out.
+    // Untick to make it unread again.
     function readBox(item, card) {
-      const done = actions.view === "trash";
+      const done = actions.isTrashed(item);
       const box = el("label", "ppui-read-box");
       const input = el("input");
       input.type = "checkbox";
@@ -2058,8 +2073,10 @@
       input.addEventListener("change", () => {
         card.classList.toggle("is-done", input.checked);
         if (input.checked === done) return;
+        const apply = () => (input.checked ? actions.trash(item) : actions.restore(item));
+        const leaves = input.checked ? actions.view === "all" && !actions.isPinned(item) : actions.view === "trash";
         input.disabled = true;
-        setTimeout(() => leave(card, () => (input.checked ? actions.trash(item) : actions.restore(item))), reduced() ? 0 : 650);
+        setTimeout(() => (leaves ? leave(card, apply) : apply()), reduced() ? 0 : leaves ? 650 : 280);
       });
       return box;
     }
@@ -4371,7 +4388,11 @@
       } else {
         const pin = storyButton("ppui-story-pin", pinned ? "Unpin" : "Pin to the top", "pin", () => actions.togglePin(item));
         pin.setAttribute("aria-pressed", String(pinned));
-        tools.append(pin, storyButton("ppui-story-trash", "Mark as read", "check", () => {
+        const starred = actions.isStarred(item);
+        const star = storyButton("ppui-story-star", starred ? "Unstar" : "Star", "star", () => actions.toggleStar(item));
+        star.setAttribute("aria-pressed", String(starred));
+        tools.append(star, pin, storyButton("ppui-story-trash", "Mark as read", "check", () => {
+          if (pinned) return actions.trash(item);
           row.classList.add("is-leaving");
           setTimeout(() => actions.trash(item), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 260);
         }));
