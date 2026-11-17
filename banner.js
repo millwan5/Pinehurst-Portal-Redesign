@@ -347,7 +347,8 @@
       S.t = moving ? (now - t0) / 1000 : 0;
       S.now = now / 1000;
       const sky = scene.dataset.sky || "day";
-      S.pal = palette(sky, document.documentElement.getAttribute("data-ppui-theme") === "dark", theme);
+      // The banner looks the same in light and dark mode.
+      S.pal = palette(sky, false, theme);
       const cs = scene.style;
       S.orb = { x: (parseFloat(cs.getPropertyValue("--orb-x")) || 70) / 100 * S.w, y: (parseFloat(cs.getPropertyValue("--orb-y")) || 30) / 100 * S.h };
       const tx = ptr ? (ptr.x / S.w - 0.5) * 2 : 0, ty = ptr ? (ptr.y / S.h - 0.5) * 2 : 0;
@@ -397,6 +398,9 @@
     function setTheme(id) {
       theme = THEMES[id] ? id : "blue";
       header.setAttribute("data-ppui-palette", theme);
+      // The colour theme recolours the whole page, not just the banner.
+      if (theme === "blue") document.documentElement.removeAttribute("data-ppui-palette");
+      else document.documentElement.setAttribute("data-ppui-palette", theme);
       if (style) frame(performance.now());
     }
 
@@ -515,7 +519,31 @@
     }).observe(pill);
   }
 
+  // A small still of a style, for the Customise panel. Classic gets a simple sky and two pine rows.
+  function preview(id, canvas, theme) {
+    const dpr = Math.min(2, devicePixelRatio || 1), w = canvas.clientWidth || 96, h = canvas.clientHeight || 54;
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const S = { w, h, compact: true, t: 0, now: 0, px: 0, py: 0, mx: null, my: null, ripples: [], pal: palette("day", false, theme), orb: { x: w * 0.72, y: h * 0.3 } };
+    if (STYLES[id]) { STYLES[id].init(S); STYLES[id].draw(ctx, S); return; }
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    S.pal.sky.forEach((c, i) => g.addColorStop(S.pal.stops[i], css(c)));
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = css(S.pal.orb); ctx.beginPath(); ctx.arc(S.orb.x, S.orb.y, 4, 0, TAU); ctx.fill();
+    const r = seeded(4);
+    for (const [col, base, size, gap] of [[S.pal.mid, h - 8, 16, 7], [S.pal.near, h - 2, 22, 11]]) {
+      ctx.fillStyle = css(col);
+      ctx.fillRect(0, base, w, h);
+      for (let x = -4; x < w + 8; x += gap * (0.6 + r() * 0.8)) {
+        const H = size * (0.6 + r() * 0.5);
+        ctx.beginPath(); ctx.moveTo(x - H * 0.28, base + 1); ctx.lineTo(x, base - H); ctx.lineTo(x + H * 0.28, base + 1); ctx.fill();
+      }
+    }
+  }
+
   window.PPUIBanner = {
+    preview,
     styles: [["classic", "Classic"], ["mesh", STYLES.mesh.name], ["mosaic", STYLES.mosaic.name]],
     themes: Object.entries(THEMES).map(([id, t]) => {
       const c = shiftColour(hex("#2a64cf"), t);

@@ -35,6 +35,11 @@
   } catch (e) {}
   if (!theme) theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   root.setAttribute("data-ppui-theme", theme);
+  // Colour theme (Customise > Colour) applies from the first paint too.
+  try {
+    const p = localStorage.getItem("ppui-banner-palette");
+    if (/^(teal|forest|violet|rose|sunset|graphite)$/.test(p || "")) root.setAttribute("data-ppui-palette", p);
+  } catch (e) {}
 
   root.classList.add("ppui-booting");
   if (/^\/pinehurst\/student\/?$/.test(location.pathname)) root.classList.add("ppui-home");

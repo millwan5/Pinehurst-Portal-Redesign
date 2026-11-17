@@ -747,64 +747,133 @@
     }
   }
 
-  function buildBannerPicker(banner) {
-    const btn = el("button", "ppui-banner-edit");
+  // ---- Customise: banner style, colour theme and the floating bar's look, in one panel ----
+  const FLOAT_KEY = "ppui-float-style";
+
+  function savedFloatStyle() {
+    try {
+      return localStorage.getItem(FLOAT_KEY) === "glass" ? "glass" : "shadow";
+    } catch (e) {
+      return "shadow";
+    }
+  }
+
+  function buildCustomise(banner) {
+    const btn = el("button", "ppui-bar-button ppui-customise-button");
     btn.type = "button";
-    btn.title = "Banner style";
-    btn.setAttribute("aria-label", "Banner style");
-    btn.append(icon("palette"), el("span", null, "Banner"));
-    const menu = el("ul", "ppui-menu ppui-choice-menu");
-    menu.setAttribute("role", "menu");
-    menu.setAttribute("aria-label", "Banner style");
-    arrowNav(menu, ".ppui-menu-item");
-    // Two groups: the banner's style, then its colour.
-    const radio = (label, checked, pick, swatch) => {
-      const li = el("li");
-      const b = el("button", "ppui-menu-item" + (swatch ? " ppui-swatch-item" : ""));
-      b.type = "button";
-      b.setAttribute("role", "menuitemradio");
-      b.setAttribute("aria-checked", String(checked));
-      if (swatch) {
-        const dot = el("span", "ppui-swatch");
-        dot.style.background = swatch;
-        b.appendChild(dot);
-      }
-      b.appendChild(el("span", null, label));
-      b.addEventListener("click", () => {
-        menu.hidePopover();
-        pick();
-      });
-      li.appendChild(b);
-      menu.appendChild(li);
-    };
+    btn.title = "Customise";
+    btn.setAttribute("aria-label", "Customise");
+    btn.appendChild(icon("palette"));
+    const panel = el("div", "ppui-customise");
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-label", "Customise");
     const save = (key, value) => {
       try {
         localStorage.setItem(key, value);
       } catch (e) {}
     };
-    popover(btn, menu, () => {
-      menu.textContent = "";
-      menu.appendChild(el("li", "ppui-menu-heading", "Style"));
-      const style = savedBannerStyle();
+    const section = (title, note) => {
+      const head = el("div", "ppui-cz-head");
+      head.append(el("h3", "ppui-cz-title", title));
+      if (note) head.append(el("span", "ppui-cz-note", note));
+      panel.appendChild(head);
+    };
+    const fill = () => {
+      panel.textContent = "";
+      const style = savedBannerStyle(), theme = savedBannerTheme(), float = savedFloatStyle();
+
+      section("Banner");
+      const tiles = el("div", "ppui-cz-tiles");
       for (const [id, label] of window.PPUIBanner.styles) {
-        radio(label, id === style, () => {
+        const t = el("button", "ppui-cz-tile");
+        t.type = "button";
+        t.setAttribute("aria-pressed", String(id === style));
+        const c = el("canvas", "ppui-cz-preview");
+        c.setAttribute("aria-hidden", "true");
+        t.append(c, el("span", null, label));
+        t.addEventListener("click", () => {
           save(BANNER_KEY, id);
           banner.setStyle(id);
+          fill();
         });
+        tiles.appendChild(t);
+        requestAnimationFrame(() => window.PPUIBanner.preview(id, c, theme));
       }
-      menu.appendChild(el("li", "ppui-menu-heading", "Colour"));
-      const theme = savedBannerTheme();
-      for (const [id, label, swatch] of window.PPUIBanner.themes) {
-        radio(label, id === theme, () => {
+      panel.appendChild(tiles);
+
+      const themeName = (window.PPUIBanner.themes.find(([id]) => id === theme) || [])[1] || "Blue";
+      section("Colour", themeName);
+      const swatches = el("div", "ppui-cz-swatches");
+      for (const [id, label, colour] of window.PPUIBanner.themes) {
+        const sw = el("button", "ppui-cz-swatch");
+        sw.type = "button";
+        sw.title = label;
+        sw.setAttribute("aria-label", label);
+        sw.setAttribute("aria-pressed", String(id === theme));
+        sw.style.setProperty("--sw", colour);
+        sw.addEventListener("click", () => {
           save(BANNER_THEME_KEY, id);
           banner.setTheme(id);
-        }, swatch);
+          fill();
+        });
+        swatches.appendChild(sw);
       }
-    });
-    menu.addEventListener("toggle", (e) => {
-      if (e.newState === "open") (menu.querySelector("[aria-checked='true']") || menu.querySelector("button")).focus();
+      panel.appendChild(swatches);
+
+      section("Floating bar", "when you scroll");
+      const seg = el("div", "ppui-cz-seg");
+      for (const [id, label] of [["shadow", "Shadow"], ["glass", "Glass border"]]) {
+        const o = el("button", "ppui-cz-seg-item", label);
+        o.type = "button";
+        o.setAttribute("aria-pressed", String(id === float));
+        o.addEventListener("click", () => {
+          save(FLOAT_KEY, id);
+          root.setAttribute("data-ppui-float", id);
+          fill();
+        });
+        seg.appendChild(o);
+      }
+      panel.appendChild(seg);
+    };
+    popover(btn, panel, fill);
+    panel.addEventListener("toggle", (e) => {
+      if (e.newState === "open") (panel.querySelector("[aria-pressed='true']") || panel.querySelector("button")).focus();
     });
     return btn;
+  }
+
+  // Once the banner scrolls away, both pills float at the top of the window so Apps, search and the
+  // rest stay in reach. They move into a fixed bar and back; the empty row keeps its height.
+  function floatPills(header, row, pills) {
+    root.setAttribute("data-ppui-float", savedFloatStyle());
+    const bar = el("div", "ppui-float-bar");
+    document.body.appendChild(bar);
+    let floating = false;
+    const update = () => {
+      const r = row.getBoundingClientRect();
+      const should = r.bottom < 6;
+      if (should === floating) return;
+      floating = should;
+      if (floating) {
+        row.style.minHeight = row.offsetHeight + "px";
+        bar.append(...pills);
+        bar.classList.add("is-on");
+      } else {
+        row.append(...pills);
+        bar.classList.remove("is-on");
+        row.style.minHeight = "";
+      }
+    };
+    let queued = false;
+    addEventListener("scroll", () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        update();
+      });
+    }, { passive: true });
+    addEventListener("resize", update);
   }
 
   function buildAccount() {
@@ -874,15 +943,16 @@
     const messages = buildMessages();
     const account = buildAccount();
     if (messages) pill.appendChild(messages);
-    pill.append(buildCalendarButton(), buildNotebookButton(), buildApps(), buildToggle());
+    pill.append(buildCalendarButton(), buildNotebookButton(), buildApps());
+    if (banner) pill.appendChild(buildCustomise(banner));
+    pill.appendChild(buildToggle());
     if (account) pill.appendChild(account);
     if (window.PPUIBanner) window.PPUIBanner.glass(pill);
 
     const top = el("div", "ppui-header-top");
     top.append(navPill, pill);
     header.appendChild(top);
-    // Banner style lives in the banner's corner, not in the pill.
-    if (banner) header.appendChild(buildBannerPicker(banner));
+    floatPills(header, top, [navPill, pill]);
 
     if (HOME_PATH.test(location.pathname)) {
       const name = studentName().split(" ")[0];
