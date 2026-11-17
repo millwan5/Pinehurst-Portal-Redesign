@@ -747,9 +747,9 @@
   function savedBannerStyle() {
     try {
       const v = localStorage.getItem(BANNER_KEY);
-      return window.PPUIBanner && window.PPUIBanner.styles.some(([id]) => id === v) ? v : "classic";
+      return window.PPUIBanner && window.PPUIBanner.styles.some(([id]) => id === v) ? v : "mesh";
     } catch (e) {
-      return "classic";
+      return "mesh";
     }
   }
 

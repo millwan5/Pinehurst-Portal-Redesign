@@ -610,7 +610,8 @@ html :focus-visible {
   filter: drop-shadow(0 1px 1px rgba(0, 10, 40, 0.35));
 }
 
-/* Banner styles other than Classic draw on a canvas; the Classic layers underneath are hidden. */
+/* Banner styles draw on a canvas over the scene; the scene's own sky and pines stay hidden.
+   (The scene still runs the sun's arc and time of day, which the canvas reads.) */
 .ppui-banner-canvas {
   position: absolute;
   inset: 0;
@@ -621,16 +622,10 @@ html :focus-visible {
 
 .ppui-banner-canvas[hidden] { display: none; }
 
-.ppui-header[data-ppui-banner]:not([data-ppui-banner="classic"]) .ppui-scene > :not(.ppui-banner-canvas) {
+.ppui-header[data-ppui-banner] .ppui-scene > :not(.ppui-banner-canvas) {
   display: none;
 }
 
-:root[data-ppui-palette="teal"] .ppui-header[data-ppui-banner="classic"] .ppui-scene { filter: hue-rotate(-38deg); }
-:root[data-ppui-palette="forest"] .ppui-header[data-ppui-banner="classic"] .ppui-scene { filter: hue-rotate(-88deg) saturate(0.75); }
-:root[data-ppui-palette="violet"] .ppui-header[data-ppui-banner="classic"] .ppui-scene { filter: hue-rotate(46deg) saturate(0.95); }
-:root[data-ppui-palette="rose"] .ppui-header[data-ppui-banner="classic"] .ppui-scene { filter: hue-rotate(112deg) saturate(0.8); }
-:root[data-ppui-palette="sunset"] .ppui-header[data-ppui-banner="classic"] .ppui-scene { filter: hue-rotate(168deg) saturate(0.95); }
-:root[data-ppui-palette="graphite"] .ppui-header[data-ppui-banner="classic"] .ppui-scene { filter: saturate(0.1); }
 
 /* Colour swatches in the Banner menu */
 .ppui-swatch-item {
@@ -656,6 +651,11 @@ html :focus-visible {
   z-index: -1;
   pointer-events: none;
   background: radial-gradient(closest-side, rgba(4, 16, 48, 0.28), rgba(4, 16, 48, 0) 100%);
+}
+
+/* A flat Solid banner needs no haze; the text shadow is enough. */
+.ppui-header[data-ppui-banner="solid"] .ppui-intro::before {
+  display: none;
 }
 
 .ppui-greeting,

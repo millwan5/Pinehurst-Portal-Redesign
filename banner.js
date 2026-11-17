@@ -186,7 +186,7 @@
   // ---- Styles ----
   const STYLES = {
     mesh: {
-      name: "Low-poly Mesh",
+      name: "Low Poly",
       init(S) {
         const r = seeded(51), cell = S.compact ? 46 : 66;
         const cols = Math.ceil(S.w / cell) + 2, rows = Math.ceil(S.h / cell) + 2;
@@ -321,6 +321,16 @@
     },
   };
 
+  STYLES.solid = {
+    name: "Solid",
+    still: true,
+    init() {},
+    draw(ctx, S) {
+      ctx.fillStyle = css(S.pal.shift(hex("#1f55b8")));
+      ctx.fillRect(0, 0, S.w, S.h);
+    },
+  };
+
   // ---- Mount: one canvas in the header scene, redrawn ~30 times a second while on screen ----
   function mount(header, scene, initial, initialTheme) {
     const canvas = document.createElement("canvas");
@@ -363,6 +373,7 @@
       raf = 0;
       if (!style || !visible || document.hidden) return;
       if (now - last >= 32) { last = now; frame(now); }
+      if (STYLES[style].still) return;
       if (!reduce.matches || ptr || (S && S.ripples.length)) raf = requestAnimationFrame(loop);
     }
     const kick = () => { if (!raf && style) raf = requestAnimationFrame(loop); };
@@ -519,32 +530,19 @@
     }).observe(pill);
   }
 
-  // A small still of a style, for the Customise panel. Classic gets a simple sky and two pine rows.
+  // A small still of a style, for the Customise panel.
   function preview(id, canvas, theme) {
     const dpr = Math.min(2, devicePixelRatio || 1), w = canvas.clientWidth || 96, h = canvas.clientHeight || 54;
     canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
     const ctx = canvas.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const S = { w, h, compact: true, t: 0, now: 0, px: 0, py: 0, mx: null, my: null, ripples: [], pal: palette("day", false, theme), orb: { x: w * 0.72, y: h * 0.3 } };
-    if (STYLES[id]) { STYLES[id].init(S); STYLES[id].draw(ctx, S); return; }
-    const g = ctx.createLinearGradient(0, 0, 0, h);
-    S.pal.sky.forEach((c, i) => g.addColorStop(S.pal.stops[i], css(c)));
-    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = css(S.pal.orb); ctx.beginPath(); ctx.arc(S.orb.x, S.orb.y, 4, 0, TAU); ctx.fill();
-    const r = seeded(4);
-    for (const [col, base, size, gap] of [[S.pal.mid, h - 8, 16, 7], [S.pal.near, h - 2, 22, 11]]) {
-      ctx.fillStyle = css(col);
-      ctx.fillRect(0, base, w, h);
-      for (let x = -4; x < w + 8; x += gap * (0.6 + r() * 0.8)) {
-        const H = size * (0.6 + r() * 0.5);
-        ctx.beginPath(); ctx.moveTo(x - H * 0.28, base + 1); ctx.lineTo(x, base - H); ctx.lineTo(x + H * 0.28, base + 1); ctx.fill();
-      }
-    }
+    if (STYLES[id]) { STYLES[id].init(S); STYLES[id].draw(ctx, S); }
   }
 
   window.PPUIBanner = {
     preview,
-    styles: [["classic", "Classic"], ["mesh", STYLES.mesh.name], ["mosaic", STYLES.mosaic.name]],
+    styles: [["mesh", STYLES.mesh.name], ["mosaic", STYLES.mosaic.name], ["solid", STYLES.solid.name]],
     themes: Object.entries(THEMES).map(([id, t]) => {
       const c = shiftColour(hex("#2a64cf"), t);
       return [id, t.name, `rgb(${c.map((v) => Math.round(v)).join(",")})`];
