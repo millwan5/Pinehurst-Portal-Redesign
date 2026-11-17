@@ -1412,10 +1412,11 @@
     dialog.querySelector(".ppui-reader-count").textContent = (reader.index + 1) + " of " + stories.length;
     const single = stories.length < 2;
     dialog.querySelectorAll(".ppui-reader-step").forEach((b) => (b.disabled = single));
-    const pin = dialog.querySelector(".ppui-reader-pin");
-    const pinned = reader.actions.isPinned(item);
-    pin.setAttribute("aria-pressed", String(pinned));
-    pin.title = pinned ? "Unpin" : "Pin to the top";
+    const star = dialog.querySelector(".ppui-reader-star");
+    const starred = reader.actions.isStarred(item);
+    star.setAttribute("aria-pressed", String(starred));
+    star.title = starred ? "Unstar" : "Star";
+    star.setAttribute("aria-label", star.title);
     // Start fetching the next story so flicking forward feels instant.
     if (!single) fullStory(stories[(reader.index + 1) % stories.length]);
   }
@@ -1461,8 +1462,8 @@
       el("span", "ppui-reader-count"),
       readerButton("ppui-reader-step", "Next story", "chevronRight", () => showStory(reader.index + 1, "next")),
       all,
-      readerButton("ppui-reader-pin", "Pin to the top", "pin", () => {
-        reader.actions.togglePin(reader.stories[reader.index]);
+      readerButton("ppui-reader-star ppui-story-star", "Star", "star", () => {
+        reader.actions.toggleStar(reader.stories[reader.index]);
         showStory(reader.index);
       }),
       readerButton("ppui-reader-trash", "Mark as read", "check", () => {
@@ -1514,7 +1515,7 @@
     reader.dialog.querySelector(".ppui-reader-page").focus({ preventScroll: true });
   }
 
-  // ---- Pinned stories and trash (kept in this browser only; shared by the card and the News page) ----
+  // ---- Starred stories and trash (kept in this browser only; shared by the card and the News page) ----
 
   const NEWS_PREFS_KEY = "ppui-news";
   // The News page's address, remembered so early.js can hide the portal's list before it paints.
@@ -1526,15 +1527,16 @@
     try {
       const p = JSON.parse(localStorage.getItem(NEWS_PREFS_KEY) || "{}");
       const list = (v) => (Array.isArray(v) ? v : []);
-      return { pinned: list(p.pinned), starred: list(p.starred), trash: [...new Set(list(p.trash).concat(list(p.hidden)))] };
+      // Stories pinned before Starred replaced Pinned come back starred.
+      return { starred: [...new Set(list(p.starred).concat(list(p.pinned)))], trash: [...new Set(list(p.trash).concat(list(p.hidden)))] };
     } catch (e) {
-      return { pinned: [], starred: [], trash: [] };
+      return { starred: [], trash: [] };
     }
   }
 
   function saveNewsPrefs(prefs) {
     try {
-      localStorage.setItem(NEWS_PREFS_KEY, JSON.stringify({ pinned: prefs.pinned.slice(-100), starred: prefs.starred.slice(-300), trash: prefs.trash.slice(-200) }));
+      localStorage.setItem(NEWS_PREFS_KEY, JSON.stringify({ starred: prefs.starred.slice(-300), trash: prefs.trash.slice(-200) }));
     } catch (e) {}
   }
 
@@ -1582,7 +1584,6 @@
 
   const NEWS_VIEWS = [
     ["all", "All stories"],
-    ["pinned", "Pinned"],
     ["starred", "Starred"],
     ["trash", "Read"],
   ];
@@ -1599,19 +1600,12 @@
     };
     const actions = {
       view: "all",
-      isPinned: (item) => prefs.pinned.includes(storyKey(item)),
       isTrashed: (item) => prefs.trash.includes(storyKey(item)),
       isStarred: (item) => prefs.starred.includes(storyKey(item)),
       toggleStar(item) {
         const key = storyKey(item);
         change(() => {
           prefs.starred = prefs.starred.includes(key) ? prefs.starred.filter((k) => k !== key) : prefs.starred.concat(key);
-        });
-      },
-      togglePin(item) {
-        const key = storyKey(item);
-        change(() => {
-          prefs.pinned = prefs.pinned.includes(key) ? prefs.pinned.filter((k) => k !== key) : prefs.pinned.concat(key);
         });
       },
       trash(item) {
@@ -1633,20 +1627,18 @@
           prefs.trash = prefs.trash.filter((k) => !keys.has(k));
         });
       },
-      // Read stories leave "all" (except pinned ones) and show in "trash". "pinned" and "starred"
-      // keep theirs whether read or not. "all" puts pinned stories first.
+      // Read stories leave "all" (except starred ones) and show in "trash". "starred" keeps its
+      // stories whether read or not. "all" puts starred stories first.
       visible(view = actions.view) {
         const items = getItems();
         if (view === "trash") return items.filter(actions.isTrashed);
-        if (view === "pinned") return items.filter(actions.isPinned);
         if (view === "starred") return items.filter(actions.isStarred);
-        const kept = items.filter((item) => actions.isPinned(item) || !actions.isTrashed(item));
-        return kept.filter(actions.isPinned).concat(kept.filter((item) => !actions.isPinned(item)));
+        const kept = items.filter((item) => actions.isStarred(item) || !actions.isTrashed(item));
+        return kept.filter(actions.isStarred).concat(kept.filter((item) => !actions.isStarred(item)));
       },
       counts: () => Object.fromEntries(NEWS_VIEWS.map(([view]) => [view, actions.visible(view).length])),
       get emptyText() {
-        if (actions.view === "pinned") return "Nothing pinned yet. Pin a story to keep it at the top.";
-        if (actions.view === "starred") return "Nothing starred yet. Star a story to keep it here for good.";
+        if (actions.view === "starred") return "Nothing starred yet. Star a story to keep it at the top and here for good.";
         if (actions.view === "trash") return "Nothing here yet. Tick a story once you've read it.";
         return "No news right now.";
       },
@@ -1654,7 +1646,7 @@
     return actions;
   }
 
-  // ---- News page: tabs (All / Pinned / Read), search and sort, a day picker, and the stories
+  // ---- News page: tabs (All / Starred / Read), search and sort, a day picker, and the stories
   // in day sections down a timeline, with a line where the stories new since your last visit end ----
 
   // Which stories were there last time you opened the News page (to mark what's new), and which
@@ -1727,16 +1719,21 @@
   // story's address and up to 600 characters of its text (for search and the summary line).
   async function loadArchive(pk) {
     const out = [];
-    for (let page = 0; page < ARCHIVE_MAX_PAGES; page++) {
+    const getPage = async (page) => {
       const url = new URL("../component/ArticleMultiLineList/" + encodeURIComponent(pk) + "/load_data?page=" + page, location.href);
       const res = await fetch(url, { credentials: "same-origin", headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" } });
       if (!res.ok) throw new Error("load_data " + res.status);
       const data = await res.json();
-      const list = data && Array.isArray(data.articles) ? data.articles : [];
-      if (!list.length) {
-        if (page === 0) continue;
-        break;
-      }
+      return data && Array.isArray(data.articles) ? data.articles : [];
+    };
+    const pages = [];
+    // Four pages at a time, until a batch comes back with an empty page.
+    for (let start = 0; start < ARCHIVE_MAX_PAGES; start += 4) {
+      const batch = await Promise.all([0, 1, 2, 3].map((i) => getPage(start + i)));
+      pages.push(...batch);
+      if (batch.some((list, i) => !list.length && start + i > 0)) break;
+    }
+    for (const list of pages) {
       for (const a of list) {
         if (!a || typeof a.title !== "string") continue;
         // The preview is the story's HTML: parsed inert (nothing loads or runs), only its text kept.
@@ -1831,7 +1828,7 @@
     });
     head.append(title, tabs);
 
-    // Search and sort, out in the open. Sort is remembered; pinned stories stay on top in "All stories".
+    // Search and sort, out in the open. Sort is remembered; starred stories stay on top in "All stories".
     const SORT_KEY = "ppui-news-sort";
     let sort = "newest";
     try {
@@ -1848,9 +1845,16 @@
     search.placeholder = "Search news";
     search.setAttribute("aria-label", "Search news");
     searchBox.append(icon("search"), search);
+    // Typing re-draws once you pause (a few ms), not on every key.
+    let searchTimer = 0;
     search.addEventListener("input", () => {
-      query = search.value.trim().toLowerCase();
-      render();
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        query = search.value.trim().toLowerCase();
+        words = query.split(/\s+/).filter(Boolean);
+        searchLimit = SEARCH_PAGE;
+        render();
+      }, 90);
     });
     const sortSeg = el("div", "ppui-room-sort");
     sortSeg.setAttribute("role", "group");
@@ -1914,13 +1918,16 @@
     list.id = "ppui-room-list";
     list.setAttribute("role", "tabpanel");
     const main = el("div", "ppui-room-main");
-    // More of the older stories in "All stories".
+    // More of the older stories in "All stories", and more search results.
     let olderShown = 0;
+    const SEARCH_PAGE = 40;
+    let searchLimit = SEARCH_PAGE;
     const moreBox = el("div", "ppui-room-older");
     const moreButton = el("button", "ppui-room-restore-all", "Show older news");
     moreButton.type = "button";
     moreButton.addEventListener("click", () => {
-      olderShown += OLDER_STEP;
+      if (words.length) searchLimit += SEARCH_PAGE;
+      else olderShown += OLDER_STEP;
       render();
     });
     moreBox.appendChild(moreButton);
@@ -1966,26 +1973,32 @@
       named.forEach((n) => n.classList.add("ppui-moved"));
     }
 
-    const matches = (item) => !query || item.title.toLowerCase().includes(query) ||
-      (item.searchText || item.summary || "").toLowerCase().includes(query);
+    const hay = (item) => item.hay || (item.hay = (item.title + " " + (item.searchText || item.summary || "")).toLowerCase());
+    let words = [];
+    const matches = (item) => !words.length || words.every((w) => hay(item).includes(w));
+    const titleHit = (item) => words.every((w) => item.title.toLowerCase().includes(w));
     // "All stories" with no search or day picked shows the page's own stories, plus older ones on request.
     const browsing = () => actions.view === "all" && !query && dayFilter === null;
-    const inWindow = (item) => !browsing() || actions.isPinned(item) || item.rank < pageCount + olderShown;
+    const inWindow = (item) => !browsing() || actions.isStarred(item) || item.rank < pageCount + olderShown;
 
-    // Undated stories keep their place at the end; pinned ones lead in "All stories".
+    // Undated stories keep their place at the end; starred ones lead in "All stories".
     function arrange(stories) {
       const dir = sort === "oldest" ? 1 : -1;
       const byTime = (a, b) => (a.time === null || b.time === null ? (a.time === null) - (b.time === null) : (a.time - b.time) * dir);
       const kept = stories.filter((item) => matches(item) && inWindow(item) && (dayFilter === null || item.time === dayFilter));
+      if (words.length) {
+        const sorted = kept.sort(byTime);
+        return sorted.filter(titleHit).concat(sorted.filter((item) => !titleHit(item)));
+      }
       if (actions.view !== "all") return kept.sort(byTime);
-      return kept.filter(actions.isPinned).sort(byTime).concat(kept.filter((item) => !actions.isPinned(item)).sort(byTime));
+      return kept.filter(actions.isStarred).sort(byTime).concat(kept.filter((item) => !actions.isStarred(item)).sort(byTime));
     }
 
     // One story: tick box, picture or date tile, headline with one line of summary, then when and pin.
     // The row opens the story in the reader.
     function storyRow(item, index) {
-      const pinned = actions.isPinned(item);
-      const card = el("article", "ppui-room-story is-row" + (pinned ? " is-pinned" : ""));
+      const starred = actions.isStarred(item);
+      const card = el("article", "ppui-room-story is-row" + (starred ? " is-starred" : ""));
       card.id = "ppui-story-" + index;
       card.dataset.index = String(index);
       if (item.time !== null) card.dataset.day = String(item.time);
@@ -2030,13 +2043,9 @@
       const side = el("div", "ppui-room-side");
       const ago = el("span", "ppui-room-ago" + (item.time !== null && daysBack(item.time) <= 0 ? " is-today" : ""), item.date.ago || "");
       side.appendChild(ago);
-      const starred = actions.isStarred(item);
-      if (starred) card.classList.add("is-starred");
       const star = storyButton("ppui-story-star", starred ? "Unstar" : "Star", "star", () => actions.toggleStar(item));
       star.setAttribute("aria-pressed", String(starred));
-      const pin = storyButton("ppui-story-pin", pinned ? "Unpin" : "Pin to the top", "pin", () => actions.togglePin(item));
-      pin.setAttribute("aria-pressed", String(pinned));
-      side.append(star, pin);
+      side.appendChild(star);
       card.append(readBox(item, card), ...(lead ? [lead] : []), text, side);
       // Anywhere on the row (but the tick box and pin) opens the reader.
       card.addEventListener("click", (e) => {
@@ -2056,7 +2065,7 @@
     }
 
     // Tick a story once you've read it: its headline is crossed out and it moves to "Read" (with
-    // Undo). It leaves "All stories" unless pinned; "Pinned" and "Starred" keep it, crossed out.
+    // Undo). It leaves "All stories" unless starred; starred ones stay, crossed out.
     // Untick to make it unread again.
     function readBox(item, card) {
       const done = actions.isTrashed(item);
@@ -2074,7 +2083,7 @@
         card.classList.toggle("is-done", input.checked);
         if (input.checked === done) return;
         const apply = () => (input.checked ? actions.trash(item) : actions.restore(item));
-        const leaves = input.checked ? actions.view === "all" && !actions.isPinned(item) : actions.view === "trash";
+        const leaves = input.checked ? actions.view === "all" && !actions.isStarred(item) : actions.view === "trash";
         input.disabled = true;
         setTimeout(() => (leaves ? leave(card, apply) : apply()), reduced() ? 0 : leaves ? 650 : 280);
       });
@@ -2161,12 +2170,15 @@
 
       const inTab = actions.visible();
       renderStrip();
-      const shown = arrange(inTab);
+      const found = arrange(inTab);
+      const shown = words.length ? found.slice(0, searchLimit) : found;
       shownNow = shown;
       const total = items.length;
       search.placeholder = archive.done ? "Search all " + total + " stories" : "Search news";
-      searchNote.textContent = query && !archive.done ? "Still loading older stories, so results may be missing some." : "";
-      moreBox.hidden = !browsing() || !inTab.some((item) => !inWindow(item));
+      searchNote.textContent = "";
+      moreButton.textContent = words.length ? "Show more results (" + (found.length - shown.length) + ")" : "Show older news";
+      moreBox.hidden = words.length ? found.length <= shown.length : !browsing() || !inTab.some((item) => !inWindow(item));
+      if (words.length) searchNote.textContent = (found.length === 1 ? "1 story" : found.length + " stories") + (archive.done ? "" : " so far, still loading older ones");
       if (!shown.length) {
         let empty;
         if (inTab.length && query) {
@@ -2176,6 +2188,7 @@
           clear.addEventListener("click", () => {
             search.value = "";
             query = "";
+            words = [];
             render();
             search.focus();
           });
@@ -2187,7 +2200,7 @@
         return;
       }
 
-      // Sections down the timeline: Pinned first (in "All stories"), then one per day or period.
+      // Sections down the timeline: Starred first (in "All stories"), then one per day or period.
       // In newest-first order, a line marks where the stories new since your last visit end.
       const frag = document.createDocumentFragment();
       let section = null;
@@ -2195,12 +2208,12 @@
       const anyNew = sort === "newest" && shown.some(isNew);
       let passedNew = false;
       shown.forEach((item, i) => {
-        const pinnedTop = actions.view === "all" && actions.isPinned(item);
-        const s = pinnedTop ? { key: "pinned", name: "Pinned" } : newsSection(item.time);
+        const pinnedTop = actions.view === "all" && !words.length && actions.isStarred(item);
+        const s = pinnedTop ? { key: "starred", name: "Starred" } : newsSection(item.time);
         if (s.key !== sectionKey) {
           sectionKey = s.key;
-          section = el("section", "ppui-room-section" + (s.today ? " is-today" : "") + (s.key === "pinned" ? " is-pinned" : ""));
-          const count = shown.filter((x) => (actions.view === "all" && actions.isPinned(x) ? "pinned" : newsSection(x.time).key) === s.key).length;
+          section = el("section", "ppui-room-section" + (s.today ? " is-today" : "") + (s.key === "starred" ? " is-starred" : ""));
+          const count = shown.filter((x) => (actions.view === "all" && !words.length && actions.isStarred(x) ? "starred" : newsSection(x.time).key) === s.key).length;
           const h = el("h2", "ppui-room-section-head");
           h.append(el("span", "ppui-room-section-name", s.name));
           if (s.sub) h.append(el("span", "ppui-room-section-date", s.sub));
@@ -4343,17 +4356,17 @@
       list.appendChild(emptyState(actions.emptyText));
       return;
     }
-    // Day headings: Pinned, Today, Earlier this week, Older. Each links to that day on the News page.
+    // Day headings: Starred, Today, Earlier this week, Older. Each links to that day on the News page.
     let lastBucket = null;
     items.slice(0, NEWS_COUNT).forEach((item, i) => {
-      const pinned = actions.isPinned(item);
+      const starred = actions.isStarred(item);
       const back = item.time === null ? null : daysBack(item.time);
-      const bucket = pinned && actions.view === "all" ? "Pinned" : back === null ? "Older" : back <= 0 ? "Today" : back < 7 ? "Earlier this week" : "Older";
+      const bucket = starred && actions.view === "all" ? "Starred" : back === null ? "Older" : back <= 0 ? "Today" : back < 7 ? "Earlier this week" : "Older";
       if (bucket !== lastBucket) {
         lastBucket = bucket;
         const h = el("li", "ppui-story-day" + (bucket === "Today" ? " is-today" : ""));
         h.appendChild(el("span", null, bucket));
-        if (bucket !== "Pinned" && item.time !== null) {
+        if (bucket !== "Starred" && item.time !== null) {
           const all = el("a", "ppui-story-day-link", "See all");
           all.href = newsHref.split("#")[0] + "#day=" + item.time;
           all.setAttribute("aria-label", "See all " + bucket.toLowerCase() + " news");
@@ -4361,7 +4374,7 @@
         }
         list.appendChild(h);
       }
-      const row = el("li", "ppui-story" + (i === 0 ? " is-lead" : "") + (pinned ? " is-pinned" : ""));
+      const row = el("li", "ppui-story" + (i === 0 ? " is-lead" : "") + (starred ? " is-starred" : ""));
       row.style.setProperty("--i", String(i));
       const a = el("a", "ppui-story-link");
       a.href = item.href || newsHref;
@@ -4377,27 +4390,24 @@
       body.appendChild(el("span", "ppui-headline", item.title));
       if (i === 0 && item.summary) body.appendChild(el("span", "ppui-summary", item.summary));
       const meta = el("span", "ppui-meta");
-      if (pinned) {
+      if (starred) {
         const mark = el("span", "ppui-pinned-mark");
-        mark.append(icon("pin"), document.createTextNode("Pinned"));
+        mark.append(icon("star"), document.createTextNode("Starred"));
         meta.appendChild(mark);
       }
       if (item.date.ago) meta.appendChild(document.createTextNode(item.date.ago));
       body.appendChild(meta);
       a.appendChild(body);
 
-      // Pin / mark as read (or, in the Read view, put back). They sit over the row and appear on hover or focus.
+      // Star / mark as read (or, in the Read view, put back). They sit over the row and appear on hover or focus.
       const tools = el("span", "ppui-story-actions");
       if (actions.view === "trash") {
         tools.appendChild(storyButton("ppui-story-restore", "Mark as unread", "rotateCcw", () => actions.restore(item)));
       } else {
-        const pin = storyButton("ppui-story-pin", pinned ? "Unpin" : "Pin to the top", "pin", () => actions.togglePin(item));
-        pin.setAttribute("aria-pressed", String(pinned));
-        const starred = actions.isStarred(item);
         const star = storyButton("ppui-story-star", starred ? "Unstar" : "Star", "star", () => actions.toggleStar(item));
         star.setAttribute("aria-pressed", String(starred));
-        tools.append(star, pin, storyButton("ppui-story-trash", "Mark as read", "check", () => {
-          if (pinned) return actions.trash(item);
+        tools.append(star, storyButton("ppui-story-trash", "Mark as read", "check", () => {
+          if (starred) return actions.trash(item);
           row.classList.add("is-leaving");
           setTimeout(() => actions.trash(item), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 260);
         }));
@@ -4416,7 +4426,7 @@
     let items = [];
     const actions = newsActions(() => items, render);
 
-    // Filter button in the card's heading: All stories / Pinned / Read, with counts.
+    // Filter button in the card's heading: All stories / Starred / Read, with counts.
     const filter = el("button", "ppui-filter");
     filter.type = "button";
     filter.setAttribute("aria-label", "Filter news");
@@ -4467,7 +4477,7 @@
     head.insertBefore(filter, head.querySelector(".ppui-link"));
 
     function render() {
-      // An emptied "Pinned" or "Read" view falls back to everything.
+      // An emptied "Starred" or "Read" view falls back to everything.
       if (actions.view !== "all" && !actions.visible().length) actions.view = "all";
       filterLabel.textContent = actions.view === "all" ? "" : NEWS_VIEWS.find(([v]) => v === actions.view)[1];
       filter.classList.toggle("is-active", actions.view !== "all");

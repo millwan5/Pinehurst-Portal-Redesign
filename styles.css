@@ -6335,15 +6335,101 @@ html .detail-email .email-body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
-/* ---------- Dropdowns: a solid card lifted off the page by a soft shadow ---------- */
+/* ---------- Dropdowns: liquid glass. A frosted, see-through panel with a bright white rim and a
+   soft lift; the item under the pointer rises as a small glass chip of its own. ---------- */
 .ppui-popover {
-  background: var(--ppui-surface);
-  border: 1px solid var(--ppui-hairline);
-  box-shadow: 0 22px 50px -14px rgba(11, 30, 69, 0.38), 0 6px 14px -4px rgba(11, 30, 69, 0.14);
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--ppui-surface) 66%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  backdrop-filter: blur(24px) saturate(1.8);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+    inset 0 -12px 24px -20px rgba(11, 30, 69, 0.3),
+    0 26px 50px -20px rgba(11, 30, 69, 0.34),
+    0 6px 16px -6px rgba(11, 30, 69, 0.12);
 }
 
 :root[data-ppui-theme="dark"] .ppui-popover {
-  box-shadow: 0 22px 50px -14px rgba(0, 0, 0, 0.8), 0 6px 14px -4px rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.14);
+  background: color-mix(in srgb, #2c2c2e 62%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 26px 50px -18px rgba(0, 0, 0, 0.85),
+    0 6px 16px -6px rgba(0, 0, 0, 0.5);
+}
+
+.ppui-popover .ppui-menu-item,
+.ppui-popover .ppui-app {
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 13px;
+  transition: background-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease, transform 0.18s var(--ppui-ease);
+}
+
+.ppui-popover .ppui-menu-item:focus-visible,
+.ppui-popover .ppui-app:focus-visible {
+  outline: none;
+}
+
+@media (hover: hover) {
+  .ppui-popover .ppui-menu-item:hover,
+  .ppui-popover .ppui-app:hover {
+    transform: none;
+  }
+}
+
+.ppui-popover .ppui-menu-item:focus-visible,
+.ppui-popover .ppui-app:focus-visible,
+.ppui-popover .ppui-menu-item:hover:not(:disabled),
+.ppui-popover .ppui-app:hover {
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--ppui-text) !important;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 1px 2px rgba(11, 30, 69, 0.06),
+    0 6px 14px -6px rgba(11, 30, 69, 0.2);
+}
+
+:root[data-ppui-theme="dark"] .ppui-popover .ppui-menu-item:focus-visible,
+:root[data-ppui-theme="dark"] .ppui-popover .ppui-app:focus-visible,
+:root[data-ppui-theme="dark"] .ppui-popover .ppui-menu-item:hover:not(:disabled),
+:root[data-ppui-theme="dark"] .ppui-popover .ppui-app:hover {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 6px 14px -6px rgba(0, 0, 0, 0.6);
+}
+
+.ppui-popover .ppui-menu-item:active,
+.ppui-popover .ppui-app:active {
+  transform: scale(0.97);
+}
+
+.ppui-popover .ppui-menu-item[aria-checked="true"] {
+  color: var(--ppui-accent) !important;
+}
+
+.ppui-popover .ppui-menu-item .ppui-icon {
+  opacity: 0.75;
+}
+
+.ppui-popover {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--ppui-text) 22%, transparent) transparent;
+}
+
+@media (max-width: 640px) {
+  .ppui-popover {
+    border-radius: 22px 22px 0 0;
+  }
+}
+
+.ppui-popover .ppui-menu-heading:not(:first-child),
+.ppui-popover .ppui-menu-sep {
+  margin-left: 8px;
+  margin-right: 8px;
 }
 
 /* ---------- News page: search and sort, a strip of days, day sections on a timeline, simple rows ---------- */
@@ -6600,7 +6686,7 @@ html .detail-email .email-body {
 }
 
 .ppui-room-section.is-today .ppui-room-section-head::before,
-.ppui-room-section.is-pinned .ppui-room-section-head::before { border-color: var(--ppui-accent); }
+.ppui-room-section.is-starred .ppui-room-section-head::before { border-color: var(--ppui-accent); }
 .ppui-room-section.is-today .ppui-room-section-name { color: var(--ppui-accent); }
 
 .ppui-room-section-date {
@@ -6984,28 +7070,28 @@ html .detail-email .email-body {
 
 /* News: pinned rows wear the accent (tinted, with a bar down the left) and sit at the top;
    starred stories get a gold star that stays visible. */
-.ppui-room-story.is-row.is-pinned {
+.ppui-room-story.is-row.is-starred {
   background: color-mix(in srgb, var(--ppui-accent) 9%, transparent);
   box-shadow: inset 3px 0 0 var(--ppui-accent);
   border-bottom-color: transparent;
   margin-bottom: 4px;
 }
 
-.ppui-room-story.is-row.is-pinned:hover {
+.ppui-room-story.is-row.is-starred:hover {
   background: color-mix(in srgb, var(--ppui-accent) 14%, transparent);
 }
 
-.ppui-room-section.is-pinned .ppui-room-section-name {
+.ppui-room-section.is-starred .ppui-room-section-name {
   color: var(--ppui-accent);
 }
 
-.ppui-story.is-pinned {
+.ppui-story.is-starred {
   border-radius: 10px;
   background: color-mix(in srgb, var(--ppui-accent) 9%, transparent);
   box-shadow: inset 3px 0 0 var(--ppui-accent);
 }
 
-.ppui-story.is-pinned .ppui-story-link {
+.ppui-story.is-starred .ppui-story-link {
   padding-left: 12px;
   padding-right: 8px;
 }
