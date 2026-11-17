@@ -2938,7 +2938,9 @@ html.ppui-news-pending .app-container {
   cursor: pointer;
 }
 
+/* The tick: the circle fills from its centre, then the check draws itself on, with a small pop. */
 .ppui-read-mark {
+  position: relative;
   display: grid;
   place-items: center;
   width: 22px;
@@ -2947,24 +2949,60 @@ html.ppui-news-pending .app-container {
   border: 2px solid var(--ppui-silver);
   border-radius: 50%;
   color: transparent;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: border-color 0.18s ease;
+}
+
+.ppui-read-mark::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: var(--ppui-accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+  scale: 0;
+  transition: scale 0.2s var(--ppui-ease);
 }
 
 .ppui-read-mark .ppui-icon {
+  position: relative;
   width: 13px;
   height: 13px;
   stroke-width: 3;
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  transition: stroke-dashoffset 0.22s ease-out, color 0.15s ease;
 }
 
 .ppui-read-box:hover .ppui-read-mark {
   border-color: var(--ppui-accent);
+}
+
+.ppui-read-box:hover input:not(:checked) + .ppui-read-mark .ppui-icon {
   color: var(--ppui-accent);
+  stroke-dashoffset: 0;
+  opacity: 0.45;
 }
 
 .ppui-read-box input:checked + .ppui-read-mark {
   border-color: var(--ppui-accent);
-  background: var(--ppui-accent);
   color: #fff;
+  animation: ppui-tick-pop 0.36s var(--ppui-ease);
+}
+
+.ppui-read-box input:checked + .ppui-read-mark::before { scale: 1; }
+
+.ppui-read-box input:checked + .ppui-read-mark .ppui-icon {
+  stroke-dashoffset: 0;
+  transition-delay: 0.1s;
+}
+
+@keyframes ppui-tick-pop {
+  50% { transform: scale(1.14); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ppui-read-mark, .ppui-read-mark::before, .ppui-read-mark .ppui-icon, .ppui-room-open-text,
+  .ppui-room-story.is-row.is-leaving { transition: none; animation: none; }
 }
 
 .ppui-read-box input:focus-visible + .ppui-read-mark {
@@ -3686,10 +3724,13 @@ button.ppui-menu-item:disabled {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  margin-right: 8px;
-  color: var(--ppui-accent);
+  margin-right: 6px;
+  color: #e8a400;
   font-weight: 700;
+  vertical-align: -1px;
 }
+
+.ppui-pinned-mark .ppui-icon { fill: currentColor; }
 
 .ppui-pinned-mark .ppui-icon {
   width: 12px;
@@ -6464,7 +6505,7 @@ html .detail-email .email-body {
   margin-right: 8px;
 }
 
-/* ---------- News page: search and sort, a strip of days, day sections on a timeline, simple rows ---------- */
+/* ---------- News page: search and sort, day sections on a timeline, simple rows ---------- */
 .ppui-newsroom {
   max-width: 900px;
 }
@@ -6511,124 +6552,6 @@ html .detail-email .email-body {
   box-shadow: none !important;
 }
 
-.ppui-room-sort {
-  display: inline-flex;
-  padding: 3px;
-  border-radius: 11px;
-  background: var(--ppui-hover-2);
-}
-
-.ppui-room-sort-item {
-  border: 0;
-  border-radius: 8px;
-  padding: 7px 14px;
-  background: transparent;
-  color: var(--ppui-muted);
-  font: 650 13px var(--ppui-font);
-  cursor: pointer;
-}
-
-.ppui-room-sort-item[aria-pressed="true"] {
-  background: var(--ppui-surface);
-  color: var(--ppui-accent);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-}
-
-.ppui-room-keys {
-  font-size: 12px;
-  color: var(--ppui-muted);
-  white-space: nowrap;
-}
-
-.ppui-room-keys kbd {
-  display: inline-block;
-  min-width: 18px;
-  margin-right: 3px;
-  padding: 1px 5px;
-  border: 1px solid var(--ppui-hairline);
-  border-bottom-width: 2px;
-  border-radius: 6px;
-  background: var(--ppui-surface);
-  font: 700 11px var(--ppui-font);
-  text-align: center;
-}
-
-@media (hover: none), (max-width: 700px) {
-  .ppui-room-keys { display: none; }
-}
-
-/* Day strip */
-.ppui-room-strip {
-  display: flex;
-  gap: 6px;
-  margin: 0 -4px 14px;
-  padding: 4px 4px 8px;
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  scrollbar-width: thin;
-}
-
-.ppui-day-chip {
-  flex: none;
-  scroll-snap-align: end;
-  display: grid;
-  justify-items: center;
-  gap: 2px;
-  width: 54px;
-  padding: 7px 0 8px;
-  border: 1px solid var(--ppui-hairline);
-  border-radius: 14px;
-  background: var(--ppui-surface);
-  color: var(--ppui-text);
-  font-family: var(--ppui-font);
-  cursor: pointer;
-  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s var(--ppui-ease);
-}
-
-.ppui-day-chip:hover:not(:disabled) { border-color: var(--ppui-accent); }
-.ppui-day-chip:active:not(:disabled) { transform: scale(0.95); }
-.ppui-day-chip:disabled { opacity: 0.4; cursor: default; }
-
-.ppui-day-chip-wd {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--ppui-muted);
-}
-
-.ppui-day-chip-num {
-  font-size: 18px;
-  font-weight: 750;
-  line-height: 1.1;
-}
-
-.ppui-day-chip-count {
-  min-width: 18px;
-  height: 16px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--ppui-accent-soft);
-  color: var(--ppui-accent);
-  font-size: 10.5px;
-  font-weight: 800;
-  line-height: 16px;
-  text-align: center;
-}
-
-.ppui-day-chip-count:empty { background: transparent; }
-.ppui-day-chip.is-today .ppui-day-chip-num { color: var(--ppui-accent); }
-.ppui-day-chip.is-active { border-color: var(--ppui-accent); box-shadow: inset 0 0 0 1px var(--ppui-accent); }
-
-.ppui-day-chip.is-filter {
-  border-color: var(--ppui-accent);
-  background: var(--ppui-accent);
-}
-
-.ppui-day-chip.is-filter .ppui-day-chip-wd,
-.ppui-day-chip.is-filter .ppui-day-chip-num { color: #fff; }
-.ppui-day-chip.is-filter .ppui-day-chip-count { background: rgba(255, 255, 255, 0.25); color: #fff; }
-
 .ppui-room-filter:empty { display: none; }
 
 .ppui-room-filter-pill {
@@ -6666,13 +6589,13 @@ html .detail-email .email-body {
 
 .ppui-room-section {
   position: relative;
-  padding-left: 30px;
+  padding-left: 20px;
 }
 
 .ppui-room-section::before {
   content: "";
   position: absolute;
-  left: 8px;
+  left: 4px;
   top: 0;
   bottom: 0;
   width: 2px;
@@ -6690,8 +6613,8 @@ html .detail-email .email-body {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin: 0 0 0 -30px !important;
-  padding: 12px 0 9px 30px;
+  margin: 0 0 0 -20px !important;
+  padding: 12px 0 9px 20px;
   background: color-mix(in srgb, var(--ppui-bg) 92%, transparent);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
@@ -6706,7 +6629,7 @@ html .detail-email .email-body {
 .ppui-room-section-head::before {
   content: "";
   position: absolute;
-  left: 3px;
+  left: -1px;
   top: 50%;
   translate: 0 -50%;
   width: 12px;
@@ -6718,7 +6641,7 @@ html .detail-email .email-body {
 }
 
 .ppui-room-section.is-today .ppui-room-section-head::before,
-.ppui-room-section.is-starred .ppui-room-section-head::before { border-color: var(--ppui-accent); }
+.ppui-room-section.is-pinned .ppui-room-section-head::before { border-color: var(--ppui-accent); }
 .ppui-room-section.is-today .ppui-room-section-name { color: var(--ppui-accent); }
 
 .ppui-room-section-date {
@@ -6783,8 +6706,29 @@ html .detail-email .email-body {
 .ppui-room-story.is-row:focus-visible,
 .ppui-room-story.is-row:focus { outline: 2px solid var(--ppui-accent); outline-offset: -2px; }
 .ppui-room-story.is-row.is-pinned { border-top: 0; }
-.ppui-room-story.is-row.is-leaving { opacity: 0; translate: 40px 0; }
-.ppui-room-story.is-row.is-done .ppui-room-open-story { text-decoration: line-through; color: var(--ppui-muted); }
+/* Leaving its tab: fades and folds shut (content.js fixes the height first so it can animate to 0). */
+.ppui-room-story.is-row.is-leaving {
+  height: 0 !important;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-bottom-color: transparent;
+  opacity: 0;
+  overflow: hidden;
+  transition: height 0.3s var(--ppui-ease), padding 0.3s var(--ppui-ease), opacity 0.2s ease, border-color 0.2s ease;
+}
+
+/* Ticked: a line sweeps through the headline, left to right, and it greys out. */
+.ppui-room-open-text {
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 58% / 0 1.5px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  transition: background-size 0.32s var(--ppui-ease) 0.12s, color 0.25s ease 0.12s;
+}
+
+.ppui-room-story.is-row.is-done .ppui-room-open-text {
+  background-size: 100% 1.5px;
+  color: var(--ppui-muted);
+}
 
 .ppui-room-new {
   position: absolute;
@@ -6862,7 +6806,13 @@ html .detail-email .email-body {
 .ppui-room-side {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+}
+
+/* The date has a set width, so the pin and star line up down the list. */
+.ppui-room-story.is-row .ppui-room-side .ppui-room-ago {
+  min-width: 78px;
+  text-align: right;
 }
 
 .ppui-room-story.is-row .ppui-room-ago {
@@ -6909,7 +6859,7 @@ html .detail-email .email-body {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin: 10px 0 2px;
+  margin: 20px 0 6px;
   list-style: none;
   color: var(--ppui-muted);
   font-size: 11.5px;
@@ -6919,7 +6869,8 @@ html .detail-email .email-body {
 }
 
 .ppui-story-day:first-child { margin-top: 0; }
-.ppui-story-day.is-today { color: var(--ppui-accent); }
+.ppui-story-day.is-today,
+.ppui-story-day.is-pinned { color: var(--ppui-accent); }
 
 .ppui-story-day-link {
   color: var(--ppui-accent) !important;
@@ -6972,13 +6923,13 @@ html .detail-email .email-body {
   display: none;
 }
 
-/* News: the day picker button, beside sort. */
-.ppui-room-day-button {
+/* News: the Sort button (order and day, in one menu), beside search. */
+.ppui-room-sort-button {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  height: 36px;
-  padding: 0 12px;
+  height: 40px;
+  padding: 0 14px;
   border: 1px solid var(--ppui-hairline);
   border-radius: 11px;
   background: var(--ppui-surface);
@@ -6987,22 +6938,22 @@ html .detail-email .email-body {
   cursor: pointer;
 }
 
-.ppui-room-day-button:hover {
+.ppui-room-sort-button:hover {
   background: var(--ppui-accent-soft);
 }
 
-.ppui-room-day-button.is-on {
+.ppui-room-sort-button.is-on {
   border-color: transparent;
   background: var(--ppui-accent-soft);
   color: var(--ppui-accent);
 }
 
-.ppui-room-day-button .ppui-icon {
+.ppui-room-sort-button .ppui-icon {
   width: 15px;
   height: 15px;
 }
 
-.ppui-room-day-button .ppui-icon:last-child {
+.ppui-room-sort-button .ppui-icon:last-child {
   width: 13px;
   height: 13px;
   opacity: 0.6;
@@ -7014,55 +6965,20 @@ html .detail-email .email-body {
   min-width: 220px;
 }
 
-/* News: pill motion. Sort's highlight slides between Newest and Oldest, the day button's chevron
-   turns while its menu is open, and the "Showing <day>" pill pops in. */
-.ppui-room-sort {
-  position: relative;
-  display: inline-grid;
-  grid-template-columns: 1fr 1fr;
-}
-
-.ppui-room-sort::before {
-  content: "";
-  position: absolute;
-  top: 3px;
-  bottom: 3px;
-  left: 3px;
-  width: calc(50% - 3px);
-  border-radius: 8px;
-  background: var(--ppui-surface);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-  transition: transform 0.38s cubic-bezier(0.34, 1.4, 0.64, 1);
-}
-
-.ppui-room-sort:has([data-sort="oldest"][aria-pressed="true"])::before {
-  transform: translateX(100%);
-}
-
-.ppui-room-sort-item {
-  position: relative;
-  transition: color 0.2s, transform 0.15s;
-}
-
-.ppui-room-sort-item[aria-pressed="true"] {
-  background: transparent;
-  box-shadow: none;
-}
-
-.ppui-room-sort-item:active,
-.ppui-room-day-button:active {
+/* News: the Sort button's chevron turns while its menu is open, and the "Showing <day>" pill pops in. */
+.ppui-room-sort-button:active {
   transform: scale(0.95);
 }
 
-.ppui-room-day-button {
+.ppui-room-sort-button {
   transition: background-color 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
 }
 
-.ppui-room-day-button .ppui-icon:last-child {
+.ppui-room-sort-button .ppui-icon:last-child {
   transition: transform 0.3s var(--ppui-ease);
 }
 
-.ppui-room-day-button[aria-expanded="true"] .ppui-icon:last-child {
+.ppui-room-sort-button[aria-expanded="true"] .ppui-icon:last-child {
   transform: rotate(180deg);
 }
 
@@ -7088,10 +7004,8 @@ html .detail-email .email-body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ppui-room-sort::before,
-  .ppui-room-sort-item,
-  .ppui-room-day-button,
-  .ppui-room-day-button .ppui-icon:last-child,
+  .ppui-room-sort-button,
+  .ppui-room-sort-button .ppui-icon:last-child,
   .ppui-room-filter-clear {
     transition: none;
   }
@@ -7100,30 +7014,30 @@ html .detail-email .email-body {
   }
 }
 
-/* News: pinned rows wear the accent (tinted, with a bar down the left) and sit at the top;
-   starred stories get a gold star that stays visible. */
-.ppui-room-story.is-row.is-starred {
+/* News: pinned rows wear the accent (tinted, with a bar down the left) and sit at the top, on the
+   News page and the home card; starred stories keep their place and get a gold star that stays visible. */
+.ppui-room-story.is-row.is-pinned {
   background: color-mix(in srgb, var(--ppui-accent) 9%, transparent);
   box-shadow: inset 3px 0 0 var(--ppui-accent);
   border-bottom-color: transparent;
   margin-bottom: 4px;
 }
 
-.ppui-room-story.is-row.is-starred:hover {
+.ppui-room-story.is-row.is-pinned:hover {
   background: color-mix(in srgb, var(--ppui-accent) 14%, transparent);
 }
 
-.ppui-room-section.is-starred .ppui-room-section-name {
+.ppui-room-section.is-pinned .ppui-room-section-name {
   color: var(--ppui-accent);
 }
 
-.ppui-story.is-starred {
+.ppui-story.is-pinned {
   border-radius: 10px;
   background: color-mix(in srgb, var(--ppui-accent) 9%, transparent);
   box-shadow: inset 3px 0 0 var(--ppui-accent);
 }
 
-.ppui-story.is-starred .ppui-story-link {
+.ppui-story.is-pinned .ppui-story-link {
   padding-left: 12px;
   padding-right: 8px;
 }
@@ -7333,4 +7247,73 @@ html.ppui-home .component-my-events-student,
 .ppui-feature-icon {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.1));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* ---------- Reader, centred (stories opened from the News page): a large window in the middle of the
+   screen that rises into place. From the home card the reader stays a panel at the side. ---------- */
+.ppui-reader.is-centre {
+  inset: 0;
+  width: min(880px, calc(100vw - 48px));
+  height: min(90dvh, 1040px);
+  margin: auto;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: var(--ppui-radius-card);
+  overflow: hidden;
+  box-shadow: var(--ppui-bevel), 0 40px 90px -30px rgba(4, 10, 26, 0.55);
+}
+
+.ppui-reader.is-centre .ppui-reader-all { display: none; }
+
+.ppui-reader.is-centre .ppui-reader-scroll { padding: 28px 40px 48px; }
+
+.ppui-reader.is-centre .ppui-reader-page { max-width: 68ch; }
+
+/* The portal's own page for the story, at the end of every story. */
+.ppui-reader-page > .ppui-reader-source {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  margin: 32px auto 0;
+  padding: 11px 20px;
+  background: var(--ppui-surface);
+  box-shadow: var(--ppui-bevel-btn);
+}
+
+:root[data-ppui-theme="dark"] .ppui-reader-page > .ppui-reader-source { background: var(--ppui-raised); }
+
+.ppui-reader-page > .ppui-reader-source:hover { background: var(--ppui-accent-soft); }
+
+.ppui-reader-page > .ppui-reader-source .ppui-icon { width: 16px; height: 16px; stroke-width: 2; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .ppui-reader.is-centre[open] { animation: ppui-reader-pop 0.32s var(--ppui-ease); }
+  .ppui-reader.is-centre.is-closing { animation: ppui-reader-pop-out 0.22s ease-in forwards; }
+}
+
+@keyframes ppui-reader-pop {
+  from { opacity: 0; scale: 0.96; translate: 0 14px; }
+}
+
+@keyframes ppui-reader-pop-out {
+  to { opacity: 0; scale: 0.97; translate: 0 10px; }
+}
+
+/* Phones: the centred reader is a bottom sheet, like the side one. */
+@media (max-width: 640px) {
+  .ppui-reader.is-centre {
+    inset: auto 0 0 0;
+    width: 100%;
+    height: 92dvh;
+    margin: 0;
+    border-width: 1px 0 0;
+    border-radius: var(--ppui-radius-card) var(--ppui-radius-card) 0 0;
+  }
+  .ppui-reader.is-centre .ppui-reader-scroll { padding: 18px 18px calc(36px + env(safe-area-inset-bottom)); }
+}
+
+@media (max-width: 640px) and (prefers-reduced-motion: no-preference) {
+  .ppui-reader.is-centre[open] { animation-name: ppui-sheet; }
+  .ppui-reader.is-centre.is-closing { animation-name: ppui-sheet-out; animation-timing-function: var(--ppui-ease); }
 }
