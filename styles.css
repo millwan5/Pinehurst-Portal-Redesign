@@ -7373,3 +7373,39 @@ html .detail-email .email-body {
   70% { opacity: 0.8; }
   100% { opacity: 0; transform: translate(var(--dx, 20px), var(--dy, -2px)) scale(1); }
 }
+
+/* School-day progress: liquid metal. content.js draws the filled parts as flowing chrome in the
+   theme's colours on a canvas over the track; the CSS ripples step aside. The front of the current
+   period is a polished metal drop. */
+.ppui-metal {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.ppui-progress-seg::before,
+.ppui-progress-seg.is-now::before {
+  content: none;
+}
+
+.ppui-progress-seg.is-now::after {
+  box-shadow: none;
+}
+
+.ppui-progress-spark {
+  width: 13px;
+  height: 13px;
+  margin: -6.5px 0 0 -9px;
+  background:
+    radial-gradient(circle at 34% 28%, #fff 0 14%, rgba(255, 255, 255, 0) 30%),
+    radial-gradient(circle at 70% 78%, color-mix(in srgb, var(--ppui-sky) 50%, #fff) 0 10%, transparent 26%),
+    radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--ppui-sky) 70%, #fff) 0, var(--ppui-crest) 55%, color-mix(in srgb, var(--ppui-crest) 40%, #000) 100%);
+  box-shadow:
+    inset 0 0 0 0.75px rgba(255, 255, 255, 0.7),
+    inset -1px -1.5px 2px rgba(255, 120, 60, 0.35),
+    inset 1px 1px 2px rgba(80, 160, 255, 0.4),
+    0 1px 4px rgba(0, 0, 0, 0.25);
+}

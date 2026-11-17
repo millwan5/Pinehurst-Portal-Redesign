@@ -4234,6 +4234,8 @@
     const minutes = d.getHours() * 60 + d.getMinutes();
     const track = bar.querySelector(".ppui-progress-track");
     track.replaceChildren();
+    // The liquid metal canvas sits over the fills (out of the flex flow).
+    if (bar.metal) track.appendChild(bar.metal.canvas);
     let total = 0;
     let passed = 0;
     let done = 0;
@@ -4256,6 +4258,7 @@
     // How far through the day we are, for the pulse that runs along the filled part.
     track.style.setProperty("--done", (passed / total).toFixed(4));
     track.classList.toggle("is-started", passed > 0);
+    if (bar.metal) bar.metal.draw();
     bar.querySelector(".ppui-progress-label").textContent =
       done >= timed.length ? "School's out" : passed <= 0 ? timed.length + " on today" : done + " of " + timed.length + " done";
     bar.setAttribute("aria-valuenow", String(Math.round((passed / total) * 100)));
@@ -4269,34 +4272,163 @@
     bar.setAttribute("aria-valuemax", "100");
     bar.append(el("span", "ppui-progress-track"), el("span", "ppui-progress-label"));
     bar.hidden = true;
-    startBubbles(bar);
+    startMetal(bar);
     return bar;
   }
 
-  // Little bubbles drifting along the filled part of the day bar, as if it were liquid. One every
-  // so often, only while the bar is on screen, the tab is showing and motion is welcome.
-  function startBubbles(bar) {
+  // ---- Liquid metal for the day bar ----
+  // The filled part of each period is drawn as flowing chrome in the theme's colours: the bar is
+  // shaded like a tube reflecting a banded sky, and slow noise bends the reflections so they
+  // pool, stretch and run along it. A thin red / blue fringe sits on the brightest edges, as on
+  // real polished metal. Animates only while on screen, the tab is showing and motion is welcome;
+  // otherwise one still frame.
+
+  // Smooth value noise and three octaves of it.
+  const metalHash = (x, y) => {
+    const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+    return s - Math.floor(s);
+  };
+  function metalNoise(x, y) {
+    const xi = Math.floor(x);
+    const yi = Math.floor(y);
+    const xf = x - xi;
+    const yf = y - yi;
+    const u = xf * xf * (3 - 2 * xf);
+    const v = yf * yf * (3 - 2 * yf);
+    const a = metalHash(xi, yi);
+    const b = metalHash(xi + 1, yi);
+    const c = metalHash(xi, yi + 1);
+    const d = metalHash(xi + 1, yi + 1);
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+  }
+  const metalFbm = (x, y) => metalNoise(x, y) * 0.55 + metalNoise(x * 2.1, y * 2.1) * 0.3 + metalNoise(x * 4.3, y * 4.3) * 0.15;
+
+  // A CSS colour (a custom property) as [r, g, b].
+  function cssRgb(value, probe) {
+    probe.style.color = value;
+    const m = getComputedStyle(probe).color.match(/[\d.]+/g) || [0, 0, 0];
+    return [+m[0], +m[1], +m[2]];
+  }
+
+  function startMetal(bar) {
+    const canvas = el("canvas", "ppui-metal");
+    canvas.setAttribute("aria-hidden", "true");
+    const ctx = canvas.getContext("2d");
+    const probe = el("span");
+    probe.style.display = "none";
+    bar.appendChild(probe);
+    let colours = null;
+    let coloursAt = 0;
+    let image = null;
     let onScreen = false;
-    new IntersectionObserver(([entry]) => (onScreen = entry.isIntersecting)).observe(bar);
-    setInterval(() => {
-      if (!onScreen || bar.hidden || document.hidden || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      const track = bar.querySelector(".ppui-progress-track");
-      const done = parseFloat(track.style.getPropertyValue("--done")) || 0;
-      const width = track.clientWidth * done;
-      if (width < 16 || track.querySelectorAll(".ppui-bubble").length > 10) return;
-      const size = 2 + Math.random() * 3;
-      const b = el("span", "ppui-bubble");
-      b.setAttribute("aria-hidden", "true");
-      b.style.left = (Math.random() * (width - 12)).toFixed(1) + "px";
-      b.style.top = (3 + Math.random() * 3).toFixed(1) + "px";
-      b.style.width = b.style.height = size.toFixed(1) + "px";
-      // Drift with the flow (but never past the front of the liquid), rising a touch.
-      b.style.setProperty("--dx", Math.min(14 + Math.random() * 26, width - parseFloat(b.style.left) - 4).toFixed(1) + "px");
-      b.style.setProperty("--dy", (-1 - Math.random() * 2.5).toFixed(1) + "px");
-      b.style.animationDuration = (1.4 + Math.random() * 1.4).toFixed(2) + "s";
-      b.addEventListener("animationend", () => b.remove());
-      track.appendChild(b);
-    }, 260);
+    let last = 0;
+    const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Dark, base, light and highlight tones from the theme (re-read every few seconds).
+    const palette = () => {
+      if (colours && performance.now() - coloursAt < 3000) return colours;
+      const crest = cssRgb("var(--ppui-crest)", probe);
+      const sky = cssRgb("var(--ppui-sky)", probe);
+      const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+      colours = { deep: mix(crest, [0, 0, 0], 0.7), base: crest, light: mix(sky, [255, 255, 255], 0.5), white: [255, 255, 255] };
+      coloursAt = performance.now();
+      return colours;
+    };
+
+    // Where the liquid is: each period's filled part, as boxes along the track.
+    const pools = (track, box) => [...track.querySelectorAll(".ppui-progress-seg")].map((seg) => {
+      const r = seg.getBoundingClientRect();
+      const fill = parseFloat(seg.style.getPropertyValue("--fill")) || 0;
+      return { x: r.left - box.left, w: r.width * fill, now: seg.classList.contains("is-now") };
+    }).filter((p) => p.w > 0.5);
+
+    function draw(time = performance.now()) {
+      const track = canvas.parentElement;
+      if (!track || bar.hidden) return;
+      const box = track.getBoundingClientRect();
+      // Drawn small (one pixel per two CSS pixels across, 12 rows) and scaled up: chrome is all
+      // smooth gradients, so it looks the same and costs a fraction.
+      const dpr = 0.5;
+      const w = Math.max(1, Math.round(box.width * dpr));
+      const h = 12;
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+        image = ctx.createImageData(w, h);
+      }
+      const { deep, base, light, white } = palette();
+      const t = time / 1000;
+      const data = image.data;
+      const list = pools(track, box);
+      data.fill(0);
+      // Shade every pixel inside a pool.
+      for (const p of list) {
+        const x0 = Math.max(0, Math.floor(p.x * dpr));
+        const x1 = Math.min(w, Math.ceil((p.x + p.w) * dpr));
+        for (let py = 0; py < h; py++) {
+          const ny = (py + 0.5) / h * 2 - 1; // -1 top, 1 bottom: the tube's curve
+          const curve = Math.sqrt(Math.max(0, 1 - ny * ny));
+          for (let px = x0; px < x1; px++) {
+            const x = px / dpr;
+            // Rounded ends (a capsule per pool), with a soft edge.
+            const fromStart = x - p.x;
+            const fromEnd = p.x + p.w - x;
+            const cap = (box.height / 2);
+            let alpha = 1;
+            const endDist = Math.min(fromStart, fromEnd);
+            if (endDist < cap) {
+              const dx = cap - endDist;
+              const dy = Math.abs(ny) * cap;
+              const d = Math.sqrt(dx * dx + dy * dy) - cap;
+              alpha = Math.max(0, Math.min(1, 0.5 - d * 0.8));
+              if (!alpha) continue;
+            }
+            // Flowing distortion bends the reflection.
+            const flow = metalFbm(x * 0.016 - t * 0.35, ny * 0.6 + t * 0.12);
+            const swirl = Math.sin(x * 0.022 - t * 1.1 + flow * 3) * 0.22;
+            const r = ny * 1.2 + (flow - 0.5) * 1.8 + swirl;
+            const shade = (k) => {
+              // Banded "sky" reflected in chrome: dark under the horizon, bright above, a hard
+              // specular streak, darkening toward the tube's edges.
+              const band = Math.pow(0.5 + 0.5 * Math.sin(k * 2.3 + 0.4), 1.15);
+              const spec = Math.max(0, 1 - Math.abs(k + 0.5) * 3);
+              const rim = Math.max(0, 1 - Math.abs(k - 1.05) * 6) * 0.6;
+              return { band, spec: Math.min(1, spec * spec + rim * rim) };
+            };
+            const g = shade(r);
+            const rr = shade(r - 0.045);
+            const bb = shade(r + 0.045);
+            const pick = (s, i) => {
+              const lo = deep[i] + (base[i] - deep[i]) * Math.min(1, s.band * 1.6);
+              const hi = base[i] + (light[i] - base[i]) * Math.max(0, s.band * 1.6 - 0.6);
+              let c = s.band < 0.62 ? lo : hi;
+              c = c + (white[i] - c) * s.spec;
+              return c * (0.62 + 0.38 * curve);
+            };
+            const o = (py * w + px) * 4;
+            data[o] = pick(rr, 0) + rr.spec * 18;
+            data[o + 1] = pick(g, 1);
+            data[o + 2] = pick(bb, 2) + bb.spec * 18;
+            data[o + 3] = 255 * alpha;
+          }
+        }
+      }
+      ctx.putImageData(image, 0, 0);
+    }
+
+    function frame(time) {
+      requestAnimationFrame(frame);
+      if (!onScreen || bar.hidden || document.hidden || reduced()) return;
+      if (time - last < 33) return;
+      last = time;
+      draw(time);
+    }
+
+    new IntersectionObserver(([entry]) => {
+      onScreen = entry.isIntersecting;
+    }).observe(bar);
+    requestAnimationFrame(frame);
+    bar.metal = { canvas, draw };
   }
 
   // Placeholder rows that shimmer while a card loads.
