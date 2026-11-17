@@ -748,7 +748,8 @@ html :focus-visible {
 /* ---------- Popovers (Apps launcher, menus). Placed by content.js; bottom sheet on phones. ---------- */
 
 .ppui-popover {
-  position: fixed;
+  /* absolute in the top layer = page coordinates: an open dropdown scrolls with the page */
+  position: absolute;
   inset: auto;
   margin: 0;
   padding: 8px;
@@ -767,6 +768,7 @@ html :focus-visible {
 
 @media (max-width: 640px) {
   .ppui-popover {
+    position: fixed;
     inset: auto 0 0 0 !important;
     width: 100% !important;
     max-width: none !important;
@@ -6339,73 +6341,37 @@ html .detail-email .email-body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
-/* ---------- Floating bar: the pills stay at the top once the banner scrolls away ---------- */
-.ppui-float-bar {
-  --ppui-gutter: max(16px, calc(50vw - 580px));
-  position: fixed;
-  top: 10px;
-  left: var(--ppui-gutter);
-  right: var(--ppui-gutter);
-  z-index: 2147483000;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  pointer-events: none;
+/* ---------- Dropdown looks (Customise > Dropdowns) ---------- */
+
+/* Shadow: a solid card lifted off the page. */
+:root[data-ppui-menus="shadow"] .ppui-popover {
+  background: var(--ppui-surface);
+  border: 1px solid var(--ppui-hairline);
+  box-shadow: 0 22px 50px -14px rgba(11, 30, 69, 0.38), 0 6px 14px -4px rgba(11, 30, 69, 0.14);
 }
 
-.ppui-float-bar > * {
-  pointer-events: auto;
-  animation: ppui-float-in 0.35s var(--ppui-ease);
+:root[data-ppui-theme="dark"][data-ppui-menus="shadow"] .ppui-popover {
+  box-shadow: 0 22px 50px -14px rgba(0, 0, 0, 0.8), 0 6px 14px -4px rgba(0, 0, 0, 0.5);
 }
 
-.ppui-float-bar > .ppui-pill:not(.ppui-nav-pill) { margin-left: auto; }
-
-@keyframes ppui-float-in {
-  from { opacity: 0; transform: translateY(-10px) scale(0.97); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ppui-float-bar > * { animation: none; }
-}
-
-/* Over the page, the icons switch to the page's ink colour. */
-.ppui-float-bar .ppui-bar-button { color: var(--ppui-text) !important; }
-.ppui-float-bar .ppui-icon { filter: none; }
-.ppui-float-bar .ppui-bar-button.ppui-avatar {
-  background: var(--ppui-accent);
-  color: #fff !important;
-}
-
-/* Look 1: Shadow. A solid frosted pill lifted off the page by a soft shadow. */
-:root[data-ppui-float="shadow"] .ppui-float-bar .ppui-pill {
-  background: rgba(255, 255, 255, 0.86);
-  -webkit-backdrop-filter: blur(18px) saturate(1.6) !important;
-  backdrop-filter: blur(18px) saturate(1.6) !important;
-  box-shadow: 0 12px 32px -10px rgba(11, 30, 69, 0.3), 0 2px 6px rgba(11, 30, 69, 0.1);
-}
-
-:root[data-ppui-theme="dark"][data-ppui-float="shadow"] .ppui-float-bar .ppui-pill {
-  background: rgba(44, 44, 46, 0.86);
-  box-shadow: 0 12px 32px -10px rgba(0, 0, 0, 0.7), 0 2px 6px rgba(0, 0, 0, 0.4);
-}
-
-/* Look 2: Glass border. Clear glass that keeps bending the page, outlined by a bright rim. */
-:root[data-ppui-float="glass"] .ppui-float-bar .ppui-pill {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.3));
+/* Glass border: frosted, see-through glass with a bright rim, and only a faint shadow. */
+:root[data-ppui-menus="glass"] .ppui-popover {
+  background: color-mix(in srgb, var(--ppui-surface) 66%, transparent);
+  -webkit-backdrop-filter: blur(26px) saturate(1.8);
+  backdrop-filter: blur(26px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.95),
-    inset 0 2px 1px -1px #fff,
-    inset 0 -1px 1px rgba(11, 30, 69, 0.06),
-    0 0 0 1px rgba(11, 30, 69, 0.08),
-    0 4px 12px -6px rgba(11, 30, 69, 0.18);
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+    0 0 0 1px rgba(11, 30, 69, 0.06),
+    0 10px 30px -14px rgba(11, 30, 69, 0.28);
 }
 
-:root[data-ppui-theme="dark"][data-ppui-float="glass"] .ppui-float-bar .ppui-pill {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
+:root[data-ppui-theme="dark"][data-ppui-menus="glass"] .ppui-popover {
+  background: color-mix(in srgb, var(--ppui-surface) 58%, transparent);
+  border-color: rgba(255, 255, 255, 0.22);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    0 0 0 1px rgba(0, 0, 0, 0.5),
-    0 6px 16px -6px rgba(0, 0, 0, 0.6);
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 12px 32px -14px rgba(0, 0, 0, 0.7);
 }

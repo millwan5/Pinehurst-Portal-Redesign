@@ -39,6 +39,7 @@
   try {
     const p = localStorage.getItem("ppui-banner-palette");
     if (/^(teal|forest|violet|rose|sunset|graphite)$/.test(p || "")) root.setAttribute("data-ppui-palette", p);
+    root.setAttribute("data-ppui-menus", localStorage.getItem("ppui-menu-style") === "glass" ? "glass" : "shadow");
   } catch (e) {}
 
   root.classList.add("ppui-booting");

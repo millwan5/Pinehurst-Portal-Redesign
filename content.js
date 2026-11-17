@@ -504,11 +504,13 @@
       pop.style.top = pop.style.left = "";
       return;
     }
+    // Page coordinates (the popover is position: absolute), so an open dropdown scrolls with the
+    // page and stays by its button instead of following the window.
     const r = trigger.getBoundingClientRect();
     const width = pop.offsetWidth;
     const left = Math.min(Math.max(8, r.right - width), innerWidth - width - 8);
-    pop.style.left = left + "px";
-    pop.style.top = Math.min(r.bottom + 8, innerHeight - pop.offsetHeight - 8) + "px";
+    pop.style.left = left + scrollX + "px";
+    pop.style.top = Math.max(8, Math.min(r.bottom + 8, innerHeight - pop.offsetHeight - 8)) + scrollY + "px";
   }
 
   // Wire a <button> to open `pop`; onOpen runs each time it opens (fill or focus content).
@@ -748,15 +750,16 @@
   }
 
   // ---- Customise: banner style, colour theme and the floating bar's look, in one panel ----
-  const FLOAT_KEY = "ppui-float-style";
+  const MENUS_KEY = "ppui-menu-style";
 
-  function savedFloatStyle() {
+  function savedMenuStyle() {
     try {
-      return localStorage.getItem(FLOAT_KEY) === "glass" ? "glass" : "shadow";
+      return localStorage.getItem(MENUS_KEY) === "glass" ? "glass" : "shadow";
     } catch (e) {
       return "shadow";
     }
   }
+  root.setAttribute("data-ppui-menus", savedMenuStyle());
 
   function buildCustomise(banner) {
     const btn = el("button", "ppui-bar-button ppui-customise-button");
@@ -780,7 +783,7 @@
     };
     const fill = () => {
       panel.textContent = "";
-      const style = savedBannerStyle(), theme = savedBannerTheme(), float = savedFloatStyle();
+      const style = savedBannerStyle(), theme = savedBannerTheme(), menus = savedMenuStyle();
 
       section("Banner");
       const tiles = el("div", "ppui-cz-tiles");
@@ -820,15 +823,15 @@
       }
       panel.appendChild(swatches);
 
-      section("Floating bar", "when you scroll");
+      section("Dropdowns");
       const seg = el("div", "ppui-cz-seg");
       for (const [id, label] of [["shadow", "Shadow"], ["glass", "Glass border"]]) {
         const o = el("button", "ppui-cz-seg-item", label);
         o.type = "button";
-        o.setAttribute("aria-pressed", String(id === float));
+        o.setAttribute("aria-pressed", String(id === menus));
         o.addEventListener("click", () => {
-          save(FLOAT_KEY, id);
-          root.setAttribute("data-ppui-float", id);
+          save(MENUS_KEY, id);
+          root.setAttribute("data-ppui-menus", id);
           fill();
         });
         seg.appendChild(o);
@@ -840,40 +843,6 @@
       if (e.newState === "open") (panel.querySelector("[aria-pressed='true']") || panel.querySelector("button")).focus();
     });
     return btn;
-  }
-
-  // Once the banner scrolls away, both pills float at the top of the window so Apps, search and the
-  // rest stay in reach. They move into a fixed bar and back; the empty row keeps its height.
-  function floatPills(header, row, pills) {
-    root.setAttribute("data-ppui-float", savedFloatStyle());
-    const bar = el("div", "ppui-float-bar");
-    document.body.appendChild(bar);
-    let floating = false;
-    const update = () => {
-      const r = row.getBoundingClientRect();
-      const should = r.bottom < 6;
-      if (should === floating) return;
-      floating = should;
-      if (floating) {
-        row.style.minHeight = row.offsetHeight + "px";
-        bar.append(...pills);
-        bar.classList.add("is-on");
-      } else {
-        row.append(...pills);
-        bar.classList.remove("is-on");
-        row.style.minHeight = "";
-      }
-    };
-    let queued = false;
-    addEventListener("scroll", () => {
-      if (queued) return;
-      queued = true;
-      requestAnimationFrame(() => {
-        queued = false;
-        update();
-      });
-    }, { passive: true });
-    addEventListener("resize", update);
   }
 
   function buildAccount() {
@@ -952,7 +921,6 @@
     const top = el("div", "ppui-header-top");
     top.append(navPill, pill);
     header.appendChild(top);
-    floatPills(header, top, [navPill, pill]);
 
     if (HOME_PATH.test(location.pathname)) {
       const name = studentName().split(" ")[0];
