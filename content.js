@@ -4236,6 +4236,8 @@
       seg.style.setProperty("--fill", fill.toFixed(3));
       seg.style.setProperty("--i", String(i));
       seg.title = item.title + ", " + item.time;
+      // The period on now gets a glowing spark at the edge of its fill.
+      if (fill > 0 && fill < 1) seg.appendChild(el("span", "ppui-progress-spark"));
       track.appendChild(seg);
     });
     bar.querySelector(".ppui-progress-label").textContent =

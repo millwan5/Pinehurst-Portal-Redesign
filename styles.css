@@ -1556,16 +1556,17 @@ a.ppui-class:hover {
   color: var(--tone-fg, #fff);
 }
 
-[data-tone="0"] { --tone-bg: #1446a0; --tone-fg: #fff; }
-[data-tone="1"] { --tone-bg: #3d7be8; --tone-fg: #fff; }
-[data-tone="2"] { --tone-bg: #0b1e45; --tone-fg: #fff; }
-[data-tone="3"] { --tone-bg: #e3e5e9; --tone-fg: #3f4652; }
-[data-tone="4"] { --tone-bg: #dce8ff; --tone-fg: #1446a0; }
-[data-tone="5"] { --tone-bg: #5a6b85; --tone-fg: #fff; }
+/* Mixed from the theme's crest and sky, so they follow the colour picked in Customise. */
+[data-tone="0"] { --tone-bg: var(--ppui-crest); --tone-fg: #fff; }
+[data-tone="1"] { --tone-bg: color-mix(in srgb, var(--ppui-sky) 80%, var(--ppui-crest)); --tone-fg: #fff; }
+[data-tone="2"] { --tone-bg: color-mix(in srgb, var(--ppui-crest) 55%, #000); --tone-fg: #fff; }
+[data-tone="3"] { --tone-bg: color-mix(in srgb, var(--ppui-crest) 8%, #e3e5e9); --tone-fg: color-mix(in srgb, var(--ppui-crest) 35%, #3f4652); }
+[data-tone="4"] { --tone-bg: color-mix(in srgb, var(--ppui-sky) 20%, #fff); --tone-fg: var(--ppui-crest); }
+[data-tone="5"] { --tone-bg: color-mix(in srgb, var(--ppui-crest) 40%, #5a6b85); --tone-fg: #fff; }
 
-:root[data-ppui-theme="dark"] [data-tone="2"] { --tone-bg: #22397a; }
-:root[data-ppui-theme="dark"] [data-tone="3"] { --tone-bg: #3a4252; --tone-fg: #e3e5e9; }
-:root[data-ppui-theme="dark"] [data-tone="4"] { --tone-bg: #1c3570; --tone-fg: #a9c6ff; }
+:root[data-ppui-theme="dark"] [data-tone="2"] { --tone-bg: color-mix(in srgb, var(--ppui-crest) 80%, #000); }
+:root[data-ppui-theme="dark"] [data-tone="3"] { --tone-bg: color-mix(in srgb, var(--ppui-crest) 14%, #3a3a3c); --tone-fg: #e5e5ea; }
+:root[data-ppui-theme="dark"] [data-tone="4"] { --tone-bg: color-mix(in srgb, var(--ppui-crest) 45%, #1c1c1e); --tone-fg: color-mix(in srgb, var(--ppui-sky) 55%, #fff); }
 
 .ppui-subject .ppui-icon {
   width: 18px;
@@ -7034,4 +7035,98 @@ html .detail-email .email-body {
 .ppui-room-story.is-row:focus-within .ppui-story-star,
 .ppui-room-story.is-row .ppui-story-star[aria-pressed="true"] {
   opacity: 1;
+}
+
+/* School-day progress: thicker, with a liquid electric fill. Finished periods hold a glossy
+   crest-to-sky gradient; the period on now has light flowing through its fill and a glowing
+   spark at its leading edge that pulses. */
+.ppui-progress-track {
+  gap: 4px;
+}
+
+.ppui-progress-seg {
+  height: 10px;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.ppui-progress-seg:first-child { border-radius: 999px 4px 4px 999px; }
+.ppui-progress-seg:last-child { border-radius: 4px 999px 999px 4px; }
+
+.ppui-progress-seg::after,
+.ppui-progress-seg.is-now::after {
+  border-radius: inherit;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(90deg, var(--ppui-crest), color-mix(in srgb, var(--ppui-sky) 85%, #fff));
+}
+
+.ppui-progress-seg.is-now {
+  overflow: visible;
+}
+
+.ppui-progress-seg.is-now::after {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(90deg, var(--ppui-crest), var(--ppui-sky), color-mix(in srgb, var(--ppui-sky) 60%, #fff), var(--ppui-sky), var(--ppui-crest));
+  background-size: 100% 100%, 200% 100%;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--ppui-sky) 55%, transparent);
+}
+
+/* Light running through the current fill, kept inside it. */
+.ppui-progress-seg.is-now::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(var(--fill, 0) * 100%);
+  border-radius: inherit;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.75) 46%, rgba(255, 255, 255, 0.15) 54%, transparent 70%);
+  background-size: 220% 100%;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.ppui-progress-spark {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: calc(var(--fill, 0) * 100%);
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 22%, color-mix(in srgb, var(--ppui-sky) 85%, #fff) 38%, transparent 70%);
+  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--ppui-sky) 70%, transparent);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ppui-progress-seg.is-now::after {
+    animation: ppui-grow 0.9s var(--ppui-ease) both, ppui-current 3s linear 0.9s infinite;
+  }
+  .ppui-progress-seg.is-now::before {
+    animation: ppui-zap 2.4s ease-in-out infinite;
+  }
+  .ppui-progress-spark {
+    animation: ppui-spark 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes ppui-current {
+  from { background-position: 0 0, 0% 0; }
+  to { background-position: 0 0, -200% 0; }
+}
+
+@keyframes ppui-zap {
+  0% { background-position: 120% 0; opacity: 0.4; }
+  55% { opacity: 1; }
+  100% { background-position: -100% 0; opacity: 0.4; }
+}
+
+@keyframes ppui-spark {
+  0%, 100% { transform: scale(0.85); opacity: 0.8; }
+  50% { transform: scale(1.25); opacity: 1; }
 }
