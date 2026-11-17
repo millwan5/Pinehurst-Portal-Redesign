@@ -4235,8 +4235,6 @@
     const minutes = d.getHours() * 60 + d.getMinutes();
     const track = bar.querySelector(".ppui-progress-track");
     track.replaceChildren();
-    // The liquid metal canvas sits over the fills (out of the flex flow).
-    if (bar.metal) track.appendChild(bar.metal.canvas);
     let total = 0;
     let passed = 0;
     let done = 0;
@@ -4252,19 +4250,19 @@
       seg.style.setProperty("--fill", fill.toFixed(3));
       seg.style.setProperty("--i", String(i));
       seg.title = item.title + ", " + item.time;
-      // The period on now gets a glowing spark at the edge of its fill.
+      // The period on now gets a marker at the edge of its fill.
       if (fill > 0 && fill < 1) seg.appendChild(el("span", "ppui-progress-spark"));
       track.appendChild(seg);
     });
-    // How far through the day we are, for the pulse that runs along the filled part.
+    // How far through the day we are.
     track.style.setProperty("--done", (passed / total).toFixed(4));
     track.classList.toggle("is-started", passed > 0);
-    // After the last period the drop rests at the end of the day's fill.
+    // After the last period the marker rests at the end of the day's fill.
     if (passed > 0 && !track.querySelector(".ppui-progress-spark")) {
       const filled = [...track.querySelectorAll(".ppui-progress-seg")].filter((seg) => parseFloat(seg.style.getPropertyValue("--fill")) > 0).pop();
       if (filled) filled.appendChild(el("span", "ppui-progress-spark"));
     }
-    if (bar.metal) bar.metal.draw();
+    if (bar.layout) bar.layout();
     bar.querySelector(".ppui-progress-label").textContent =
       done >= timed.length ? "School's out" : passed <= 0 ? timed.length + " on today" : done + " of " + timed.length + " done";
     bar.setAttribute("aria-valuenow", String(Math.round((passed / total) * 100)));
@@ -4278,208 +4276,27 @@
     bar.setAttribute("aria-valuemax", "100");
     bar.append(el("span", "ppui-progress-track"), el("span", "ppui-progress-label"));
     bar.hidden = true;
-    startMetal(bar);
+    startGlow(bar);
     return bar;
   }
 
-  // ---- Liquid metal for the day bar ----
-  // The filled part of each period is drawn as flowing chrome in the theme's colours: the bar is
-  // shaded like a tube reflecting a banded sky, and slow noise bends the reflections so they
-  // pool, stretch and run along it. A thin red / blue fringe sits on the brightest edges, as on
-  // real polished metal. Animates only while on screen, the tab is showing and motion is welcome;
-  // otherwise one still frame.
-
-  // Smooth value noise and three octaves of it.
-  const metalHash = (x, y) => {
-    const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
-    return s - Math.floor(s);
-  };
-  function metalNoise(x, y) {
-    const xi = Math.floor(x);
-    const yi = Math.floor(y);
-    const xf = x - xi;
-    const yf = y - yi;
-    const u = xf * xf * (3 - 2 * xf);
-    const v = yf * yf * (3 - 2 * yf);
-    const a = metalHash(xi, yi);
-    const b = metalHash(xi + 1, yi);
-    const c = metalHash(xi, yi + 1);
-    const d = metalHash(xi + 1, yi + 1);
-    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
-  }
-  const metalFbm = (x, y) => metalNoise(x, y) * 0.55 + metalNoise(x * 2.1, y * 2.1) * 0.3 + metalNoise(x * 4.3, y * 4.3) * 0.15;
-
-  // A CSS colour (a custom property) as [r, g, b].
-  function cssRgb(value, probe) {
-    probe.style.color = value;
-    const m = getComputedStyle(probe).color.match(/[\d.]+/g) || [0, 0, 0];
-    return [+m[0], +m[1], +m[2]];
-  }
-
-  function startMetal(bar) {
-    const canvas = el("canvas", "ppui-metal");
-    canvas.setAttribute("aria-hidden", "true");
-    const ctx = canvas.getContext("2d");
-    const probe = el("span");
-    probe.style.display = "none";
-    bar.appendChild(probe);
-    let colours = null;
-    let coloursAt = 0;
-    let image = null;
-    let onScreen = false;
-    let last = 0;
-    const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
-    // The pointer: hovering presses a soft dent into the metal that follows it; a click or tap
-    // sends ripples out from that spot.
-    const pointer = { x: 0, on: false, hover: 0 };
-    const ripples = [];
-
-    // Dark, base, light and highlight tones from the theme (re-read every few seconds).
-    const palette = () => {
-      if (colours && performance.now() - coloursAt < 3000) return colours;
-      const crest = cssRgb("var(--ppui-crest)", probe);
-      const sky = cssRgb("var(--ppui-sky)", probe);
-      const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
-      colours = { deep: mix(crest, [0, 0, 0], 0.7), base: crest, light: mix(sky, [255, 255, 255], 0.5), white: [255, 255, 255] };
-      coloursAt = performance.now();
-      return colours;
+  // ---- Day bar: one theme gradient across the whole day, and a soft light under the pointer ----
+  // Each period's fill shows its own slice of a single gradient sized to the full track, so the
+  // colours run on unbroken across the gaps. Nothing moves on its own; the light only follows you.
+  function startGlow(bar) {
+    const track = bar.querySelector(".ppui-progress-track");
+    bar.layout = () => {
+      const width = track.clientWidth;
+      if (!width) return;
+      track.style.setProperty("--tw", width + "px");
+      for (const seg of track.children) seg.style.setProperty("--sx", seg.offsetLeft + "px");
     };
-
-    // Where the liquid is: each period's filled part, as boxes along the track.
-    const pools = (track, box) => [...track.querySelectorAll(".ppui-progress-seg")].map((seg) => {
-      const r = seg.getBoundingClientRect();
-      const fill = parseFloat(seg.style.getPropertyValue("--fill")) || 0;
-      return { x: r.left - box.left, w: r.width * fill, now: seg.classList.contains("is-now") };
-    }).filter((p) => p.w > 0.5);
-
-    function draw(time = performance.now()) {
-      const track = canvas.parentElement;
-      if (!track || bar.hidden) return;
-      const box = track.getBoundingClientRect();
-      // Full screen resolution (up to 2x). The noise is worked out once per column (for the top and
-      // bottom of the tube, blended down it), so each pixel is only a little arithmetic.
-      const dpr = Math.min(devicePixelRatio || 1, 2);
-      const w = Math.max(1, Math.round(box.width * dpr));
-      const h = Math.max(1, Math.round(box.height * dpr));
-      if (canvas.width !== w || canvas.height !== h) {
-        canvas.width = w;
-        canvas.height = h;
-        image = ctx.createImageData(w, h);
-      }
-      const { deep, base, light, white } = palette();
-      const t = time / 1000;
-      const data = image.data;
-      const list = pools(track, box);
-      data.fill(0);
-      const cap = box.height / 2;
-      // Ease the dent in and out, and forget ripples that have died away.
-      pointer.hover += ((pointer.on ? 1 : 0) - pointer.hover) * 0.18;
-      for (let i = ripples.length - 1; i >= 0; i--) if (time - ripples[i].at > 1800) ripples.splice(i, 1);
-      const rows = [];
-      for (let py = 0; py < h; py++) {
-        const ny = ((py + 0.5) / h) * 2 - 1; // -1 top, 1 bottom: the tube's curve
-        rows.push({ ny, curve: 0.62 + 0.38 * Math.sqrt(Math.max(0, 1 - ny * ny)), mix: (ny + 1) / 2 });
-      }
-      // Banded "sky" reflected in chrome: dark under the horizon, bright above, a hard specular
-      // streak and a rim light, darkening toward the tube's edges. One channel at a time, so the
-      // red and blue can be read slightly apart for the fringe.
-      // sin(k*2.3+0.4) for the red and blue reads comes from the green one's sin and cos
-      // (angle addition), so each pixel needs two trig calls, not three.
-      const DS = Math.sin(0.045 * 2.3);
-      const DC = Math.cos(0.045 * 2.3);
-      const specAt = (k) => {
-        const sp = Math.max(0, 1 - Math.abs(k + 0.5) * 3);
-        const rm = Math.max(0, 1 - Math.abs(k - 1.05) * 6) * 0.6;
-        return Math.min(1, sp * sp + rm * rm);
-      };
-      const tone = (sine, spec, i) => {
-        const s = 0.5 + 0.5 * sine;
-        const band = s * (0.85 + 0.15 * s);
-        const c = band < 0.62
-          ? deep[i] + (base[i] - deep[i]) * Math.min(1, band * 1.6)
-          : base[i] + (light[i] - base[i]) * (band * 1.6 - 0.6);
-        return c + (white[i] - c) * spec;
-      };
-      for (const p of list) {
-        const x0 = Math.max(0, Math.floor(p.x * dpr));
-        const x1 = Math.min(w, Math.ceil((p.x + p.w) * dpr));
-        for (let px = x0; px < x1; px++) {
-          const x = (px + 0.5) / dpr;
-          // Flowing distortion for this column, top and bottom of the tube.
-          const fTop = metalFbm(x * 0.016 - t * 0.35, -0.6 + t * 0.12);
-          const fBot = metalFbm(x * 0.016 - t * 0.35, 0.6 + t * 0.12);
-          const endDist = Math.min(x - p.x, p.x + p.w - x);
-          // How much the pointer bends the reflections in this column.
-          const dx = x - pointer.x;
-          let bend = pointer.hover * 1.1 * Math.exp(-(dx * dx) / 380);
-          for (const rp of ripples) {
-            const age = (time - rp.at) / 1000;
-            const d = Math.abs(x - rp.x);
-            const front = age * 120;
-            bend += Math.sin(d * 0.22 - age * 14) * Math.exp(-((d - front) * (d - front)) / 500) * Math.exp(-age * 1.8) * 1.3;
-          }
-          for (let py = 0; py < h; py++) {
-            const row = rows[py];
-            // Rounded ends (a capsule per pool), with a soft edge.
-            let alpha = 1;
-            if (endDist < cap) {
-              const dx = cap - endDist;
-              const dy = Math.abs(row.ny) * cap;
-              const d = Math.sqrt(dx * dx + dy * dy) - cap;
-              alpha = Math.max(0, Math.min(1, 0.5 - d * dpr));
-              if (!alpha) continue;
-            }
-            const flow = fTop + (fBot - fTop) * row.mix;
-            const swirl = Math.sin(x * 0.022 - t * 1.1 + flow * 3) * 0.22;
-            const r = row.ny * 1.2 + (flow - 0.5) * 1.8 + swirl + bend * (1 - row.ny * row.ny * 0.5);
-            const a = r * 2.3 + 0.4;
-            const sn = Math.sin(a);
-            const cs = Math.cos(a);
-            const specR = specAt(r - 0.045);
-            const specB = specAt(r + 0.045);
-            const o = (py * w + px) * 4;
-            data[o] = tone(sn * DC - cs * DS, specR, 0) * row.curve + specR * 18;
-            data[o + 1] = tone(sn, specAt(r), 1) * row.curve;
-            data[o + 2] = tone(sn * DC + cs * DS, specB, 2) * row.curve + specB * 18;
-            data[o + 3] = 255 * alpha;
-          }
-        }
-      }
-      ctx.putImageData(image, 0, 0);
-    }
-
-    function frame(time) {
-      requestAnimationFrame(frame);
-      if (!onScreen || bar.hidden || document.hidden || reduced()) return;
-      if (time - last < 41) return;
-      last = time;
-      draw(time);
-    }
-
-    const at = (e) => e.clientX - bar.querySelector(".ppui-progress-track").getBoundingClientRect().left;
-    const redraw = () => {
-      if (reduced() || !onScreen) draw();
-    };
-    bar.addEventListener("pointermove", (e) => {
-      pointer.x = at(e);
-      pointer.on = true;
-      redraw();
+    new ResizeObserver(() => bar.layout()).observe(track);
+    track.addEventListener("pointermove", (e) => {
+      track.style.setProperty("--mx", e.clientX - track.getBoundingClientRect().left + "px");
+      track.classList.add("is-lit");
     });
-    bar.addEventListener("pointerleave", () => {
-      pointer.on = false;
-      redraw();
-    });
-    bar.addEventListener("pointerdown", (e) => {
-      pointer.x = at(e);
-      ripples.push({ x: pointer.x, at: performance.now() });
-      if (ripples.length > 6) ripples.shift();
-    });
-
-    new IntersectionObserver(([entry]) => {
-      onScreen = entry.isIntersecting;
-    }).observe(bar);
-    requestAnimationFrame(frame);
-    bar.metal = { canvas, draw };
+    track.addEventListener("pointerleave", () => track.classList.remove("is-lit"));
   }
 
   // Placeholder rows that shimmer while a card loads.
