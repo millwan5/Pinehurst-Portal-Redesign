@@ -4258,6 +4258,11 @@
     // How far through the day we are, for the pulse that runs along the filled part.
     track.style.setProperty("--done", (passed / total).toFixed(4));
     track.classList.toggle("is-started", passed > 0);
+    // After the last period the drop rests at the end of the day's fill.
+    if (passed > 0 && !track.querySelector(".ppui-progress-spark")) {
+      const filled = [...track.querySelectorAll(".ppui-progress-seg")].filter((seg) => parseFloat(seg.style.getPropertyValue("--fill")) > 0).pop();
+      if (filled) filled.appendChild(el("span", "ppui-progress-spark"));
+    }
     if (bar.metal) bar.metal.draw();
     bar.querySelector(".ppui-progress-label").textContent =
       done >= timed.length ? "School's out" : passed <= 0 ? timed.length + " on today" : done + " of " + timed.length + " done";
@@ -4346,11 +4351,11 @@
       const track = canvas.parentElement;
       if (!track || bar.hidden) return;
       const box = track.getBoundingClientRect();
-      // Drawn small (one pixel per two CSS pixels across, 12 rows) and scaled up: chrome is all
-      // smooth gradients, so it looks the same and costs a fraction.
-      const dpr = 0.5;
+      // Full screen resolution (up to 2x). The noise is worked out once per column (for the top and
+      // bottom of the tube, blended down it), so each pixel is only a little arithmetic.
+      const dpr = Math.min(devicePixelRatio || 1, 2);
       const w = Math.max(1, Math.round(box.width * dpr));
-      const h = 12;
+      const h = Math.max(1, Math.round(box.height * dpr));
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
         canvas.height = h;
@@ -4361,54 +4366,64 @@
       const data = image.data;
       const list = pools(track, box);
       data.fill(0);
-      // Shade every pixel inside a pool.
+      const cap = box.height / 2;
+      const rows = [];
+      for (let py = 0; py < h; py++) {
+        const ny = ((py + 0.5) / h) * 2 - 1; // -1 top, 1 bottom: the tube's curve
+        rows.push({ ny, curve: 0.62 + 0.38 * Math.sqrt(Math.max(0, 1 - ny * ny)), mix: (ny + 1) / 2 });
+      }
+      // Banded "sky" reflected in chrome: dark under the horizon, bright above, a hard specular
+      // streak and a rim light, darkening toward the tube's edges. One channel at a time, so the
+      // red and blue can be read slightly apart for the fringe.
+      // sin(k*2.3+0.4) for the red and blue reads comes from the green one's sin and cos
+      // (angle addition), so each pixel needs two trig calls, not three.
+      const DS = Math.sin(0.045 * 2.3);
+      const DC = Math.cos(0.045 * 2.3);
+      const specAt = (k) => {
+        const sp = Math.max(0, 1 - Math.abs(k + 0.5) * 3);
+        const rm = Math.max(0, 1 - Math.abs(k - 1.05) * 6) * 0.6;
+        return Math.min(1, sp * sp + rm * rm);
+      };
+      const tone = (sine, spec, i) => {
+        const s = 0.5 + 0.5 * sine;
+        const band = s * (0.85 + 0.15 * s);
+        const c = band < 0.62
+          ? deep[i] + (base[i] - deep[i]) * Math.min(1, band * 1.6)
+          : base[i] + (light[i] - base[i]) * (band * 1.6 - 0.6);
+        return c + (white[i] - c) * spec;
+      };
       for (const p of list) {
         const x0 = Math.max(0, Math.floor(p.x * dpr));
         const x1 = Math.min(w, Math.ceil((p.x + p.w) * dpr));
-        for (let py = 0; py < h; py++) {
-          const ny = (py + 0.5) / h * 2 - 1; // -1 top, 1 bottom: the tube's curve
-          const curve = Math.sqrt(Math.max(0, 1 - ny * ny));
-          for (let px = x0; px < x1; px++) {
-            const x = px / dpr;
+        for (let px = x0; px < x1; px++) {
+          const x = (px + 0.5) / dpr;
+          // Flowing distortion for this column, top and bottom of the tube.
+          const fTop = metalFbm(x * 0.016 - t * 0.35, -0.6 + t * 0.12);
+          const fBot = metalFbm(x * 0.016 - t * 0.35, 0.6 + t * 0.12);
+          const endDist = Math.min(x - p.x, p.x + p.w - x);
+          for (let py = 0; py < h; py++) {
+            const row = rows[py];
             // Rounded ends (a capsule per pool), with a soft edge.
-            const fromStart = x - p.x;
-            const fromEnd = p.x + p.w - x;
-            const cap = (box.height / 2);
             let alpha = 1;
-            const endDist = Math.min(fromStart, fromEnd);
             if (endDist < cap) {
               const dx = cap - endDist;
-              const dy = Math.abs(ny) * cap;
+              const dy = Math.abs(row.ny) * cap;
               const d = Math.sqrt(dx * dx + dy * dy) - cap;
-              alpha = Math.max(0, Math.min(1, 0.5 - d * 0.8));
+              alpha = Math.max(0, Math.min(1, 0.5 - d * dpr));
               if (!alpha) continue;
             }
-            // Flowing distortion bends the reflection.
-            const flow = metalFbm(x * 0.016 - t * 0.35, ny * 0.6 + t * 0.12);
+            const flow = fTop + (fBot - fTop) * row.mix;
             const swirl = Math.sin(x * 0.022 - t * 1.1 + flow * 3) * 0.22;
-            const r = ny * 1.2 + (flow - 0.5) * 1.8 + swirl;
-            const shade = (k) => {
-              // Banded "sky" reflected in chrome: dark under the horizon, bright above, a hard
-              // specular streak, darkening toward the tube's edges.
-              const band = Math.pow(0.5 + 0.5 * Math.sin(k * 2.3 + 0.4), 1.15);
-              const spec = Math.max(0, 1 - Math.abs(k + 0.5) * 3);
-              const rim = Math.max(0, 1 - Math.abs(k - 1.05) * 6) * 0.6;
-              return { band, spec: Math.min(1, spec * spec + rim * rim) };
-            };
-            const g = shade(r);
-            const rr = shade(r - 0.045);
-            const bb = shade(r + 0.045);
-            const pick = (s, i) => {
-              const lo = deep[i] + (base[i] - deep[i]) * Math.min(1, s.band * 1.6);
-              const hi = base[i] + (light[i] - base[i]) * Math.max(0, s.band * 1.6 - 0.6);
-              let c = s.band < 0.62 ? lo : hi;
-              c = c + (white[i] - c) * s.spec;
-              return c * (0.62 + 0.38 * curve);
-            };
+            const r = row.ny * 1.2 + (flow - 0.5) * 1.8 + swirl;
+            const a = r * 2.3 + 0.4;
+            const sn = Math.sin(a);
+            const cs = Math.cos(a);
+            const specR = specAt(r - 0.045);
+            const specB = specAt(r + 0.045);
             const o = (py * w + px) * 4;
-            data[o] = pick(rr, 0) + rr.spec * 18;
-            data[o + 1] = pick(g, 1);
-            data[o + 2] = pick(bb, 2) + bb.spec * 18;
+            data[o] = tone(sn * DC - cs * DS, specR, 0) * row.curve + specR * 18;
+            data[o + 1] = tone(sn, specAt(r), 1) * row.curve;
+            data[o + 2] = tone(sn * DC + cs * DS, specB, 2) * row.curve + specB * 18;
             data[o + 3] = 255 * alpha;
           }
         }
@@ -4419,7 +4434,7 @@
     function frame(time) {
       requestAnimationFrame(frame);
       if (!onScreen || bar.hidden || document.hidden || reduced()) return;
-      if (time - last < 33) return;
+      if (time - last < 41) return;
       last = time;
       draw(time);
     }

@@ -7409,3 +7409,8 @@ html .detail-email .email-body {
     inset 1px 1px 2px rgba(80, 160, 255, 0.4),
     0 1px 4px rgba(0, 0, 0, 0.25);
 }
+
+/* The metal drop also rests at the end of the day's fill once school is out. */
+.ppui-progress-seg:has(.ppui-progress-spark) {
+  overflow: visible;
+}
