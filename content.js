@@ -4240,6 +4240,9 @@
       if (fill > 0 && fill < 1) seg.appendChild(el("span", "ppui-progress-spark"));
       track.appendChild(seg);
     });
+    // How far through the day we are, for the pulse that runs along the filled part.
+    track.style.setProperty("--done", (passed / total).toFixed(4));
+    track.classList.toggle("is-started", passed > 0);
     bar.querySelector(".ppui-progress-label").textContent =
       done >= timed.length ? "School's out" : passed <= 0 ? timed.length + " on today" : done + " of " + timed.length + " done";
     bar.setAttribute("aria-valuenow", String(Math.round((passed / total) * 100)));

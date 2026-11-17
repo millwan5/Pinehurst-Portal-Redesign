@@ -7130,3 +7130,82 @@ html .detail-email .email-body {
   0%, 100% { transform: scale(0.85); opacity: 0.8; }
   50% { transform: scale(1.25); opacity: 1; }
 }
+
+/* An electric pulse: a bright bead of light with a glowing tail that surges along the filled part
+   of the day, from the start to where we are now, over and over. It swells as it travels, like a
+   drop of charged liquid, and flares where it lands on the spark. */
+.ppui-progress-track {
+  position: relative;
+}
+
+.ppui-progress-track.is-started::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 0;
+  width: 46px;
+  height: 10px;
+  margin: -5px 0 0 -46px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 88% 50%, #fff 0 3px, transparent 6px),
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--ppui-sky) 45%, transparent) 45%, color-mix(in srgb, var(--ppui-sky) 50%, #fff) 85%, #fff);
+  box-shadow: 6px 0 14px 1px color-mix(in srgb, var(--ppui-sky) 75%, transparent);
+  filter: saturate(1.3);
+  mix-blend-mode: screen;
+  opacity: 0;
+  pointer-events: none;
+}
+
+:root[data-ppui-theme="dark"] .ppui-progress-track.is-started::after {
+  mix-blend-mode: plus-lighter;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ppui-progress-track.is-started::after {
+    animation: ppui-surge 2.6s cubic-bezier(0.45, 0, 0.25, 1) 1.2s infinite;
+  }
+}
+
+@keyframes ppui-surge {
+  0% {
+    left: 0;
+    opacity: 0;
+    transform: scale(0.6, 0.5);
+  }
+  12% {
+    opacity: 1;
+  }
+  45% {
+    transform: scale(1.15, 1.25);
+  }
+  70% {
+    left: calc(var(--done, 0) * 100% + 2px);
+    opacity: 1;
+    transform: scale(1, 1);
+  }
+  78% {
+    left: calc(var(--done, 0) * 100% + 2px);
+    opacity: 0.9;
+    transform: scale(0.5, 1.9);
+  }
+  100% {
+    left: calc(var(--done, 0) * 100% + 2px);
+    opacity: 0;
+    transform: scale(0.2, 0.6);
+  }
+}
+
+/* The spark flares as each pulse arrives. */
+@media (prefers-reduced-motion: no-preference) {
+  .ppui-progress-spark {
+    animation: ppui-spark 1.6s ease-in-out infinite, ppui-flare 2.6s ease-out 1.2s infinite;
+  }
+}
+
+@keyframes ppui-flare {
+  0%, 66% { box-shadow: 0 0 12px 2px color-mix(in srgb, var(--ppui-sky) 70%, transparent); }
+  74% { box-shadow: 0 0 22px 7px color-mix(in srgb, var(--ppui-sky) 90%, #fff); }
+  100% { box-shadow: 0 0 12px 2px color-mix(in srgb, var(--ppui-sky) 70%, transparent); }
+}
