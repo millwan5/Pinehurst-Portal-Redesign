@@ -1058,8 +1058,10 @@
     const d = new Date(text);
     if (isNaN(d)) return { day: "", month: "", ago: text };
     const days = Math.round((new Date().setHours(0, 0, 0, 0) - new Date(d).setHours(0, 0, 0, 0)) / 864e5);
-    const ago = days === 0 ? "Today" : days === 1 ? "Yesterday" : days > 1 && days < 7 ? days + " days ago" :
-      d.toLocaleDateString("en-AU", { weekday: "long" });
+    // "Today", "Yesterday", otherwise the date itself ("Mon 13 Oct"), never a bare weekday.
+    const ago = days === 0 ? "Today" : days === 1 ? "Yesterday" :
+      d.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" }).replace(",", "") +
+      (d.getFullYear() !== new Date().getFullYear() ? " " + d.getFullYear() : "");
     return {
       day: String(d.getDate()),
       month: d.toLocaleDateString("en-AU", { month: "short" }),
@@ -1386,6 +1388,7 @@
     const { dialog, stories } = reader;
     reader.index = (index + stories.length) % stories.length;
     const item = stories[reader.index];
+    markOpened(item);
     const old = dialog.querySelector(".ppui-reader-page");
     const page = readerPage(item, direction);
     if (old) old.replaceWith(page);
@@ -1459,6 +1462,14 @@
     const scroll = el("div", "ppui-reader-scroll");
     dialog.append(bar, scroll);
 
+    // J / K or the arrow keys flip between stories.
+    dialog.addEventListener("keydown", (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.target.closest("input, textarea")) return;
+      const step = { j: 1, ArrowRight: 1, k: -1, ArrowLeft: -1 }[e.key];
+      if (!step || reader.stories.length < 2) return;
+      e.preventDefault();
+      showStory(reader.index + step, step > 0 ? "next" : "prev");
+    });
     // Esc (the dialog's own close) still works, with the slide-out.
     dialog.addEventListener("cancel", (e) => {
       e.preventDefault();
@@ -1617,12 +1628,70 @@
     return actions;
   }
 
-  // ---- News page: tabs (All / Pinned / Trash), full-text cards and a date timeline down the side ----
+  // ---- News page: tabs (All / Pinned / Read), search and sort, a strip of recent days, and the stories
+  // in day sections down a timeline, with a line where the stories new since your last visit end ----
 
-  // Stories longer than this fold behind "Keep reading".
-  const FOLD_CHARS = 240;
-  // The line (as a share of the window's height) a story has to cross to count as the one you're on.
-  const READING_LINE = 0.35;
+  // Which stories were there last time you opened the News page (to mark what's new), and which
+  // you've opened in the reader since (new ones lose their dot once read).
+  const NEWS_SEEN_KEY = "ppui-news-seen";
+  const NEWS_OPENED_KEY = "ppui-news-opened";
+
+  function readKeys(key) {
+    try {
+      const v = JSON.parse(localStorage.getItem(key) || "null");
+      return Array.isArray(v) ? new Set(v) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function markOpened(item) {
+    try {
+      const keys = [...(readKeys(NEWS_OPENED_KEY) || [])].filter((k) => k !== storyKey(item));
+      keys.push(storyKey(item));
+      localStorage.setItem(NEWS_OPENED_KEY, JSON.stringify(keys.slice(-300)));
+    } catch (e) {}
+  }
+
+  // Midnight `back` days ago, and how many days ago a story's day was.
+  function newsDay(back) {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - back);
+    return d.getTime();
+  }
+  const daysBack = (time) => Math.round((newsDay(0) - time) / 864e5);
+  const fullDayLabel = (time) => new Date(time).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" }).replace(",", "");
+
+  // Day sections: Today, Yesterday, each day of the past week by name, then "Last week", then months.
+  function newsSection(time) {
+    if (time === null) return { key: "undated", name: "No date" };
+    const n = daysBack(time);
+    if (n <= 0) return { key: "d0", name: "Today", sub: fullDayLabel(time), today: true };
+    if (n === 1) return { key: "d1", name: "Yesterday", sub: fullDayLabel(time) };
+    if (n < 7) return { key: "d" + n, name: fullDayLabel(time) };
+    if (n < 14) return { key: "lw", name: "Last week" };
+    const d = new Date(time);
+    const year = d.getFullYear() === new Date().getFullYear() ? "" : " " + d.getFullYear();
+    return { key: "m" + d.getFullYear() + "-" + d.getMonth(), name: d.toLocaleDateString("en-AU", { month: "long" }) + year };
+  }
+
+  // Text with the search words marked, built as nodes (story text is never parsed as HTML).
+  function markMatches(text, query) {
+    const frag = document.createDocumentFragment();
+    if (!query) {
+      frag.append(text);
+      return frag;
+    }
+    const lower = text.toLowerCase();
+    let at = 0;
+    for (let i = lower.indexOf(query); i !== -1; i = lower.indexOf(query, at)) {
+      frag.append(text.slice(at, i), el("mark", "ppui-mark", text.slice(i, i + query.length)));
+      at = i + query.length;
+    }
+    frag.append(text.slice(at));
+    return frag;
+  }
 
   function storyStub(item) {
     const stub = el("span", "ppui-stub");
@@ -1640,10 +1709,19 @@
     const actions = newsActions(() => items, render);
     const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+    // New since your last visit: stories that weren't in the list last time. (On a first visit
+    // nothing is marked, rather than everything.) Then remember this visit's stories.
+    const seenBefore = readKeys(NEWS_SEEN_KEY);
+    try {
+      localStorage.setItem(NEWS_SEEN_KEY, JSON.stringify(items.map(storyKey).slice(0, 300)));
+    } catch (e) {}
+    const isNew = (item) => !!seenBefore && !seenBefore.has(storyKey(item));
+    const isUnreadNew = (item) => isNew(item) && !(readKeys(NEWS_OPENED_KEY) || new Set()).has(storyKey(item));
+
     const room = el("section", "ppui-newsroom");
     room.setAttribute("aria-label", "School news");
 
-    // One heading row: the page's name (the portal's, found below), the three tabs, then the View menu.
+    // Heading row: the page's name (the portal's, found below) and the three tabs.
     const head = el("header", "ppui-room-head");
     const title = el("h1", "ppui-room-title", "News");
     const tabs = el("div", "ppui-room-tabs");
@@ -1673,174 +1751,65 @@
       switchTo(b.dataset.view);
       b.focus();
     });
-    // When: all time, today, yesterday, this week, or one chosen day. Sort: newest or oldest first
-    // (remembered). Pinned stories stay on top in "All stories" either way.
+    head.append(title, tabs);
+
+    // Search and sort, out in the open. Sort is remembered; pinned stories stay on top in "All stories".
     const SORT_KEY = "ppui-news-sort";
     let sort = "newest";
     try {
       if (localStorage.getItem(SORT_KEY) === "oldest") sort = "oldest";
     } catch (e) {}
-    let when = { kind: "all" };
-    const WHEN = [["all", "All time"], ["today", "Today"], ["yesterday", "Yesterday"], ["week", "This week"]];
-    const SORTS = [["newest", "Newest first"], ["oldest", "Oldest first"]];
-    const dayStart = (back) => {
-      const d = new Date();
-      d.setHours(0, 0, 0, 0);
-      d.setDate(d.getDate() - back);
-      return d.getTime();
-    };
-    const isoDay = (time) => {
-      const d = new Date(time);
-      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-    };
-    const shortDay = (time) => new Date(time).toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+    let query = "";
+    // One day picked on the strip (null = every day).
+    let dayFilter = null;
 
-    function inRange(item) {
-      if (when.kind === "all") return true;
-      if (item.time === null) return false;
-      if (when.kind === "today") return item.time === dayStart(0);
-      if (when.kind === "yesterday") return item.time === dayStart(1);
-      if (when.kind === "week") return item.time >= dayStart(6);
-      return item.time === when.time;
-    }
-
-    const whenLabel = () => (when.kind === "day" ? shortDay(when.time) : WHEN.find(([k]) => k === when.kind)[1]);
-
-    // Undated stories keep their place; pinned ones lead in "All stories".
-    function arrange(stories) {
-      const dir = sort === "oldest" ? 1 : -1;
-      const byTime = (a, b) => (a.time === null || b.time === null ? 0 : (a.time - b.time) * dir);
-      const kept = stories.filter(inRange);
-      if (actions.view !== "all") return kept.sort(byTime);
-      return kept.filter(actions.isPinned).sort(byTime).concat(kept.filter((item) => !actions.isPinned(item)).sort(byTime));
-    }
-
-    // A button that opens a small menu (filled fresh each time it opens).
-    function choice(iconName, label, fill) {
-      const btn = el("button", "ppui-room-choice");
-      btn.type = "button";
-      btn.title = label;
-      const text = el("span");
-      btn.append(icon(iconName), text, icon("chevronDown", "ppui-choice-caret"));
-      const menu = el("ul", "ppui-menu ppui-choice-menu");
-      menu.setAttribute("role", "menu");
-      menu.setAttribute("aria-label", label);
-      arrowNav(menu, ".ppui-menu-item, input");
-      popover(btn, menu, () => fill(menu));
-      menu.addEventListener("toggle", (e) => {
-        if (e.newState === "open") (menu.querySelector("[aria-checked='true']") || menu.querySelector("button")).focus();
-      });
-      return { btn, text };
-    }
-
-    function radioItem(menu, label, checked, pick) {
-      const li = el("li");
-      const b = el("button", "ppui-menu-item", label);
-      b.type = "button";
-      b.setAttribute("role", "menuitemradio");
-      b.setAttribute("aria-checked", String(checked));
-      b.addEventListener("click", () => {
-        menu.hidePopover();
-        pick();
-      });
-      li.appendChild(b);
-      menu.appendChild(li);
-    }
-
-    // Layout: "Titles" (the default) lists headlines only, and a headline opens its story in place;
-    // "Full" shows every story as a full card. Remembered.
-    const LAYOUT_KEY = "ppui-news-layout";
-    const LAYOUTS = [["titles", "Headlines only"], ["full", "Full stories"]];
-    let layoutMode = "titles";
-    try {
-      if (localStorage.getItem(LAYOUT_KEY) === "full") layoutMode = "full";
-    } catch (e) {}
-    // Stories opened or closed by hand, against the layout's default (closed in Titles, open in Full).
-    const flipped = new Set();
-
-    function setLayout(mode) {
-      if (layoutMode === mode) return;
-      layoutMode = mode;
-      flipped.clear();
-      try {
-        localStorage.setItem(LAYOUT_KEY, mode);
-      } catch (e) {}
+    const bar = el("div", "ppui-room-bar");
+    const searchBox = el("label", "ppui-room-search");
+    const search = el("input");
+    search.type = "search";
+    search.placeholder = "Search news";
+    search.setAttribute("aria-label", "Search news");
+    searchBox.append(icon("search"), search);
+    search.addEventListener("input", () => {
+      query = search.value.trim().toLowerCase();
       render();
-    }
-
-    function setSort(key) {
-      sort = key;
-      try {
-        localStorage.setItem(SORT_KEY, key);
-      } catch (e) {}
-      render();
-    }
-
-    function setWhen(next) {
-      when = next;
-      render();
-    }
-
-    function menuHeading(menu, text) {
-      const li = el("li", "ppui-menu-heading", text);
-      li.setAttribute("role", "presentation");
-      menu.appendChild(li);
-    }
-
-    // One "View" menu holds layout, date range and sort, so the heading row stays quiet.
-    const viewChoice = choice("sliders", "View options", (menu) => {
-      menu.replaceChildren();
-      menuHeading(menu, "Layout");
-      for (const [mode, label] of LAYOUTS) radioItem(menu, label, layoutMode === mode, () => setLayout(mode));
-      menuHeading(menu, "Show");
-      for (const [kind, label] of WHEN) radioItem(menu, label, when.kind === kind, () => setWhen({ kind }));
-      // Or one particular day, limited to the days the stories cover.
-      const li = el("li", "ppui-choice-day");
-      const field = el("label", null, "Pick a day");
-      const input = el("input");
-      input.type = "date";
-      const days = items.map((item) => item.time).filter((t) => t !== null);
-      if (days.length) {
-        input.min = isoDay(Math.min(...days));
-        input.max = isoDay(Math.max(...days));
-      }
-      if (when.kind === "day") input.value = isoDay(when.time);
-      input.addEventListener("change", () => {
-        if (!input.value) return;
-        const [y, m, d] = input.value.split("-").map(Number);
-        menu.hidePopover();
-        setWhen({ kind: "day", time: new Date(y, m - 1, d).getTime() });
-      });
-      field.appendChild(input);
-      li.appendChild(field);
-      menu.appendChild(li);
-      menuHeading(menu, "Sort");
-      for (const [key, label] of SORTS) radioItem(menu, label, sort === key, () => setSort(key));
     });
+    const sortSeg = el("div", "ppui-room-sort");
+    sortSeg.setAttribute("role", "group");
+    sortSeg.setAttribute("aria-label", "Sort");
+    const sortButtons = [["newest", "Newest"], ["oldest", "Oldest"]].map(([key, label]) => {
+      const b = el("button", "ppui-room-sort-item", label);
+      b.type = "button";
+      b.addEventListener("click", () => {
+        sort = key;
+        try {
+          localStorage.setItem(SORT_KEY, key);
+        } catch (e) {}
+        render();
+      });
+      b.dataset.sort = key;
+      return b;
+    });
+    sortSeg.append(...sortButtons);
+    const hint = el("span", "ppui-room-keys");
+    hint.setAttribute("aria-hidden", "true");
+    hint.append(el("kbd", null, "J"), el("kbd", null, "K"), document.createTextNode(" move · "), el("kbd", null, "Enter"), document.createTextNode(" open"));
+    bar.append(searchBox, sortSeg, hint);
 
-    const controls = el("div", "ppui-room-controls");
-    controls.append(viewChoice.btn);
-    head.append(title, tabs, controls);
-
-    // Timeline: one dated node per story, a fill that follows your place, a chip on phones.
-    const rail = el("nav", "ppui-rail");
-    rail.setAttribute("aria-label", "Stories by date");
-    const track = el("span", "ppui-rail-track");
-    track.appendChild(el("span", "ppui-rail-fill"));
-    const nodes = el("ol", "ppui-rail-nodes");
-    const chip = el("span", "ppui-rail-chip");
-    chip.setAttribute("aria-hidden", "true");
-    rail.append(track, nodes, chip);
+    // The last two weeks as day tiles, each with its count. Tap a day to jump to it; tap it again to
+    // show only that day.
+    const strip = el("div", "ppui-room-strip");
+    strip.setAttribute("role", "group");
+    strip.setAttribute("aria-label", "Jump to a day");
+    const filterNote = el("div", "ppui-room-filter");
 
     const tools = el("div", "ppui-room-tools");
     const list = el("div", "ppui-room-list");
     list.id = "ppui-room-list";
     list.setAttribute("role", "tabpanel");
     const main = el("div", "ppui-room-main");
-    main.append(tools, list);
-    const layout = el("div", "ppui-room-layout");
-    layout.append(rail, main);
-    room.append(head, layout);
+    main.append(bar, strip, filterNote, tools, list);
+    room.append(head, main);
 
     // Our view takes the list's place. The portal keeps its list in a narrow column, so take over the
     // widest box that holds only the stories: climb while a parent adds little text of its own.
@@ -1864,7 +1833,7 @@
       room.style.marginLeft = room.style.width = "";
       if (!/^(block|flow-root)$/.test(getComputedStyle(room.parentElement).display)) return;
       const host = room.parentElement.getBoundingClientRect();
-      const want = Math.min(1080, document.documentElement.clientWidth - 24);
+      const want = Math.min(900, document.documentElement.clientWidth - 24);
       if (host.width >= want - 1) return;
       room.style.width = want + "px";
       room.style.marginLeft = Math.round((document.documentElement.clientWidth - want) / 2 - host.left) + "px";
@@ -1881,125 +1850,83 @@
       named.forEach((n) => n.classList.add("ppui-moved"));
     }
 
-    // Teaser-only stories fetch their full text (and picture) as they come near the screen.
-    const fetcher = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        fetcher.unobserve(entry.target);
-        entry.target.ppuiFetch();
-      }
-    }, { rootMargin: "400px 0px" });
+    const matches = (item) => !query || item.title.toLowerCase().includes(query) || (item.summary || "").toLowerCase().includes(query);
 
-    function storyCard(item, index) {
+    // Undated stories keep their place at the end; pinned ones lead in "All stories".
+    function arrange(stories) {
+      const dir = sort === "oldest" ? 1 : -1;
+      const byTime = (a, b) => (a.time === null || b.time === null ? (a.time === null) - (b.time === null) : (a.time - b.time) * dir);
+      const kept = stories.filter((item) => matches(item) && (dayFilter === null || item.time === dayFilter));
+      if (actions.view !== "all") return kept.sort(byTime);
+      return kept.filter(actions.isPinned).sort(byTime).concat(kept.filter((item) => !actions.isPinned(item)).sort(byTime));
+    }
+
+    // One story: tick box, picture or date tile, headline with one line of summary, then when and pin.
+    // The row opens the story in the reader.
+    function storyRow(item, index) {
       const pinned = actions.isPinned(item);
-      const compact = (layoutMode === "titles") !== flipped.has(item);
-      const card = el("article", "ppui-room-story" + (pinned ? " is-pinned" : "") + (compact ? " is-compact" : ""));
+      const card = el("article", "ppui-room-story is-row" + (pinned ? " is-pinned" : ""));
       card.id = "ppui-story-" + index;
       card.dataset.index = String(index);
+      if (item.time !== null) card.dataset.day = String(item.time);
       card.tabIndex = -1;
       card.setAttribute("aria-labelledby", card.id + "-title");
-
-      const meta = el("div", "ppui-room-meta");
-      const when = el("span", "ppui-room-when");
-      if (item.dateText) when.appendChild(el("span", "ppui-room-date", item.dateText));
-      if (item.date.ago && item.date.ago !== item.dateText) when.appendChild(el("span", "ppui-room-ago", item.date.ago));
-      const buttons = el("span", "ppui-room-actions");
+      if (isUnreadNew(item)) {
+        const dot = el("span", "ppui-room-new");
+        dot.title = "New since your last visit";
+        card.appendChild(dot);
+      }
+      let lead;
+      if (item.image) {
+        lead = el("span", "ppui-room-thumb");
+        lead.setAttribute("aria-hidden", "true");
+        const img = el("img");
+        img.alt = "";
+        img.loading = "lazy";
+        img.addEventListener("error", () => lead.replaceWith(storyStub(item)));
+        img.src = item.image;
+        lead.appendChild(img);
+      } else {
+        lead = storyStub(item);
+      }
+      const text = el("div", "ppui-room-text");
+      const headline = el("h2", "ppui-room-headline");
+      headline.id = card.id + "-title";
+      const open = el("button", "ppui-room-open-story");
+      open.type = "button";
+      open.setAttribute("aria-haspopup", "dialog");
+      open.appendChild(markMatches(item.title, query));
+      headline.appendChild(open);
+      text.appendChild(headline);
+      if (item.summary) {
+        const sum = el("p", "ppui-room-summary");
+        sum.appendChild(markMatches(item.summary, query));
+        text.appendChild(sum);
+      }
+      const side = el("div", "ppui-room-side");
+      const ago = el("span", "ppui-room-ago" + (item.time !== null && daysBack(item.time) <= 0 ? " is-today" : ""), item.date.ago || "");
+      side.appendChild(ago);
       if (actions.view !== "trash") {
         const pin = storyButton("ppui-story-pin", pinned ? "Unpin" : "Pin to the top", "pin", () => actions.togglePin(item));
         pin.setAttribute("aria-pressed", String(pinned));
-        buttons.appendChild(pin);
+        side.appendChild(pin);
       }
-      meta.append(readBox(item, card), storyStub(item), when, buttons);
-
-      const headline = el("h2", "ppui-room-headline");
-      headline.id = card.id + "-title";
-      card.append(meta, headline);
-      // In either layout the headline is a button that opens and closes the story in place.
-      // A closed story's text and picture are only built, and fetched, once it is opened.
-      // From Titles a story opens in full (so no "Show less"); in Full it opens folded, as before.
-      if (layoutMode === "titles") card.classList.add("from-titles", "is-open");
-      const toggle = el("button", "ppui-room-toggle");
-      toggle.type = "button";
-      toggle.setAttribute("aria-expanded", String(!compact));
-      toggle.append(el("span", null, item.title), icon("chevronDown", "ppui-room-toggle-caret"));
-      headline.appendChild(toggle);
-      toggle.addEventListener("click", () => {
-        const opening = card.classList.contains("is-compact");
-        if (flipped.has(item)) flipped.delete(item);
-        else flipped.add(item);
-        card.classList.toggle("is-compact", !opening);
-        toggle.setAttribute("aria-expanded", String(opening));
-        if (opening && !card.querySelector(".ppui-room-body")) storyDetails(item, card);
-        if (!opening && card.getBoundingClientRect().top < 0) {
-          card.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" });
-        }
-        onScroll();
+      card.append(readBox(item, card), lead, text, side);
+      // Anywhere on the row (but the tick box and pin) opens the reader.
+      card.addEventListener("click", (e) => {
+        if (e.target.closest(".ppui-read-box, .ppui-story-pin")) return;
+        openStory(index);
       });
-      if (!compact) storyDetails(item, card);
       return card;
     }
 
-    // A story's picture, text and buttons, added under its headline.
-    function storyDetails(item, card) {
-      const picture = el("div", "ppui-room-picture");
-      if (item.image) picture.appendChild(photoFrame(item, true));
-      const body = el("div", "ppui-room-body ppui-reader-body");
-      body.id = card.id + "-body";
-      const foot = el("div", "ppui-room-foot");
-      card.append(picture, body, foot);
-
-      const fill = (story) => {
-        body.replaceChildren(...story.body.cloneNode(true).childNodes);
-        if (!clean(body.textContent)) body.appendChild(el("p", "ppui-reader-note", "This story has no text in the news list."));
-        if (item.image && !picture.firstChild) picture.appendChild(photoFrame(item, true));
-        card.classList.toggle("has-picture", !!picture.firstChild);
-        fold();
-      };
-      // Stories start folded to their first few lines (with the picture beside them); "Read the story"
-      // opens one in place and "Show less" folds it again. Very short stories just show in full.
-      const fold = () => {
-        foot.querySelector(".ppui-room-more")?.remove();
-        const long = clean(body.textContent).length > FOLD_CHARS;
-        const open = card.classList.contains("is-open");
-        card.classList.toggle("is-folded", long && !open);
-        if (!long) return;
-        const more = el("button", "ppui-room-more", open ? "Show less" : "Read the story");
-        more.type = "button";
-        more.setAttribute("aria-expanded", String(open));
-        more.setAttribute("aria-controls", body.id);
-        more.addEventListener("click", () => {
-          const opening = !card.classList.contains("is-open");
-          card.classList.toggle("is-open", opening);
-          fold();
-          foot.querySelector(".ppui-room-more").focus({ preventScroll: true });
-          if (!opening && card.getBoundingClientRect().top < 0) {
-            card.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" });
-          }
-        });
-        foot.prepend(more);
-      };
-      fill(item.story || { body: item.body });
-
-      // "Open full": the story's own page on the portal. A story without one opens in the reader panel.
-      let full;
-      if (item.href) {
-        full = el("a", "ppui-reader-source ppui-room-open", "Open full");
-        full.href = item.href;
-      } else {
-        full = el("button", "ppui-reader-source ppui-room-open", "Open full");
-        full.type = "button";
-        full.setAttribute("aria-haspopup", "dialog");
-        full.addEventListener("click", () => openReader(shownNow, shownNow.indexOf(item), location.href, actions));
-      }
-      foot.appendChild(full);
-      // Only the list's preview (or no picture yet): get the story's own page when the card nears the screen.
-      if (item.href && !item.story && (clean(item.body.textContent).length < 400 || !item.image)) {
-        card.ppuiFetch = () => fullStory(item).then((story) => {
-          item.story = story;
-          if (card.isConnected) fill(story);
-        });
-        fetcher.observe(card);
-      }
+    function openStory(index) {
+      openReader(shownNow, index, location.href, actions);
+      // Back from the reader: refresh the dots and put focus back on the row.
+      reader.dialog.addEventListener("close", () => {
+        render();
+        list.querySelector('.ppui-room-story[data-index="' + Math.min(reader.index, shownNow.length - 1) + '"]')?.focus({ preventScroll: true });
+      }, { once: true });
     }
 
     // Tick a story once you've read it: its headline is crossed out, then it leaves the list for
@@ -2025,7 +1952,7 @@
       return box;
     }
 
-    // A card leaving its tab (marked read, or back from "Read") slides out first.
+    // A row leaving its tab (marked read, or back from "Read") slides out first.
     function leave(card, then) {
       if (reduced()) return then();
       card.classList.add("is-leaving");
@@ -2048,12 +1975,72 @@
       indicator.style.translate = b.offsetLeft + "px 0";
     }
 
+    // Scroll a row to just under its sticky day heading, and light it up briefly.
+    function goTo(card, instant) {
+      const top = card.getBoundingClientRect().top + scrollY - 64;
+      scrollTo({ top, behavior: instant || reduced() ? "auto" : "smooth" });
+      card.focus({ preventScroll: true });
+      card.classList.remove("is-glowing");
+      void card.offsetWidth;
+      card.classList.add("is-glowing");
+    }
+
+    let activeDay = null;
+    function renderStrip(inTab) {
+      const counts = new Map();
+      for (const item of inTab) if (item.time !== null && matches(item)) counts.set(item.time, (counts.get(item.time) || 0) + 1);
+      strip.replaceChildren();
+      for (let back = 13; back >= 0; back--) {
+        const t = newsDay(back);
+        const n = counts.get(t) || 0;
+        const d = new Date(t);
+        const b = el("button", "ppui-day-chip" + (back === 0 ? " is-today" : "") + (dayFilter === t ? " is-filter" : "") + (activeDay === t ? " is-active" : ""));
+        b.type = "button";
+        b.disabled = !n;
+        b.setAttribute("aria-label", fullDayLabel(t) + ", " + n + (n === 1 ? " story" : " stories"));
+        b.setAttribute("aria-pressed", String(dayFilter === t));
+        b.append(
+          el("span", "ppui-day-chip-wd", back === 0 ? "Today" : d.toLocaleDateString("en-AU", { weekday: "short" })),
+          el("span", "ppui-day-chip-num", String(d.getDate())),
+          el("span", "ppui-day-chip-count", n ? String(n) : ""),
+        );
+        b.addEventListener("click", () => {
+          if (dayFilter === t) {
+            dayFilter = null;
+            render();
+            return;
+          }
+          if (activeDay === t) {
+            dayFilter = t;
+            render();
+            return;
+          }
+          activeDay = t;
+          strip.querySelectorAll(".ppui-day-chip").forEach((c) => c.classList.toggle("is-active", c === b));
+          const card = list.querySelector('.ppui-room-story[data-day="' + t + '"]');
+          if (card) goTo(card);
+        });
+        strip.appendChild(b);
+      }
+      strip.scrollLeft = strip.scrollWidth;
+      filterNote.replaceChildren();
+      if (dayFilter !== null) {
+        const pill = el("span", "ppui-room-filter-pill", "Showing " + fullDayLabel(dayFilter));
+        const x = el("button", "ppui-room-filter-clear");
+        x.type = "button";
+        x.setAttribute("aria-label", "Show every day");
+        x.appendChild(icon("close"));
+        x.addEventListener("click", () => {
+          dayFilter = null;
+          render();
+        });
+        pill.appendChild(x);
+        filterNote.appendChild(pill);
+      }
+    }
+
     function render() {
       const counts = actions.counts();
-      // The View button says "View", or the date range when one is narrowing the list.
-      viewChoice.text.textContent = when.kind === "all" ? "View" : whenLabel();
-      viewChoice.btn.classList.toggle("is-active", when.kind !== "all");
-      list.classList.toggle("is-titles", layoutMode === "titles");
       for (const b of tabButtons) {
         const on = b.dataset.view === actions.view;
         b.setAttribute("aria-selected", String(on));
@@ -2061,6 +2048,7 @@
         // Counts only where there is something to count.
         b.querySelector(".ppui-room-tab-count").textContent = counts[b.dataset.view] ? String(counts[b.dataset.view]) : "";
       }
+      for (const b of sortButtons) b.setAttribute("aria-pressed", String(b.dataset.sort === sort));
       list.setAttribute("aria-labelledby", "ppui-tab-" + actions.view);
       moveIndicator();
 
@@ -2074,161 +2062,102 @@
         tools.appendChild(all);
       }
 
-      fetcher.disconnect();
       const inTab = actions.visible();
+      renderStrip(inTab);
       const shown = arrange(inTab);
       shownNow = shown;
-      if (shown.length) {
-        list.replaceChildren(...shown.map(storyCard));
-      } else if (inTab.length) {
-        // The tab has stories, just none from the chosen time.
-        const empty = emptyState(when.kind === "day" ? "No stories on " + whenLabel() + "." : "No stories from " + whenLabel().toLowerCase() + ".", "div");
-        const all = el("button", "ppui-room-restore-all", "Show all time");
-        all.type = "button";
-        all.addEventListener("click", () => setWhen({ kind: "all" }));
-        empty.appendChild(all);
+      if (!shown.length) {
+        let empty;
+        if (inTab.length && query) {
+          empty = emptyState("No stories match “" + search.value.trim() + "”.", "div");
+          const clear = el("button", "ppui-room-restore-all", "Clear search");
+          clear.type = "button";
+          clear.addEventListener("click", () => {
+            search.value = "";
+            query = "";
+            render();
+            search.focus();
+          });
+          empty.appendChild(clear);
+        } else {
+          empty = emptyState(actions.emptyText, "div");
+        }
         list.replaceChildren(empty);
-      } else {
-        list.replaceChildren(emptyState(actions.emptyText, "div"));
+        return;
       }
-      buildRail(shown);
+
+      // Sections down the timeline: Pinned first (in "All stories"), then one per day or period.
+      // In newest-first order, a line marks where the stories new since your last visit end.
+      const frag = document.createDocumentFragment();
+      let section = null;
+      let sectionKey = null;
+      const anyNew = sort === "newest" && shown.some(isNew);
+      let passedNew = false;
+      shown.forEach((item, i) => {
+        const pinnedTop = actions.view === "all" && actions.isPinned(item);
+        const s = pinnedTop ? { key: "pinned", name: "Pinned" } : newsSection(item.time);
+        if (s.key !== sectionKey) {
+          sectionKey = s.key;
+          section = el("section", "ppui-room-section" + (s.today ? " is-today" : "") + (s.key === "pinned" ? " is-pinned" : ""));
+          const count = shown.filter((x) => (actions.view === "all" && actions.isPinned(x) ? "pinned" : newsSection(x.time).key) === s.key).length;
+          const h = el("h2", "ppui-room-section-head");
+          h.append(el("span", "ppui-room-section-name", s.name));
+          if (s.sub) h.append(el("span", "ppui-room-section-date", s.sub));
+          h.append(el("span", "ppui-room-section-count", count === 1 ? "1 story" : count + " stories"));
+          section.appendChild(h);
+          frag.appendChild(section);
+        }
+        if (anyNew && !pinnedTop && !isNew(item) && !passedNew) {
+          passedNew = true;
+          section.appendChild(el("div", "ppui-room-newline", "Older than your last visit"));
+        }
+        section.appendChild(storyRow(item, i));
+      });
+      list.replaceChildren(frag);
     }
 
     // The stories on screen now, in order, for the reader's previous / next.
     let shownNow = [];
 
-    // ---- Timeline ----
-    let current = -1;
-    // One node per day (pinned stories, at the top of "All stories", get their own), with its story count.
-    let groups = [];
-    let groupOf = [];
-    let railCards = [];
-
-    function buildRail(shown) {
-      groups = [];
-      groupOf = [];
-      shown.forEach((item, i) => {
-        const key = actions.view === "all" && actions.isPinned(item) ? "pinned" : item.time === null ? "undated" : item.time;
-        let g = groups[groups.length - 1];
-        if (!g || g.key !== key) {
-          const label = key === "pinned" ? "Pinned" : key === "undated" ? "No date" : item.date.day + " " + item.date.month;
-          g = { key, label, start: i, count: 0 };
-          groups.push(g);
-        }
-        g.count++;
-        groupOf.push(groups.length - 1);
-      });
-      nodes.replaceChildren();
-      const last = Math.max(groups.length - 1, 1);
-      groups.forEach((g, gi) => {
-        const li = el("li", "ppui-rail-item");
-        li.style.setProperty("--pos", String(gi / last));
-        const b = el("button", "ppui-rail-node");
-        b.type = "button";
-        const stories = g.count === 1 ? "1 story" : g.count + " stories";
-        b.setAttribute("aria-label", g.label + ", " + stories);
-        b.title = stories;
-        b.append(el("span", "ppui-rail-dot"), el("span", "ppui-rail-date", g.label), el("span", "ppui-rail-count", String(g.count)));
-        b.addEventListener("click", () => {
-          goTo(g.start);
-          glow(railCards.slice(g.start, g.start + g.count));
-        });
-        li.appendChild(b);
-        nodes.appendChild(li);
-      });
-      railCards = [...list.querySelectorAll(".ppui-room-story")];
-      rail.hidden = groups.length < 2;
-      rail.style.setProperty("--count", String(groups.length));
-      current = -1;
-      followScroll();
-    }
-
-    // Where you are: the last card whose top has crossed the reading line, and how far through its day.
-    // The fill runs from the first dot to the last, so it lines up with the dots.
-    function followScroll() {
-      const cards = railCards;
-      if (groups.length < 2 || cards.length < 2) return;
-      const line = innerHeight * READING_LINE;
-      let index = 0;
-      let through = 0;
-      for (let i = 0; i < cards.length; i++) {
-        const r = cards[i].getBoundingClientRect();
-        if (r.top > line) break;
-        index = i;
-        through = Math.min(Math.max((line - r.top) / r.height, 0), 1);
+    // J / K move between stories, Enter opens one, "/" jumps to search.
+    let focusIndex = -1;
+    document.addEventListener("keydown", (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || !room.isConnected) return;
+      if (e.target.closest && e.target.closest("input, textarea, select, [contenteditable], dialog, [popover]")) return;
+      if (reader.dialog && reader.dialog.open) return;
+      const rows = [...list.querySelectorAll(".ppui-room-story")];
+      if (e.key === "/") {
+        e.preventDefault();
+        search.focus();
+        return;
       }
-      // At the very bottom of the page the last story counts as reached (not when the short list of
-      // headlines fits without scrolling at all).
-      if (scrollY > 0 && innerHeight + scrollY >= document.documentElement.scrollHeight - 4) {
-        index = cards.length - 1;
-        through = 0;
+      if (!rows.length) return;
+      if (e.key === "j" || e.key === "k") {
+        const at = rows.indexOf(document.activeElement);
+        focusIndex = Math.max(0, Math.min(rows.length - 1, (at === -1 ? focusIndex : at) + (e.key === "j" ? 1 : -1)));
+        const row = rows[focusIndex];
+        row.focus({ preventScroll: true });
+        const r = row.getBoundingClientRect();
+        if (r.top < 70 || r.bottom > innerHeight - 20) scrollTo({ top: r.top + scrollY - 80, behavior: reduced() ? "auto" : "smooth" });
+        e.preventDefault();
+      } else if (e.key === "Enter" && rows.includes(document.activeElement)) {
+        e.preventDefault();
+        openStory(Number(document.activeElement.dataset.index));
       }
-      const gi = groupOf[index];
-      const g = groups[gi];
-      const progress = Math.min((gi + (index - g.start + through) / g.count) / (groups.length - 1), 1);
-      rail.style.setProperty("--rail-progress", progress.toFixed(4));
-      if (index !== current) setCurrent(index, cards.length);
-    }
-
-    function setCurrent(index, total) {
-      current = index;
-      const gi = groupOf[index];
-      nodes.querySelectorAll(".ppui-rail-node").forEach((b, i) => {
-        b.classList.toggle("is-current", i === gi);
-        b.classList.toggle("is-past", i < gi);
-        if (i === gi) b.setAttribute("aria-current", "step");
-        else b.removeAttribute("aria-current");
-      });
-      chip.textContent = (index + 1) + " of " + total + "  " + groups[gi].label;
-    }
-
-    // A date picked on the timeline: its stories light up briefly once the scroll has landed,
-    // so you can see where that day starts.
-    function glow(cards) {
-      const start = () => cards.forEach((card) => {
-        card.classList.remove("is-glowing");
-        void card.offsetWidth;
-        card.classList.add("is-glowing");
-        card.addEventListener("animationend", (e) => {
-          if (e.animationName === "ppui-glow") card.classList.remove("is-glowing");
-        }, { once: true });
-      });
-      if (reduced() || !("onscrollend" in window)) return start();
-      // No scroll needed (already there) means no scrollend: fall back after a moment.
-      const fallback = setTimeout(start, 700);
-      addEventListener("scrollend", () => {
-        clearTimeout(fallback);
-        start();
-      }, { once: true });
-    }
-
-    function goTo(i) {
-      const card = list.querySelector('.ppui-room-story[data-index="' + i + '"]');
-      if (!card) return;
-      // Put the card's top just under the reading line's band, so it becomes the current one.
-      const top = card.getBoundingClientRect().top + scrollY - Math.min(innerHeight * 0.2, 120);
-      scrollTo({ top, behavior: reduced() ? "auto" : "smooth" });
-      card.focus({ preventScroll: true });
-    }
-
-    let queued = false;
-    const onScroll = () => {
-      if (queued) return;
-      queued = true;
-      requestAnimationFrame(() => {
-        queued = false;
-        followScroll();
-      });
-    };
-    addEventListener("scroll", onScroll, { passive: true });
-    addEventListener("resize", () => {
-      moveIndicator();
-      onScroll();
     });
 
+    addEventListener("resize", moveIndicator);
     render();
     // Fonts arriving can shift the tab widths.
     if (document.fonts) document.fonts.ready.then(moveIndicator);
+    // From the home card's "See all": #day=<midnight> scrolls to that day.
+    const m = /day=(\d+)/.exec(location.hash);
+    if (m) {
+      const card = list.querySelector('.ppui-room-story[data-day="' + m[1] + '"]') ||
+        [...list.querySelectorAll(".ppui-room-story[data-day]")].find((c) => Number(c.dataset.day) <= Number(m[1]));
+      // Wait for the header and fonts to settle first, or the jump lands short.
+      if (card) setTimeout(() => goTo(card, true), 450);
+    }
   }
 
   // The News page gets its own view (tabs, full-text cards, a timeline). It is recognised by its
@@ -4283,8 +4212,24 @@
       list.appendChild(emptyState(actions.emptyText));
       return;
     }
+    // Day headings: Pinned, Today, Earlier this week, Older. Each links to that day on the News page.
+    let lastBucket = null;
     items.slice(0, NEWS_COUNT).forEach((item, i) => {
       const pinned = actions.isPinned(item);
+      const back = item.time === null ? null : daysBack(item.time);
+      const bucket = pinned && actions.view === "all" ? "Pinned" : back === null ? "Older" : back <= 0 ? "Today" : back < 7 ? "Earlier this week" : "Older";
+      if (bucket !== lastBucket) {
+        lastBucket = bucket;
+        const h = el("li", "ppui-story-day" + (bucket === "Today" ? " is-today" : ""));
+        h.appendChild(el("span", null, bucket));
+        if (bucket !== "Pinned" && item.time !== null) {
+          const all = el("a", "ppui-story-day-link", "See all");
+          all.href = newsHref.split("#")[0] + "#day=" + item.time;
+          all.setAttribute("aria-label", "See all " + bucket.toLowerCase() + " news");
+          h.appendChild(all);
+        }
+        list.appendChild(h);
+      }
       const row = el("li", "ppui-story" + (i === 0 ? " is-lead" : "") + (pinned ? " is-pinned" : ""));
       row.style.setProperty("--i", String(i));
       const a = el("a", "ppui-story-link");
