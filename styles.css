@@ -6248,116 +6248,149 @@ html .detail-email .email-body {
 
 
 /* ---------- Customise panel ---------- */
-.ppui-customise {
-  width: 312px;
-  padding: 14px 14px 16px;
+/* .ppui-popover sets a tight 6px padding further down; this panel needs room to breathe. */
+.ppui-popover.ppui-customise {
+  width: 360px;
+  max-width: calc(100vw - 24px);
+  box-sizing: border-box;
+  padding: 18px 18px 20px;
 }
 
 .ppui-cz-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  margin: 4px 2px 8px;
+  margin: 0 2px 10px;
 }
 
 .ppui-cz-head:not(:first-child) {
-  margin-top: 16px;
+  margin-top: 22px;
 }
 
 .ppui-cz-title {
   margin: 0;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--ppui-text);
 }
 
+/* The current colour's name sits right after the word "Colour". */
 .ppui-cz-note {
-  font-size: 12px;
+  margin-left: 6px;
+  font-weight: 600;
   color: var(--ppui-muted);
+}
+
+.ppui-cz-note::before {
+  content: "·";
+  margin-right: 6px;
 }
 
 .ppui-cz-tiles {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 10px;
 }
 
 .ppui-cz-tile {
   display: grid;
-  gap: 6px;
-  padding: 4px 4px 7px;
-  border: 0;
-  border-radius: 12px;
-  background: transparent;
+  gap: 7px;
+  padding: 5px 5px 8px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 14px;
+  background: var(--ppui-surface);
   color: var(--ppui-text);
-  font: 600 12px var(--ppui-font);
+  font: 600 12.5px var(--ppui-font);
   cursor: pointer;
-  box-shadow: inset 0 0 0 1px var(--ppui-hairline);
-  transition: box-shadow 0.15s var(--ppui-ease), background-color 0.15s var(--ppui-ease);
+  box-shadow: var(--ppui-bevel-btn);
+  transition: box-shadow 0.15s var(--ppui-ease), background-color 0.15s var(--ppui-ease), transform 0.15s var(--ppui-ease);
 }
 
-.ppui-cz-tile:hover { background: var(--ppui-hover); }
+:root[data-ppui-theme="dark"] .ppui-cz-tile { background: var(--ppui-surface); }
+
+.ppui-cz-tile:hover { background: color-mix(in srgb, var(--ppui-surface) 92%, var(--ppui-accent)); }
+.ppui-cz-tile:active { transform: scale(0.97); box-shadow: var(--ppui-bevel-press); }
 
 .ppui-cz-tile[aria-pressed="true"] {
-  box-shadow: inset 0 0 0 2px var(--ppui-accent);
+  border-color: var(--ppui-accent);
+  box-shadow: var(--ppui-bevel-btn), 0 0 0 1px var(--ppui-accent);
   color: var(--ppui-accent);
 }
 
 .ppui-cz-preview {
   display: block;
   width: 100%;
-  height: 50px;
-  border-radius: 8px;
+  height: 62px;
+  border-radius: 9px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
 .ppui-cz-swatches {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  padding: 2px;
+  gap: 12px;
+  padding: 4px 2px 2px;
 }
 
 .ppui-cz-swatch {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--sw);
+  background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--sw) 70%, #fff) 0%, var(--sw) 55%, color-mix(in srgb, var(--sw) 80%, #000) 100%);
   cursor: pointer;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12), inset 0 2px 3px rgba(255, 255, 255, 0.35);
-  transition: transform 0.15s var(--ppui-ease);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.14),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.18),
+    0 1px 2px rgba(0, 0, 0, 0.18);
+  transition: transform 0.15s var(--ppui-ease), box-shadow 0.15s var(--ppui-ease);
 }
 
 .ppui-cz-swatch:hover { transform: scale(1.08); }
 
 .ppui-cz-swatch[aria-pressed="true"] {
-  box-shadow: 0 0 0 2px var(--ppui-surface), 0 0 0 4px var(--sw);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.18),
+    0 0 0 2px var(--ppui-raised, var(--ppui-surface)),
+    0 0 0 4px var(--sw);
 }
 
 .ppui-cz-seg {
   display: flex;
-  padding: 3px;
-  border-radius: 10px;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 12px;
   background: var(--ppui-hover-2);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1), inset 0 -1px 0 rgba(255, 255, 255, 0.35);
+}
+
+:root[data-ppui-theme="dark"] .ppui-cz-seg {
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5), inset 0 -1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .ppui-cz-seg-item {
   flex: 1;
-  min-height: 30px;
+  min-height: 34px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 9px;
   background: transparent;
-  color: var(--ppui-text);
-  font: 600 12.5px var(--ppui-font);
+  color: var(--ppui-muted);
+  font: 600 13px var(--ppui-font);
   cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
+
+.ppui-cz-seg-item:hover { color: var(--ppui-text); }
 
 .ppui-cz-seg-item[aria-pressed="true"] {
   background: var(--ppui-surface);
   color: var(--ppui-accent);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--ppui-bevel-btn);
+}
+
+:root[data-ppui-theme="dark"] .ppui-cz-seg-item[aria-pressed="true"] {
+  background: #3a3a3c;
 }
 
 /* ---------- Dropdowns: one solid colour with a bevelled rim and a soft lift; the item under the

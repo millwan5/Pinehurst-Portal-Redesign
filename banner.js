@@ -188,7 +188,7 @@
     mesh: {
       name: "Low Poly",
       init(S) {
-        const r = seeded(51), cell = S.compact ? 46 : 66;
+        const r = seeded(51), cell = S.thumb ? 20 : S.compact ? 46 : 66;
         const cols = Math.ceil(S.w / cell) + 2, rows = Math.ceil(S.h / cell) + 2;
         S.mesh = [];
         for (let j = 0; j <= rows; j++) {
@@ -197,15 +197,22 @@
             row.push({ x: (i - 1) * cell + (r() - 0.5) * cell * 0.7, y: (j - 1) * cell + (r() - 0.5) * cell * 0.7, ph: r() * TAU, jit: r() - 0.5 });
           S.mesh.push(row);
         }
-        S.ridgeFar = lowpolyLayer(r, S.w, S.h, S.h * (S.compact ? 0.5 : 0.62), S.compact ? 80 : 130, 2, 20);
-        S.ridge = lowpolyLayer(r, S.w, S.h, S.h * (S.compact ? 0.66 : 0.76), S.compact ? 60 : 90, 2, 16);
+        if (S.thumb) {
+          // Customise thumbnail: small, crisp facets and two clear ridges.
+          S.ridgeFar = lowpolyLayer(r, S.w, S.h, S.h * 0.5, 30, 2, 6);
+          S.ridge = lowpolyLayer(r, S.w, S.h, S.h * 0.7, 22, 2, 4);
+        } else {
+          S.ridgeFar = lowpolyLayer(r, S.w, S.h, S.h * (S.compact ? 0.5 : 0.62), S.compact ? 80 : 130, 2, 20);
+          S.ridge = lowpolyLayer(r, S.w, S.h, S.h * (S.compact ? 0.66 : 0.76), S.compact ? 60 : 90, 2, 16);
+        }
       },
       draw(ctx, S) {
         // Light-mode daytime gets its own brighter, more saturated sky.
         const rich = S.pal.name === "day" && !S.pal.dark;
         const RICH = ["#5cb2ff", "#3488ff", "#1b63e6", "#1450c4"].map((c) => S.pal.shift(hex(c)));
         const at = rich ? (y) => { y = clamp(y, 0, 1) * 3; const i = Math.min(2, Math.floor(y)); return mix(RICH[i], RICH[i + 1], y - i); } : S.pal.at;
-        const contrast = rich ? 0.2 : 0.12, warm = rich ? hex("#ffd27a") : S.pal.orb;
+        const contrast = (rich ? 0.2 : 0.12) * (S.thumb ? 1.6 : 1), warm = rich ? hex("#ffd27a") : S.pal.orb;
+        const k = S.thumb ? 0.28 : 1; // glow distances shrink with the canvas
         const P = (p) => ({ x: p.x + Math.sin(S.t * 0.5 + p.ph) * 6 + S.px * 8, y: p.y + Math.cos(S.t * 0.4 + p.ph) * 6, jit: p.jit });
         ctx.lineWidth = 0.8;
         const tri = (a, b, c) => {
@@ -215,12 +222,13 @@
           const j = a.jit * contrast + side * 0.06;
           col = j > 0 ? lighten(col, j) : darken(col, -j);
           const d = Math.hypot(cx - S.orb.x, cy - S.orb.y);
-          const glow = Math.max(0, 1 - d / (rich ? 360 : 260));
+          const glow = Math.max(0, 1 - d / ((rich ? 360 : 260) * k));
           col = mix(col, warm, glow * glow * (rich ? 0.5 : 0.35));
-          if (rich) col = lighten(col, Math.max(0, 1 - d / 140) * 0.35);
+          if (rich) col = lighten(col, Math.max(0, 1 - d / (140 * k)) * 0.35);
           if (S.mx != null) col = lighten(col, Math.max(0, 1 - Math.hypot(cx - S.mx, cy - S.my) / 160) * 0.25);
           ctx.fillStyle = ctx.strokeStyle = css(col);
           ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.closePath(); ctx.fill(); ctx.stroke();
+          if (S.thumb) { ctx.strokeStyle = "rgba(255,255,255,0.14)"; ctx.lineWidth = 0.5; ctx.stroke(); ctx.lineWidth = 0.8; }
         };
         const M = S.mesh;
         for (let j = 0; j < M.length - 1; j++) for (let i = 0; i < M[j].length - 1; i++) {
@@ -228,7 +236,7 @@
           if ((i + j) % 2) { tri(a, b, c); tri(b, d, c); } else { tri(a, b, d); tri(a, d, c); }
         }
         drawStars(ctx, S);
-        drawOrb(ctx, S, (rich ? 18 : 15) * (S.compact ? 0.6 : 1));
+        drawOrb(ctx, S, S.thumb ? 6 : (rich ? 18 : 15) * (S.compact ? 0.6 : 1));
         if (rich) {
           drawLowpoly(ctx, S, S.ridgeFar, S.pal.shift(hex("#4f8fe8")), 0.5);
           drawLowpoly(ctx, S, S.ridge, S.pal.shift(hex("#1645a8")), 1);
@@ -536,7 +544,7 @@
     canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
     const ctx = canvas.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const S = { w, h, compact: true, t: 0, now: 0, px: 0, py: 0, mx: null, my: null, ripples: [], pal: palette("day", false, theme), orb: { x: w * 0.72, y: h * 0.3 } };
+    const S = { w, h, compact: true, thumb: true, t: 0, now: 0, px: 0, py: 0, mx: null, my: null, ripples: [], pal: palette("day", false, theme), orb: { x: w * 0.72, y: h * 0.3 } };
     if (STYLES[id]) { STYLES[id].init(S); STYLES[id].draw(ctx, S); }
   }
 

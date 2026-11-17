@@ -772,8 +772,9 @@
     };
     const section = (title, note) => {
       const head = el("div", "ppui-cz-head");
-      head.append(el("h3", "ppui-cz-title", title));
-      if (note) head.append(el("span", "ppui-cz-note", note));
+      const h = el("h3", "ppui-cz-title", title);
+      if (note) h.append(el("span", "ppui-cz-note", note));
+      head.append(h);
       panel.appendChild(head);
     };
     const fill = () => {
