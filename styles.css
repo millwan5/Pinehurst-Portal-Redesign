@@ -6344,3 +6344,59 @@ html .detail-email .email-body {
 :root[data-ppui-theme="dark"] .ppui-popover {
   box-shadow: 0 22px 50px -14px rgba(0, 0, 0, 0.8), 0 6px 14px -4px rgba(0, 0, 0, 0.5);
 }
+
+/* ---------- Glass on the home cards: the top of each card, where it rises into the banner ---------- */
+.ppui-dash > .ppui-card {
+  position: relative;
+  isolation: isolate;
+  /* see-through at the top, solid by the time the card leaves the banner */
+  background: linear-gradient(180deg, transparent 0, transparent 40px, var(--ppui-surface) 92px);
+}
+
+.ppui-card-glass {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 96px;
+  z-index: -1;
+  border-radius: var(--ppui-radius-card) var(--ppui-radius-card) 0 0;
+  pointer-events: none;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--ppui-surface) 58%, transparent) 0%,
+    color-mix(in srgb, var(--ppui-surface) 80%, transparent) 45%,
+    var(--ppui-surface) 100%);
+  -webkit-backdrop-filter: blur(12px) saturate(1.6);
+  backdrop-filter: blur(12px) saturate(1.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+:root[data-ppui-theme="dark"] .ppui-card-glass {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* ---------- Glass caption on the lead story's photo ---------- */
+.ppui-photo-caption {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  z-index: 2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(8, 18, 40, 0.22), rgba(8, 18, 40, 0.38));
+  -webkit-backdrop-filter: blur(12px) saturate(1.7) brightness(0.92);
+  backdrop-filter: blur(12px) saturate(1.7) brightness(0.92);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 6px 18px -8px rgba(0, 8, 30, 0.6);
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  text-shadow: 0 1px 2px rgba(0, 10, 40, 0.45);
+}

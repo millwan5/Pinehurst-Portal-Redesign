@@ -434,12 +434,12 @@
   const lenses = new Map();
   let defs = null;
 
-  function makeLens(w, h) {
-    const key = w + "x" + h;
+  function makeLens(w, h, radius) {
+    const key = w + "x" + h + (radius ? "r" + radius : "");
     if (lenses.has(key)) return lenses.get(key);
     const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
     const g = cv.getContext("2d"), img = g.createImageData(w, h), d = img.data;
-    const r = h / 2, bevel = Math.min(22, h * 0.48), cx = w / 2, cy = h / 2;
+    const r = Math.min(radius || h / 2, h / 2, w / 2), bevel = Math.min(22, h * 0.48, r * 1.2 + 6), cx = w / 2, cy = h / 2;
     const sdf = (x, y) => {
       const px = x + 0.5 - cx, py = y + 0.5 - cy;
       const qx = Math.abs(px) - (w / 2 - r), qy = Math.abs(py) - (h / 2 - r);
@@ -503,7 +503,9 @@
     return id;
   }
 
-  function glass(pill) {
+  // opts.radius: corner radius for non-pill shapes; opts.press: false to skip the squish.
+  // opts.filter: what follows the lens in backdrop-filter.
+  function glass(pill, opts = {}) {
     pill.classList.add("ppui-glass");
     // The sheen follows the pointer.
     pill.addEventListener("pointermove", (e) => {
@@ -513,7 +515,7 @@
     });
     pill.addEventListener("pointerleave", () => { pill.style.removeProperty("--hx"); pill.style.removeProperty("--hy"); });
     // Liquid: pressing squashes the glass toward the finger, and it springs back on release.
-    pill.addEventListener("pointerdown", (e) => {
+    if (opts.press !== false) pill.addEventListener("pointerdown", (e) => {
       const r = pill.getBoundingClientRect();
       pill.style.setProperty("--px", (((e.clientX - r.left) / r.width) * 100).toFixed(1) + "%");
       pill.classList.add("is-pressed");
@@ -526,7 +528,7 @@
     new ResizeObserver(() => {
       const w = Math.round(pill.offsetWidth), h = Math.round(pill.offsetHeight);
       if (!w || !h) return;
-      pill.style.backdropFilter = `url(#${makeLens(w, h)}) saturate(1.15) brightness(1.04)`;
+      pill.style.backdropFilter = `url(#${makeLens(w, h, opts.radius)}) ${opts.filter || "saturate(1.15) brightness(1.04)"}`;
     }).observe(pill);
   }
 

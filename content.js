@@ -1163,7 +1163,7 @@
   // The story's picture in a mounted frame. Until (or unless) there is one, a drawn cover shows:
   // a stand of crest pines on blue with the story's date.
   // With `zoomable`, clicking the picture (once there is one) opens it full size.
-  function photoFrame(item, zoomable) {
+  function photoFrame(item, zoomable, caption) {
     const frame = el("span", "ppui-photo" + (zoomable ? " is-zoomable" : ""));
     frame.setAttribute("aria-hidden", "true");
     if (zoomable) {
@@ -1185,6 +1185,12 @@
     if (item.date.day) cover.appendChild(el("span", "ppui-cover-date", item.date.day + " " + item.date.month));
     frame.appendChild(cover);
     if (item.image) addPicture(frame, item.image);
+    // Optional headline on a glass bar across the bottom of the picture.
+    if (caption) {
+      const bar = el("span", "ppui-photo-caption", item.title);
+      frame.appendChild(bar);
+      if (window.PPUIBanner) window.PPUIBanner.glass(bar, { radius: 12, press: false, filter: "blur(10px) saturate(1.7) brightness(0.92)" });
+    }
     item.frames.push(frame);
     return frame;
   }
@@ -4058,6 +4064,11 @@
   // A card: heading row (icon, title, optional link) followed by a body.
   function panel(className, iconName, title, linkLabel, linkHref) {
     const section = el("section", "ppui-panel ppui-card " + className);
+    // The card's top rises into the banner; it's frosted glass there, fading into the solid card.
+    const cap = el("span", "ppui-card-glass");
+    cap.setAttribute("aria-hidden", "true");
+    section.appendChild(cap);
+    if (window.PPUIBanner) window.PPUIBanner.glass(cap, { radius: 20, press: false, filter: "blur(6px) saturate(1.6) brightness(1.06)" });
     const head = el("div", "ppui-head");
     const h = el("h2", "ppui-title");
     h.append(icon(iconName, "ppui-title-icon"), document.createTextNode(title));
@@ -4296,9 +4307,10 @@
         e.preventDefault();
         openReader(items, i, newsHref, actions);
       });
-      if (i === 0) a.appendChild(photoFrame(item));
+      if (i === 0) a.appendChild(photoFrame(item, false, true));
       const body = el("span", "ppui-story-body");
-      body.appendChild(el("span", "ppui-headline", item.title));
+      // The lead's headline is shown on its photo; keep it here for screen readers only.
+      body.appendChild(el("span", i === 0 ? "ppui-headline ppui-sr" : "ppui-headline", item.title));
       if (i === 0 && item.summary) body.appendChild(el("span", "ppui-summary", item.summary));
       const meta = el("span", "ppui-meta");
       if (pinned) {
