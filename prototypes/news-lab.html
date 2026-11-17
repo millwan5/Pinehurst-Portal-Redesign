@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>News Lab</title>
+<!-- Throwaway: every idea for the news section on mock stories, each behind a switch, so the keepers can be picked. -->
+<style>
+@font-face { font-family: "Playfair Display"; src: url("../fonts/PlayfairDisplay-Italic.ttf"); font-weight: 400 900; font-style: italic; }
+@font-face { font-family: "Plus Jakarta Sans"; src: url("../fonts/PlusJakartaSans.ttf"); font-weight: 200 800; }
+
+:root {
+  --bg: #eef1f6; --surface: #fff; --raised: #f5f7fb; --text: #0b1e45; --muted: #5e6b82;
+  --accent: #1446a0; --accent-soft: rgba(20,70,160,.09); --hair: rgba(11,30,69,.09); --hover: rgba(11,30,69,.05);
+  --new: #e5484d; --bar-h: 0px;
+}
+:root[data-theme="dark"] {
+  --bg: #000; --surface: #1c1c1e; --raised: #2c2c2e; --text: #f5f5f7; --muted: #8e8e93;
+  --accent: #0a84ff; --accent-soft: rgba(10,132,255,.18); --hair: rgba(84,84,88,.5); --hover: rgba(255,255,255,.06);
+  --new: #ff6961;
+}
+:root[data-accent="teal"] { --accent: #0f766e; --accent-soft: rgba(15,118,110,.1); }
+:root[data-accent="rose"] { --accent: #b0306a; --accent-soft: rgba(176,48,106,.1); }
+:root[data-theme="dark"][data-accent="teal"] { --accent: #30c6bb; --accent-soft: rgba(48,198,187,.18); }
+:root[data-theme="dark"][data-accent="rose"] { --accent: #ff6fa6; --accent-soft: rgba(255,111,166,.18); }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--text); font-family: "Plus Jakarta Sans", system-ui, sans-serif; overflow-x: hidden; }
+button { font: inherit; color: inherit; }
+
+/* ---------- Lab controls ---------- */
+.lab {
+  position: sticky; top: 0; z-index: 40;
+  display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center;
+  padding: 10px max(16px, calc(50vw - 600px));
+  background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--hair); font-size: 12px;
+}
+.lab b { font-size: 12px; margin-right: 2px; }
+.sw { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--hair); background: var(--surface); cursor: pointer; user-select: none; font-weight: 600; }
+.sw input { accent-color: var(--accent); margin: 0; }
+.sw:has(input:checked) { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.lab .gap { flex-basis: 100%; height: 0; }
+.mini { border: 1px solid var(--hair); background: var(--surface); border-radius: 999px; padding: 5px 10px; font-weight: 600; cursor: pointer; }
+.mini[aria-pressed="true"] { background: var(--text); color: var(--surface); }
+
+/* ---------- Page ---------- */
+.banner { height: 120px; background: linear-gradient(180deg, #3a7be6, #1446a0); }
+.page { max-width: 1200px; margin: -70px auto 60px; padding: 0 16px; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+.page.no-dash { grid-template-columns: minmax(0, 760px); justify-content: center; }
+@media (max-width: 900px) { .page, .page.no-dash { grid-template-columns: 1fr; } }
+.card { background: var(--surface); border: 1px solid var(--hair); border-radius: 20px; }
+.room { padding: 22px 22px 18px; min-width: 0; }
+.room h1 { margin: 0 0 4px; font: italic 700 34px "Playfair Display", serif; letter-spacing: -.01em; }
+.room .sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+
+/* Controls in view */
+.tools { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+.search { flex: 1; min-width: 180px; display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 38px; border-radius: 12px; background: var(--raised); border: 1px solid transparent; }
+.search:focus-within { border-color: var(--accent); }
+.search input { flex: 1; border: 0; background: transparent; color: var(--text); font: 500 14px inherit; font-family: inherit; outline: none; }
+.search svg { width: 16px; height: 16px; stroke: var(--muted); fill: none; stroke-width: 2; }
+.seg { display: inline-flex; padding: 3px; border-radius: 11px; background: var(--raised); }
+.seg button { border: 0; background: transparent; border-radius: 8px; padding: 7px 12px; font-size: 13px; font-weight: 650; cursor: pointer; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+
+/* Date strip */
+.strip-wrap { position: relative; margin: 0 -22px 14px; }
+.strip { display: flex; gap: 6px; overflow-x: auto; padding: 4px 22px 8px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.chip { flex: none; scroll-snap-align: start; width: 52px; padding: 7px 0 8px; border-radius: 14px; border: 1px solid var(--hair); background: var(--surface); display: grid; justify-items: center; gap: 2px; cursor: pointer; }
+.chip .wd { font-size: 11px; font-weight: 650; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.chip .dn { font-size: 17px; font-weight: 750; }
+.chip .ct { height: 16px; min-width: 16px; padding: 0 5px; border-radius: 999px; font-size: 10.5px; font-weight: 800; line-height: 16px; background: var(--accent-soft); color: var(--accent); }
+.chip .ct.none { background: transparent; color: var(--hair); }
+.chip.is-empty { opacity: .45; cursor: default; }
+.chip.is-today .dn { color: var(--accent); }
+.chip.is-today::after { content: ""; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+.chip.is-active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.chip.is-filter { background: var(--accent); border-color: var(--accent); }
+.chip.is-filter .wd, .chip.is-filter .dn { color: #fff; }
+.chip.is-filter .ct { background: rgba(255,255,255,.25); color: #fff; }
+.filter-pill { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 12px; padding: 6px 8px 6px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 700; }
+.filter-pill button { border: 0; background: var(--accent); color: #fff; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; line-height: 1; }
+
+/* List + groups */
+.list { position: relative; }
+.group { position: relative; }
+.ghead {
+  display: flex; align-items: baseline; gap: 10px; padding: 10px 0 8px; margin-top: 6px;
+  font-size: 13px; font-weight: 800; letter-spacing: .02em; color: var(--text);
+}
+.ghead .gdate { color: var(--muted); font-weight: 600; }
+.ghead .gcount { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.sticky .ghead {
+  position: sticky; top: var(--bar-h); z-index: 5;
+  margin: 6px -22px 0; padding: 10px 22px 8px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--hair);
+}
+.ghead .gname { font-size: 15px; }
+.ghead.is-today .gname { color: var(--accent); }
+
+/* Timeline spine */
+.timeline .group { padding-left: 34px; }
+.timeline .group::before { content: ""; position: absolute; left: 9px; top: 0; bottom: 0; width: 2px; background: var(--hair); }
+.timeline .group:first-child::before { top: 22px; }
+.timeline:not(.sticky) .ghead { position: relative; }
+.timeline .ghead::before {
+  content: ""; position: absolute; left: -31px; top: 50%; translate: 0 -50%;
+  width: 14px; height: 14px; border-radius: 50%; background: var(--surface); border: 3px solid var(--accent);
+}
+.timeline.sticky .ghead { margin-left: -56px; padding-left: 56px; }
+.timeline.sticky .ghead::before { left: 6px; }
+.timeline .ghead.is-past::before { border-color: var(--muted); }
+
+/* Story rows */
+.story {
+  position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: start;
+  padding: 12px 10px; margin: 0 -10px; border-radius: 14px; cursor: pointer; outline: none;
+  transition: background-color .15s;
+}
+.story + .story { border-top: 1px solid var(--hair); border-radius: 0 0 14px 14px; }
+.story:hover { background: var(--hover); }
+.story.is-kb { box-shadow: inset 0 0 0 2px var(--accent); border-radius: 14px; }
+.story .title { font-size: 15px; font-weight: 700; line-height: 1.3; letter-spacing: -.01em; }
+.story .sum { margin-top: 3px; font-size: 13px; color: var(--muted); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.simple .story .sum { -webkit-line-clamp: 1; }
+.story .when { font-size: 12px; font-weight: 650; color: var(--muted); white-space: nowrap; padding-top: 2px; }
+.story .when.is-today { color: var(--accent); }
+.story.is-read .title { color: var(--muted); font-weight: 600; }
+.dot { position: absolute; left: -2px; top: 19px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.thumb { width: 64px; height: 48px; border-radius: 10px; flex: none; position: relative; overflow: hidden; }
+.thumb svg { position: absolute; inset: auto 0 0 0; width: 100%; height: 70%; }
+.stub { width: 44px; height: 48px; border-radius: 10px; background: var(--raised); display: grid; place-items: center; align-content: center; line-height: 1; }
+.stub b { font-size: 17px; }
+.stub span { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+.cards .story { grid-template-columns: auto minmax(0,1fr); }
+.cards .story .when { grid-column: 2; padding-top: 0; }
+.cards .story .bigpic { grid-column: 1 / -1; height: 150px; border-radius: 14px; position: relative; overflow: hidden; }
+
+/* New divider */
+.newline { display: flex; align-items: center; gap: 10px; margin: 8px 0; color: var(--new); font-size: 11.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.newline::before, .newline::after { content: ""; flex: 1; height: 1px; background: color-mix(in srgb, var(--new) 50%, transparent); }
+
+.empty { padding: 40px 0; text-align: center; color: var(--muted); }
+
+/* Dashboard card mock */
+.dash { padding: 18px 20px 14px; position: sticky; top: calc(var(--bar-h) + 12px); }
+.dash h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; font-size: 17px; }
+.dash h2 i { width: 30px; height: 30px; border-radius: 9px; background: var(--accent); display: inline-block; }
+.dash .dh { display: flex; align-items: baseline; justify-content: space-between; margin: 12px 0 2px; font-size: 12px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); }
+.dash .dh.is-today { color: var(--accent); }
+.dash .dh a { text-transform: none; letter-spacing: 0; font-weight: 650; color: var(--accent); text-decoration: none; cursor: pointer; }
+.dash .row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; padding: 8px 0; border-top: 1px solid var(--hair); font-size: 14px; font-weight: 650; line-height: 1.3; cursor: pointer; }
+.dash .row:first-of-type { border-top: 0; }
+.dash .row small { color: var(--muted); font-weight: 600; font-size: 12px; white-space: nowrap; }
+.dash .lab-note { margin: 0 0 4px; font-size: 11px; color: var(--muted); }
+
+/* Reader */
+dialog.reader { width: min(640px, calc(100vw - 24px)); border: 0; border-radius: 22px; padding: 0; background: var(--surface); color: var(--text); box-shadow: 0 30px 80px -20px rgba(0,0,0,.5); }
+dialog.reader::backdrop { background: rgba(4,10,26,.45); }
+.rbar { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--hair); font-size: 13px; color: var(--muted); }
+.rbar button { border: 1px solid var(--hair); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-weight: 650; cursor: pointer; }
+.rbar .sp { flex: 1; }
+.rbody { padding: 18px 22px 24px; }
+.rbody .rdate { font-size: 13px; font-weight: 700; color: var(--accent); }
+.rbody h3 { margin: 6px 0 10px; font-size: 22px; line-height: 1.25; }
+.rbody p { margin: 0 0 10px; line-height: 1.6; color: var(--text); }
+.rpic { height: 200px; border-radius: 16px; margin-bottom: 14px; position: relative; overflow: hidden; }
+.kbd-hint { font-size: 11.5px; color: var(--muted); margin: -6px 0 12px; }
+.kbd-hint kbd { font: 700 11px inherit; font-family: inherit; padding: 1px 6px; border: 1px solid var(--hair); border-bottom-width: 2px; border-radius: 6px; background: var(--surface); }
+</style>
+</head>
+<body>
+
+<div class="lab" id="lab">
+  <b>Try:</b>
+  <label class="sw"><input type="checkbox" data-opt="headings" checked> 1 Day headings</label>
+  <label class="sw"><input type="checkbox" data-opt="strip" checked> 2 Date strip</label>
+  <label class="sw"><input type="checkbox" data-opt="timeline"> 3 Timeline</label>
+  <label class="sw"><input type="checkbox" data-opt="clear" checked> 4a Clear dates</label>
+  <label class="sw"><input type="checkbox" data-opt="newline" checked> 4b New divider</label>
+  <label class="sw"><input type="checkbox" data-opt="tools" checked> 5 Search + sort</label>
+  <label class="sw"><input type="checkbox" data-opt="simple" checked> 6 Simple rows</label>
+  <label class="sw"><input type="checkbox" data-opt="keys" checked> 7 Keyboard J/K</label>
+  <label class="sw"><input type="checkbox" data-opt="dash" checked> 8 Home card</label>
+  <span class="gap"></span>
+  <button class="mini" data-theme="light" aria-pressed="true">Light</button>
+  <button class="mini" data-theme="dark" aria-pressed="false">Dark</button>
+  <button class="mini" data-accent="blue" aria-pressed="true">Blue</button>
+  <button class="mini" data-accent="teal" aria-pressed="false">Teal</button>
+  <button class="mini" data-accent="rose" aria-pressed="false">Rose</button>
+</div>
+
+<div class="banner"></div>
+<div class="page" id="page">
+  <section class="card room" id="room">
+    <h1>News</h1>
+    <div class="sub" id="sub"></div>
+    <div class="tools" id="tools"></div>
+    <div class="kbd-hint" id="kbdhint"><kbd>J</kbd> <kbd>K</kbd> move · <kbd>Enter</kbd> open · <kbd>Esc</kbd> close</div>
+    <div class="strip-wrap" id="stripwrap"><div class="strip" id="strip"></div></div>
+    <div id="pill"></div>
+    <div class="list" id="list"></div>
+  </section>
+  <aside class="card dash" id="dash"></aside>
+</div>
+
+<dialog class="reader" id="reader">
+  <div class="rbar"><button id="rprev">‹ Prev</button><span id="rpos"></span><button id="rnext">Next ›</button><span class="sp"></span><button id="rclose">Close</button></div>
+  <div class="rbody" id="rbody"></div>
+</dialog>
+
+<script>
+"use strict";
+/* ---------- Mock stories ---------- */
+const DAY = 864e5;
+const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+const T = [
+  [0, "Swimming carnival results are in", "Blue house takes the shield after a close finish in the relays.", 1],
+  [0, "Year 9 camp photos now online", "Over 200 photos from the Waitomo trip are in the gallery.", 0],
+  [0, "Reminder: library closes early on Thursday", "Staff training means the library shuts at 2:30 pm.", 0],
+  [1, "Senior formal tickets on sale", "Tickets are $85 and close on the 28th; dietary forms due with payment.", 1],
+  [2, "Kapa haka group wins regional award", "The group placed first in the open section at the regional festival.", 1],
+  [2, "New bus timetable from next week", "Routes 4 and 7 change times; check the updated PDF.", 0],
+  [2, "Maths Olympiad registrations open", "Years 7 to 13 can sign up with their maths teacher by Friday.", 0],
+  [4, "Art exhibition opens in the library", "Year 12 and 13 art boards are on display all week.", 1],
+  [5, "Uniform shop holiday hours", "The shop is open Tuesdays and Thursdays over the break.", 0],
+  [7, "Science fair winners announced", "Projects on water quality and solar ovens took the top prizes.", 1],
+  [8, "Parent-teacher interviews booking", "Bookings open Monday at 7 pm through the portal.", 0],
+  [8, "Debating team through to nationals", "Our senior team beat three schools to qualify.", 0],
+  [10, "School production cast list", "Auditions went brilliantly; see who is in this year's musical.", 1],
+  [12, "Cross-country course map", "The course runs through the reserve; spectators welcome.", 0],
+  [13, "Careers expo next month", "Over 40 providers will be on site; Year 11 to 13 attendance expected.", 0],
+  [15, "Hockey season wrap-up", "Thanks to coaches and parents for a great season.", 1],
+  [16, "Lost property clear-out", "Unclaimed items go to charity at the end of the week.", 0],
+  [19, "Student council elections", "Voting opens on the portal; candidate speeches are in the hall on Monday.", 0],
+  [21, "International week menu", "The canteen celebrates a different country every day.", 1],
+  [23, "Library e-books now on the app", "Borrow e-books and audiobooks with your school login.", 0],
+  [27, "Term dates for next year", "The calendar for next year is now confirmed.", 0],
+  [29, "Duke of Ed tramp photos", "Bronze group completed their tramp in the Tararuas.", 1],
+  [33, "Netball tournament draw", "Draw and venue details for the weekend tournament.", 0],
+  [36, "Orchestra concert recording", "Missed the concert? Watch the full recording online.", 1],
+  [41, "Welcome to our new staff", "Meet the teachers joining us this term.", 0],
+  [null, "Canteen price list", "Updated prices for drinks and hot food.", 0],
+  [null, "Sun hats compulsory from next term", "Hats must be worn at break and lunch.", 0],
+];
+const HUES = [215, 160, 28, 280, 340, 195];
+const stories = T.map(([off, title, summary, pic], i) => ({
+  id: i, title, summary, pic: !!pic, hue: HUES[i % HUES.length],
+  time: off == null ? null : today0.getTime() - off * DAY,
+  body: [summary, "This is placeholder story text for the prototype. In the extension this is the story's own text, loaded from the portal.", "A second paragraph so the reader has something to scroll."],
+}));
+const LAST_VISIT = today0.getTime() - 3 * DAY;   // simulated: you last looked 3 days ago
+const opened = new Set();
+
+/* ---------- Dates ---------- */
+const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MO = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const daysAgo = (t) => Math.round((today0.getTime() - t) / DAY);
+const fullDay = (t) => { const d = new Date(t); return WD[d.getDay()] + " " + d.getDate() + " " + MO[d.getMonth()]; };
+function whenLabel(t) {
+  if (t == null) return "No date";
+  const n = daysAgo(t);
+  if (n === 0) return "Today";
+  if (n === 1) return "Yesterday";
+  if (opts.clear) return fullDay(t);
+  // today's extension: "N days ago" in the first week, then a bare weekday
+  return n < 7 ? n + " days ago" : ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date(t).getDay()];
+}
+function groupOf(t) {
+  if (t == null) return { key: "none", name: "No date", date: "" };
+  const n = daysAgo(t);
+  if (n === 0) return { key: "d0", name: "Today", date: fullDay(t), today: true };
+  if (n === 1) return { key: "d1", name: "Yesterday", date: fullDay(t) };
+  if (n < 7) return { key: "d" + n, name: fullDay(t), date: "" };
+  if (n < 14) return { key: "lw", name: "Last week", date: "" };
+  const d = new Date(t);
+  const sameYear = d.getFullYear() === today0.getFullYear();
+  return { key: "m" + d.getFullYear() + "-" + d.getMonth(), name: MONTH[d.getMonth()] + (sameYear ? "" : " " + d.getFullYear()), date: "" };
+}
+
+/* ---------- State ---------- */
+const opts = {};
+document.querySelectorAll("[data-opt]").forEach((c) => (opts[c.dataset.opt] = c.checked));
+let query = "", sort = "new", dayFilter = null, kb = -1;
+let shown = [];
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const hl = (s) => {
+  const e = esc(s);
+  if (!query) return e;
+  const q = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return e.replace(new RegExp("(" + esc(q) + ")", "ig"), "<mark>$1</mark>");
+};
+const art = (s, h, tall) => `<svg viewBox="0 0 100 40" preserveAspectRatio="none"><path d="M0 40 L0 26 L8 14 L14 24 L22 8 L30 22 L38 12 L46 26 L54 10 L62 24 L70 14 L78 26 L86 12 L94 24 L100 18 L100 40Z" fill="hsl(${h} 45% 22%)" opacity=".85"/></svg>`;
+const picStyle = (s) => `background:linear-gradient(160deg,hsl(${s.hue} 70% 62%),hsl(${s.hue} 60% 38%))`;
+
+/* ---------- Render ---------- */
+function visible() {
+  let list = stories.filter((s) => {
+    if (dayFilter != null && s.time !== dayFilter) return false;
+    if (!query) return true;
+    const q = query.toLowerCase();
+    return s.title.toLowerCase().includes(q) || s.summary.toLowerCase().includes(q);
+  });
+  const dated = list.filter((s) => s.time != null).sort((a, b) => (sort === "new" ? b.time - a.time : a.time - b.time));
+  return dated.concat(list.filter((s) => s.time == null));
+}
+
+function storyHTML(s) {
+  const isNew = opts.newline && s.time != null && s.time > LAST_VISIT && !opened.has(s.id);
+  const lead = opts.simple
+    ? (s.pic ? `<span class="thumb" style="${picStyle(s)}">${art(s, s.hue)}</span>` : `<span class="stub"><b>${s.time ? new Date(s.time).getDate() : "–"}</b><span>${s.time ? MO[new Date(s.time).getMonth()] : ""}</span></span>`)
+    : `<span class="stub"><b>${s.time ? new Date(s.time).getDate() : "–"}</b><span>${s.time ? MO[new Date(s.time).getMonth()] : ""}</span></span>`;
+  const big = !opts.simple && s.pic ? `<span class="bigpic" style="${picStyle(s)}">${art(s, s.hue)}</span>` : "";
+  const today = s.time != null && daysAgo(s.time) === 0;
+  return `<article class="story${opened.has(s.id) ? " is-read" : ""}" tabindex="-1" data-id="${s.id}" data-day="${s.time ?? ""}">
+    ${isNew ? '<span class="dot" title="New"></span>' : ""}
+    ${big}${lead}
+    <div><div class="title">${hl(s.title)}</div><div class="sum">${hl(s.summary)}</div></div>
+    <span class="when${today ? " is-today" : ""}">${whenLabel(s.time)}</span>
+  </article>`;
+}
+
+function render() {
+  document.documentElement.style.setProperty("--bar-h", $("lab").offsetHeight + "px");
+  shown = visible();
+  const list = $("list");
+  list.className = "list" + (opts.timeline ? " timeline" : "") + (opts.headings ? " sticky" : "") + (opts.simple ? " simple" : " cards");
+  $("page").classList.toggle("no-dash", !opts.dash);
+  $("dash").hidden = !opts.dash;
+  $("kbdhint").hidden = !opts.keys;
+  $("sub").textContent = stories.length + " stories · last visit " + fullDay(LAST_VISIT);
+
+  // tools
+  $("tools").innerHTML = opts.tools ? `
+    <label class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Search news" value="${esc(query)}" aria-label="Search news"></label>
+    <div class="seg" role="group" aria-label="Sort"><button data-sort="new" aria-pressed="${sort === "new"}">Newest</button><button data-sort="old" aria-pressed="${sort === "old"}">Oldest</button></div>` : "";
+  if (opts.tools) {
+    const q = $("q");
+    q.addEventListener("input", () => { query = q.value.trim(); renderList(); renderStrip(); });
+    $("tools").querySelectorAll("[data-sort]").forEach((b) => b.addEventListener("click", () => { sort = b.dataset.sort; render(); }));
+  } else { query = ""; sort = "new"; }
+
+  renderStrip();
+  renderList();
+  renderDash();
+}
+
+function renderStrip() {
+  $("stripwrap").hidden = !opts.strip;
+  if (!opts.strip) { dayFilter = null; $("pill").innerHTML = ""; return; }
+  const counts = new Map();
+  for (const s of stories) if (s.time != null) counts.set(s.time, (counts.get(s.time) || 0) + 1);
+  let html = "";
+  for (let i = 13; i >= 0; i--) {
+    const t = today0.getTime() - i * DAY, d = new Date(t), c = counts.get(t) || 0;
+    html += `<button class="chip${c ? "" : " is-empty"}${i === 0 ? " is-today" : ""}${dayFilter === t ? " is-filter" : ""}" data-t="${t}" ${c ? "" : "disabled"} aria-label="${fullDay(t)}, ${c} ${c === 1 ? "story" : "stories"}">
+      <span class="wd">${i === 0 ? "Today" : WD[d.getDay()]}</span><span class="dn">${d.getDate()}</span><span class="ct${c ? "" : " none"}">${c || "·"}</span></button>`;
+  }
+  $("strip").innerHTML = html;
+  $("strip").scrollLeft = $("strip").scrollWidth;
+  $("strip").querySelectorAll(".chip:not(:disabled)").forEach((b) => b.addEventListener("click", () => {
+    const t = +b.dataset.t;
+    if (dayFilter === t) { dayFilter = null; renderAll(); return; }
+    // first tap jumps; tapping the day you're already on filters to it
+    if (b.classList.contains("is-active")) { dayFilter = t; renderAll(); return; }
+    $("strip").querySelectorAll(".chip").forEach((x) => x.classList.toggle("is-active", x === b));
+    const el = $("list").querySelector(`[data-day="${t}"]`);
+    if (el) scrollToEl(el);
+  }));
+  $("pill").innerHTML = dayFilter != null ? `<span class="filter-pill">Showing ${fullDay(dayFilter)} <button aria-label="Show all days">×</button></span>` : "";
+  const x = $("pill").querySelector("button");
+  if (x) x.addEventListener("click", () => { dayFilter = null; renderAll(); });
+}
+function renderAll() { renderStrip(); renderList(); }
+
+function scrollToEl(el) {
+  const y = el.getBoundingClientRect().top + scrollY - $("lab").offsetHeight - (opts.headings ? 52 : 12);
+  scrollTo({ top: y, behavior: "smooth" });
+  el.animate([{ background: "var(--accent-soft)" }, { background: "transparent" }], { duration: 1400 });
+}
+
+function renderList() {
+  shown = visible();
+  const list = $("list");
+  if (!shown.length) { list.innerHTML = `<div class="empty">No stories match${query ? " “" + esc(query) + "”" : ""}.</div>`; return; }
+  const grouped = opts.headings || opts.timeline;
+  let html = "", cur = null, newDone = !opts.newline, first = true;
+  const anyNew = opts.newline && shown.some((s) => s.time != null && s.time > LAST_VISIT && !opened.has(s.id));
+  for (const s of shown) {
+    const isNew = s.time != null && s.time > LAST_VISIT && !opened.has(s.id);
+    if (grouped) {
+      const g = groupOf(s.time);
+      if (!cur || cur.key !== g.key) {
+        if (cur) html += "</div>";
+        const count = shown.filter((x) => groupOf(x.time).key === g.key).length;
+        html += `<div class="group" data-group="${g.key}"><div class="ghead${g.today ? " is-today" : ""}${!first ? " is-past" : ""}"><span class="gname">${g.name}</span>${g.date ? `<span class="gdate">${g.date}</span>` : ""}<span class="gcount">${count} ${count === 1 ? "story" : "stories"}</span></div>`;
+        cur = g; first = false;
+      }
+    }
+    if (!newDone && anyNew && sort === "new" && !isNew) { html += `<div class="newline">Older than your last visit</div>`; newDone = true; }
+    html += storyHTML(s);
+  }
+  if (grouped) html += "</div>";
+  if (opts.newline && anyNew && sort === "new") html = `<div class="newline" style="color:var(--accent)">New since your last visit</div>`.replace("color:var(--accent)", "color:var(--new)") + html;
+  list.innerHTML = html;
+  list.querySelectorAll(".story").forEach((el) => el.addEventListener("click", () => openStory(+el.dataset.id)));
+  kb = -1;
+}
+
+function renderDash() {
+  if (!opts.dash) return;
+  const dated = stories.filter((s) => s.time != null).sort((a, b) => b.time - a.time).slice(0, 6);
+  const bucket = (s) => { const n = daysAgo(s.time); return n === 0 ? "Today" : n < 7 ? "Earlier this week" : "Older"; };
+  let html = `<h2><i></i>News</h2><p class="lab-note">Home page card mock</p>`, cur = null;
+  for (const s of dated) {
+    const b = bucket(s);
+    if (b !== cur) {
+      html += `<div class="dh${b === "Today" ? " is-today" : ""}"><span>${b}</span><a data-jump="${s.time}">See all</a></div>`;
+      cur = b;
+    }
+    html += `<div class="row" data-id="${s.id}"><span>${esc(s.title)}</span><small>${whenLabel(s.time)}</small></div>`;
+  }
+  $("dash").innerHTML = html;
+  $("dash").querySelectorAll(".row").forEach((r) => r.addEventListener("click", () => openStory(+r.dataset.id)));
+  $("dash").querySelectorAll("[data-jump]").forEach((a) => a.addEventListener("click", () => {
+    dayFilter = null; query = ""; renderAll();
+    const el = $("list").querySelector(`[data-day="${a.dataset.jump}"]`);
+    if (el) scrollToEl(el);
+  }));
+}
+
+/* ---------- Reader ---------- */
+let rIndex = 0;
+function openStory(id) {
+  shown = visible();
+  rIndex = Math.max(0, shown.findIndex((s) => s.id === id));
+  showReader();
+  if (!$("reader").open) $("reader").showModal();
+}
+function showReader() {
+  const s = shown[rIndex];
+  opened.add(s.id);
+  $("rpos").textContent = (rIndex + 1) + " of " + shown.length;
+  $("rbody").innerHTML = `${s.pic ? `<div class="rpic" style="${picStyle(s)}">${art(s, s.hue)}</div>` : ""}
+    <div class="rdate">${s.time == null ? "No date" : fullDay(s.time) + (daysAgo(s.time) < 2 ? " · " + whenLabel(s.time) : "")}</div>
+    <h3>${esc(s.title)}</h3>${s.body.map((p) => `<p>${esc(p)}</p>`).join("")}`;
+}
+$("rprev").addEventListener("click", () => { rIndex = (rIndex - 1 + shown.length) % shown.length; showReader(); });
+$("rnext").addEventListener("click", () => { rIndex = (rIndex + 1) % shown.length; showReader(); });
+$("rclose").addEventListener("click", () => $("reader").close());
+$("reader").addEventListener("close", () => renderList());
+$("reader").addEventListener("click", (e) => { if (e.target === $("reader")) $("reader").close(); });
+
+/* ---------- Keyboard ---------- */
+addEventListener("keydown", (e) => {
+  if (!opts.keys || (e.target.matches && e.target.matches("input")) || e.ctrlKey || e.metaKey || e.altKey) return;
+  if ($("reader").open) {
+    if (e.key === "j" || e.key === "ArrowRight") $("rnext").click();
+    if (e.key === "k" || e.key === "ArrowLeft") $("rprev").click();
+    return;
+  }
+  const rows = [...$("list").querySelectorAll(".story")];
+  if (!rows.length) return;
+  if (e.key === "j" || e.key === "k") {
+    kb = Math.max(0, Math.min(rows.length - 1, kb + (e.key === "j" ? 1 : -1)));
+    rows.forEach((r, i) => r.classList.toggle("is-kb", i === kb));
+    const r = rows[kb].getBoundingClientRect();
+    if (r.top < $("lab").offsetHeight + 60 || r.bottom > innerHeight - 20) scrollToEl(rows[kb]);
+    e.preventDefault();
+  } else if (e.key === "Enter" && kb >= 0) { openStory(+rows[kb].dataset.id); }
+  else if (e.key === "/" && opts.tools) { $("q").focus(); e.preventDefault(); }
+});
+
+/* ---------- Lab controls ---------- */
+document.querySelectorAll("[data-opt]").forEach((c) => c.addEventListener("change", () => { opts[c.dataset.opt] = c.checked; render(); }));
+document.querySelectorAll("[data-theme]").forEach((b) => b.addEventListener("click", () => {
+  document.documentElement.dataset.theme = b.dataset.theme;
+  document.querySelectorAll("[data-theme].mini").forEach((x) => x.setAttribute("aria-pressed", x === b));
+}));
+document.querySelectorAll("[data-accent]").forEach((b) => b.addEventListener("click", () => {
+  document.documentElement.dataset.accent = b.dataset.accent;
+  document.querySelectorAll("[data-accent]").forEach((x) => x.setAttribute("aria-pressed", x === b));
+}));
+addEventListener("resize", () => document.documentElement.style.setProperty("--bar-h", $("lab").offsetHeight + "px"));
+render();
+</script>
+</body>
+</html>
