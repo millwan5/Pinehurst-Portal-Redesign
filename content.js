@@ -1053,10 +1053,23 @@
     return out;
   }
 
-  // "October 14, 2026" -> { day: "14", month: "Oct", ago: "2 days ago" }; unparseable dates keep their text.
+  // A story's date. The portal writes "Tue, Nov 17" with no year, which Chrome reads as 2001, so a
+  // date without a year gets this year (or last year, if that would put it in the future).
+  function storyDate(text) {
+    if (!text) return new Date(NaN);
+    if (/\b\d{4}\b/.test(text)) return new Date(text);
+    const plain = text.replace(/^(mon|tue|wed|thu|fri|sat|sun)[a-z]*\.?,?\s+/i, "");
+    const year = new Date().getFullYear();
+    let d = new Date(plain + " " + year);
+    if (!isNaN(d) && d - Date.now() > 2 * 864e5) d = new Date(plain + " " + (year - 1));
+    return d;
+  }
+
+  // "Oct 14" -> { day: "14", month: "Oct", ago: "Wed 14 Oct" }; unparseable dates keep their text.
+  // Takes the date's text, or a Date.
   function splitDate(text) {
-    const d = new Date(text);
-    if (isNaN(d)) return { day: "", month: "", ago: text };
+    const d = text instanceof Date ? text : storyDate(text);
+    if (isNaN(d)) return { day: "", month: "", ago: text instanceof Date ? "" : text };
     const days = Math.round((new Date().setHours(0, 0, 0, 0) - new Date(d).setHours(0, 0, 0, 0)) / 864e5);
     // "Today", "Yesterday", otherwise the date itself ("Mon 13 Oct"), never a bare weekday.
     const ago = days === 0 ? "Today" : days === 1 ? "Yesterday" :
@@ -1121,7 +1134,7 @@
     const picture = pictureOf(node);
     const anchor = storyAnchor(node);
     const dateText = text(SEL.articleDate);
-    const day = new Date(dateText);
+    const day = storyDate(dateText);
     return {
       title: titleText,
       dateText,
@@ -1343,11 +1356,10 @@
     page.appendChild(photoFrame(item, true));
 
     const meta = el("div", "ppui-reader-meta");
-    const stub = storyStub(item);
     const when = el("span", "ppui-reader-when");
     if (item.dateText) when.appendChild(el("span", "ppui-reader-date", item.dateText));
     if (item.date.ago && item.date.ago !== item.dateText) when.appendChild(el("span", "ppui-reader-ago", item.date.ago));
-    meta.append(stub, when);
+    meta.appendChild(when);
 
     const title = el("h2", "ppui-reader-title", item.title);
     title.id = "ppui-reader-title";
@@ -1462,10 +1474,10 @@
     const scroll = el("div", "ppui-reader-scroll");
     dialog.append(bar, scroll);
 
-    // J / K or the arrow keys flip between stories.
+    // The arrow keys flip between stories.
     dialog.addEventListener("keydown", (e) => {
       if (e.ctrlKey || e.metaKey || e.altKey || e.target.closest("input, textarea")) return;
-      const step = { j: 1, ArrowRight: 1, k: -1, ArrowLeft: -1 }[e.key];
+      const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
       if (!step || reader.stories.length < 2) return;
       e.preventDefault();
       showStory(reader.index + step, step > 0 ? "next" : "prev");
@@ -1693,19 +1705,65 @@
     return frag;
   }
 
-  function storyStub(item) {
-    const stub = el("span", "ppui-stub");
-    stub.setAttribute("aria-hidden", "true");
-    if (item.date.day) stub.append(el("span", "ppui-stub-day", item.date.day), el("span", "ppui-stub-month", item.date.month));
-    else stub.appendChild(icon("newspaper"));
-    return stub;
+  const NEWS_ARCHIVE_KEY = "ppui-news-archive";
+  const OLDER_STEP = 20;
+  const ARCHIVE_MAX_PAGES = 80;
+
+  // Every page of the portal's news list, oldest last, kept small: title, date, picture, the
+  // story's address and up to 600 characters of its text (for search and the summary line).
+  async function loadArchive(pk) {
+    const out = [];
+    for (let page = 1; page < ARCHIVE_MAX_PAGES; page++) {
+      const url = new URL("../component/ArticleMultiLineList/" + encodeURIComponent(pk) + "/load_data?page=" + page, location.href);
+      const res = await fetch(url, { credentials: "same-origin", headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" } });
+      if (!res.ok) throw new Error("load_data " + res.status);
+      const data = await res.json();
+      const list = data && Array.isArray(data.articles) ? data.articles : [];
+      if (!list.length) break;
+      for (const a of list) {
+        if (!a || typeof a.title !== "string") continue;
+        // The preview is the story's HTML: parsed inert (nothing loads or runs), only its text kept.
+        const html = typeof a.summary === "string" && a.summary.trim() ? a.summary : typeof a.preview === "string" ? a.preview : "";
+        const text = html ? clean(new DOMParser().parseFromString(html, "text/html").body.textContent).slice(0, 600) : "";
+        out.push({ t: clean(a.title), d: a.publish_date || "", dt: a.the_date || "", pk: a.article_pk || "", img: a.thumbnail || "", s: text });
+      }
+    }
+    return out;
+  }
+
+  // One saved story as the same shape readArticle gives.
+  function archiveItem(a) {
+    if (!a || typeof a.t !== "string" || !a.t) return null;
+    const when = new Date(a.d);
+    const ok = !isNaN(when);
+    // The same text the portal's list shows ("Tue, Nov 17"), so pins and read marks match.
+    const dateText = ok ? when.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "2-digit" }) : String(a.dt || "");
+    const summary = String(a.s || "");
+    const body = el("div");
+    if (summary) body.appendChild(el("p", null, summary));
+    let href = null;
+    if (a.pk && /^[A-Za-z0-9+/=_-]+$/.test(a.pk)) href = sameOriginHref(new URL("../detail/article/" + a.pk, location.href).href);
+    return {
+      title: a.t,
+      dateText,
+      time: ok ? new Date(when).setHours(0, 0, 0, 0) : null,
+      date: ok ? splitDate(when) : splitDate(dateText),
+      summary: summary.slice(0, 220),
+      searchText: summary,
+      image: absUrl(a.img),
+      href,
+      frames: [],
+      body,
+    };
   }
 
   function buildNewsPage() {
     const articles = [...document.querySelectorAll(SEL.article)];
     if (!articles.length || document.querySelector(".ppui-newsroom")) return;
     const items = articles.map(readArticle);
+    items.forEach((item, i) => (item.rank = i));
     reader.newsHref = location.href;
+    const pageCount = items.length;
     const actions = newsActions(() => items, render);
     const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -1715,7 +1773,7 @@
     try {
       localStorage.setItem(NEWS_SEEN_KEY, JSON.stringify(items.map(storyKey).slice(0, 300)));
     } catch (e) {}
-    const isNew = (item) => !!seenBefore && !seenBefore.has(storyKey(item));
+    const isNew = (item) => !item.older && !!seenBefore && !seenBefore.has(storyKey(item));
     const isUnreadNew = (item) => isNew(item) && !(readKeys(NEWS_OPENED_KEY) || new Set()).has(storyKey(item));
 
     const room = el("section", "ppui-newsroom");
@@ -1777,6 +1835,8 @@
     const sortSeg = el("div", "ppui-room-sort");
     sortSeg.setAttribute("role", "group");
     sortSeg.setAttribute("aria-label", "Sort");
+    const searchNote = el("span", "ppui-room-search-note");
+    searchNote.setAttribute("aria-live", "polite");
     const sortButtons = [["newest", "Newest"], ["oldest", "Oldest"]].map(([key, label]) => {
       const b = el("button", "ppui-room-sort-item", label);
       b.type = "button";
@@ -1791,10 +1851,7 @@
       return b;
     });
     sortSeg.append(...sortButtons);
-    const hint = el("span", "ppui-room-keys");
-    hint.setAttribute("aria-hidden", "true");
-    hint.append(el("kbd", null, "J"), el("kbd", null, "K"), document.createTextNode(" move · "), el("kbd", null, "Enter"), document.createTextNode(" open"));
-    bar.append(searchBox, sortSeg, hint);
+    bar.append(searchBox, sortSeg);
 
     // The last two weeks as day tiles, each with its count. Tap a day to jump to it; tap it again to
     // show only that day.
@@ -1808,7 +1865,17 @@
     list.id = "ppui-room-list";
     list.setAttribute("role", "tabpanel");
     const main = el("div", "ppui-room-main");
-    main.append(bar, strip, filterNote, tools, list);
+    // More of the older stories in "All stories".
+    let olderShown = 0;
+    const moreBox = el("div", "ppui-room-more");
+    const moreButton = el("button", "ppui-room-restore-all", "Show older news");
+    moreButton.type = "button";
+    moreButton.addEventListener("click", () => {
+      olderShown += OLDER_STEP;
+      render();
+    });
+    moreBox.appendChild(moreButton);
+    main.append(bar, searchNote, strip, filterNote, tools, list, moreBox);
     room.append(head, main);
 
     // Our view takes the list's place. The portal keeps its list in a narrow column, so take over the
@@ -1850,13 +1917,17 @@
       named.forEach((n) => n.classList.add("ppui-moved"));
     }
 
-    const matches = (item) => !query || item.title.toLowerCase().includes(query) || (item.summary || "").toLowerCase().includes(query);
+    const matches = (item) => !query || item.title.toLowerCase().includes(query) ||
+      (item.searchText || item.summary || "").toLowerCase().includes(query);
+    // "All stories" with no search or day picked shows the page's own stories, plus older ones on request.
+    const browsing = () => actions.view === "all" && !query && dayFilter === null;
+    const inWindow = (item) => !browsing() || item.rank < pageCount + olderShown;
 
     // Undated stories keep their place at the end; pinned ones lead in "All stories".
     function arrange(stories) {
       const dir = sort === "oldest" ? 1 : -1;
       const byTime = (a, b) => (a.time === null || b.time === null ? (a.time === null) - (b.time === null) : (a.time - b.time) * dir);
-      const kept = stories.filter((item) => matches(item) && (dayFilter === null || item.time === dayFilter));
+      const kept = stories.filter((item) => matches(item) && inWindow(item) && (dayFilter === null || item.time === dayFilter));
       if (actions.view !== "all") return kept.sort(byTime);
       return kept.filter(actions.isPinned).sort(byTime).concat(kept.filter((item) => !actions.isPinned(item)).sort(byTime));
     }
@@ -1876,18 +1947,22 @@
         dot.title = "New since your last visit";
         card.appendChild(dot);
       }
-      let lead;
+      // A picture if the story has one; otherwise the headline takes the space.
+      let lead = null;
       if (item.image) {
         lead = el("span", "ppui-room-thumb");
         lead.setAttribute("aria-hidden", "true");
         const img = el("img");
         img.alt = "";
         img.loading = "lazy";
-        img.addEventListener("error", () => lead.replaceWith(storyStub(item)));
+        img.addEventListener("error", () => {
+          lead.remove();
+          card.classList.add("no-thumb");
+        });
         img.src = item.image;
         lead.appendChild(img);
       } else {
-        lead = storyStub(item);
+        card.classList.add("no-thumb");
       }
       const text = el("div", "ppui-room-text");
       const headline = el("h2", "ppui-room-headline");
@@ -1911,7 +1986,7 @@
         pin.setAttribute("aria-pressed", String(pinned));
         side.appendChild(pin);
       }
-      card.append(readBox(item, card), lead, text, side);
+      card.append(readBox(item, card), ...(lead ? [lead] : []), text, side);
       // Anywhere on the row (but the tick box and pin) opens the reader.
       card.addEventListener("click", (e) => {
         if (e.target.closest(".ppui-read-box, .ppui-story-pin")) return;
@@ -2019,6 +2094,11 @@
           strip.querySelectorAll(".ppui-day-chip").forEach((c) => c.classList.toggle("is-active", c === b));
           const card = list.querySelector('.ppui-room-story[data-day="' + t + '"]');
           if (card) goTo(card);
+          else {
+            // That day is further back than the list goes: show just that day.
+            dayFilter = t;
+            render();
+          }
         });
         strip.appendChild(b);
       }
@@ -2066,6 +2146,10 @@
       renderStrip(inTab);
       const shown = arrange(inTab);
       shownNow = shown;
+      const total = items.length;
+      search.placeholder = archive.done ? "Search all " + total + " stories" : "Search news";
+      searchNote.textContent = query && !archive.done ? "Still loading older stories, so results may be missing some." : "";
+      moreBox.hidden = !browsing() || !inTab.some((item) => !inWindow(item));
       if (!shown.length) {
         let empty;
         if (inTab.length && query) {
@@ -2119,32 +2203,50 @@
     // The stories on screen now, in order, for the reader's previous / next.
     let shownNow = [];
 
-    // J / K move between stories, Enter opens one, "/" jumps to search.
-    let focusIndex = -1;
+    // "/" jumps to search; Enter on a focused row opens it.
     document.addEventListener("keydown", (e) => {
       if (e.ctrlKey || e.metaKey || e.altKey || !room.isConnected) return;
       if (e.target.closest && e.target.closest("input, textarea, select, [contenteditable], dialog, [popover]")) return;
       if (reader.dialog && reader.dialog.open) return;
-      const rows = [...list.querySelectorAll(".ppui-room-story")];
       if (e.key === "/") {
         e.preventDefault();
         search.focus();
-        return;
-      }
-      if (!rows.length) return;
-      if (e.key === "j" || e.key === "k") {
-        const at = rows.indexOf(document.activeElement);
-        focusIndex = Math.max(0, Math.min(rows.length - 1, (at === -1 ? focusIndex : at) + (e.key === "j" ? 1 : -1)));
-        const row = rows[focusIndex];
-        row.focus({ preventScroll: true });
-        const r = row.getBoundingClientRect();
-        if (r.top < 70 || r.bottom > innerHeight - 20) scrollTo({ top: r.top + scrollY - 80, behavior: reduced() ? "auto" : "smooth" });
-        e.preventDefault();
-      } else if (e.key === "Enter" && rows.includes(document.activeElement)) {
+      } else if (e.key === "Enter" && document.activeElement.matches(".ppui-room-story")) {
         e.preventDefault();
         openStory(Number(document.activeElement.dataset.index));
       }
     });
+
+    // The rest of the stories, from the cache at once and then fresh from the portal.
+    const archive = { done: false };
+    const listPk = articles[0].closest("[data-component-pk]")?.dataset.componentPk;
+    const addOlder = (raw) => {
+      const have = new Set(items.map(storyKey));
+      for (const a of raw) {
+        const item = archiveItem(a);
+        if (!item || have.has(storyKey(item))) continue;
+        have.add(storyKey(item));
+        item.rank = items.length;
+        item.older = true;
+        items.push(item);
+      }
+    };
+    if (listPk) {
+      const saved = readJson(NEWS_ARCHIVE_KEY, null);
+      if (saved && saved.pk === listPk && Array.isArray(saved.list)) addOlder(saved.list);
+      loadArchive(listPk).then((list) => {
+        writeJson(NEWS_ARCHIVE_KEY, { pk: listPk, list });
+        // Fresh list: drop what the cache added and add it again, so removed stories go.
+        items.splice(pageCount);
+        addOlder(list);
+        archive.done = true;
+        render();
+      }).catch((e) => {
+        console.warn("[Pinehurst Dashboard] Couldn't load older news.", e);
+        archive.done = items.length > pageCount;
+        render();
+      });
+    }
 
     addEventListener("resize", moveIndicator);
     render();
@@ -4253,7 +4355,7 @@
       }
       if (item.date.ago) meta.appendChild(document.createTextNode(item.date.ago));
       body.appendChild(meta);
-      a.append(storyStub(item), body);
+      a.appendChild(body);
 
       // Pin / mark as read (or, in the Read view, put back). They sit over the row and appear on hover or focus.
       const tools = el("span", "ppui-story-actions");
@@ -4405,7 +4507,7 @@
     const saved = readJson(NEWS_CACHE_KEY, null);
     if (!saved || saved.href !== href || !Array.isArray(saved.items)) return [];
     return saved.items.filter((c) => c && typeof c.title === "string").map((c) => {
-      const day = new Date(c.dateText);
+      const day = storyDate(c.dateText);
       // Re-clean the saved markup (an inert template: nothing loads or runs while it's parsed).
       const t = document.createElement("template");
       t.innerHTML = typeof c.body === "string" ? c.body : "";

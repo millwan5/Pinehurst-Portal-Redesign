@@ -6812,3 +6812,42 @@ html .detail-email .email-body {
 }
 
 .ppui-story-day-link:hover { text-decoration: underline !important; }
+
+/* News: no date tiles. A row without a picture gives the headline its space. */
+.ppui-story-link {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ppui-room-story.is-row.no-thumb {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+@media (max-width: 560px) {
+  .ppui-room-story.is-row.no-thumb {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .ppui-room-story.is-row.no-thumb .ppui-room-side {
+    grid-column: 2;
+  }
+}
+
+.ppui-room-search-note {
+  display: block;
+  margin: -4px 0 10px;
+  color: var(--ppui-muted);
+  font-size: 13px;
+}
+
+.ppui-room-search-note:empty {
+  display: none;
+}
+
+.ppui-room-more {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0 8px;
+}
+
+.ppui-room-more[hidden] {
+  display: none;
+}
