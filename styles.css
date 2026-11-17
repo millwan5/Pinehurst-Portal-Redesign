@@ -6842,12 +6842,55 @@ html .detail-email .email-body {
   display: none;
 }
 
-.ppui-room-more {
+/* News: "Show older news" under the list. */
+.ppui-room-older {
   display: flex;
   justify-content: center;
   padding: 20px 0 8px;
 }
 
-.ppui-room-more[hidden] {
+.ppui-room-older[hidden] {
   display: none;
+}
+
+/* News: the day picker button, beside sort. */
+.ppui-room-day-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 11px;
+  background: var(--ppui-surface);
+  color: var(--ppui-text);
+  font: 650 13px var(--ppui-font);
+  cursor: pointer;
+}
+
+.ppui-room-day-button:hover {
+  background: var(--ppui-accent-soft);
+}
+
+.ppui-room-day-button.is-on {
+  border-color: transparent;
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent);
+}
+
+.ppui-room-day-button .ppui-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.ppui-room-day-button .ppui-icon:last-child {
+  width: 13px;
+  height: 13px;
+  opacity: 0.6;
+}
+
+.ppui-day-menu {
+  max-height: min(420px, 60vh);
+  overflow-y: auto;
+  min-width: 220px;
 }

@@ -1130,7 +1130,9 @@
     const text = (sel) => clean((node.querySelector(sel) || {}).textContent);
     const titleText = text(SEL.articleTitle);
     const summaryNode = [...node.querySelectorAll(ARTICLE_SUMMARY)]
-      .find((n) => !n.closest(SEL.articleTitle) && !n.closest(SEL.articleDate) && clean(n.textContent).length > 40);
+      .find((n) => !n.closest(SEL.articleTitle) && !n.closest(SEL.articleDate) &&
+        !n.querySelector(SEL.articleTitle + ", " + SEL.articleDate + ", .article-channel") &&
+        clean(n.textContent).length > (n.matches(".article-summary") ? 0 : 40));
     const picture = pictureOf(node);
     const anchor = storyAnchor(node);
     const dateText = text(SEL.articleDate);
@@ -1640,7 +1642,7 @@
     return actions;
   }
 
-  // ---- News page: tabs (All / Pinned / Read), search and sort, a strip of recent days, and the stories
+  // ---- News page: tabs (All / Pinned / Read), search and sort, a day picker, and the stories
   // in day sections down a timeline, with a line where the stories new since your last visit end ----
 
   // Which stories were there last time you opened the News page (to mark what's new), and which
@@ -1713,19 +1715,25 @@
   // story's address and up to 600 characters of its text (for search and the summary line).
   async function loadArchive(pk) {
     const out = [];
-    for (let page = 1; page < ARCHIVE_MAX_PAGES; page++) {
+    for (let page = 0; page < ARCHIVE_MAX_PAGES; page++) {
       const url = new URL("../component/ArticleMultiLineList/" + encodeURIComponent(pk) + "/load_data?page=" + page, location.href);
       const res = await fetch(url, { credentials: "same-origin", headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" } });
       if (!res.ok) throw new Error("load_data " + res.status);
       const data = await res.json();
       const list = data && Array.isArray(data.articles) ? data.articles : [];
-      if (!list.length) break;
+      if (!list.length) {
+        if (page === 0) continue;
+        break;
+      }
       for (const a of list) {
         if (!a || typeof a.title !== "string") continue;
         // The preview is the story's HTML: parsed inert (nothing loads or runs), only its text kept.
         const html = typeof a.summary === "string" && a.summary.trim() ? a.summary : typeof a.preview === "string" ? a.preview : "";
-        const text = html ? clean(new DOMParser().parseFromString(html, "text/html").body.textContent).slice(0, 600) : "";
-        out.push({ t: clean(a.title), d: a.publish_date || "", dt: a.the_date || "", pk: a.article_pk || "", img: a.thumbnail || "", s: text });
+        const title = clean(a.title);
+        let text = html ? clean(new DOMParser().parseFromString(html, "text/html").body.textContent) : "";
+        if (title && text.toLowerCase().startsWith(title.toLowerCase())) text = text.slice(title.length).replace(/^[\s:.\-–—]+/, "");
+        text = text.slice(0, 600);
+        out.push({ t: title, d: a.publish_date || "", dt: a.the_date || "", pk: a.article_pk || "", img: a.thumbnail || "", s: text });
       }
     }
     return out;
@@ -1818,7 +1826,7 @@
       if (localStorage.getItem(SORT_KEY) === "oldest") sort = "oldest";
     } catch (e) {}
     let query = "";
-    // One day picked on the strip (null = every day).
+    // One day picked in the day picker (null = every day).
     let dayFilter = null;
 
     const bar = el("div", "ppui-room-bar");
@@ -1853,11 +1861,40 @@
     sortSeg.append(...sortButtons);
     bar.append(searchBox, sortSeg);
 
-    // The last two weeks as day tiles, each with its count. Tap a day to jump to it; tap it again to
-    // show only that day.
-    const strip = el("div", "ppui-room-strip");
-    strip.setAttribute("role", "group");
-    strip.setAttribute("aria-label", "Jump to a day");
+    // Pick a day: a dropdown of every day with stories (newest first, under month headings).
+    const dayButton = el("button", "ppui-room-day-button");
+    dayButton.type = "button";
+    const dayLabel = el("span", null, "Pick a day");
+    dayButton.append(icon("calendar"), dayLabel, icon("chevronDown"));
+    bar.appendChild(dayButton);
+    menuButton(dayButton, "Pick a day", (menu) => {
+      menu.classList.add("ppui-day-menu");
+      menu.replaceChildren();
+      const counts = new Map();
+      for (const item of actions.visible()) if (item.time !== null && matches(item)) counts.set(item.time, (counts.get(item.time) || 0) + 1);
+      menuItem(menu, "Every day", dayFilter === null, () => {
+        dayFilter = null;
+        render();
+      });
+      let month = null;
+      for (const t of [...counts.keys()].sort((a, b) => b - a)) {
+        const d = new Date(t);
+        const m = d.toLocaleDateString("en-AU", { month: "long", year: "numeric" });
+        if (m !== month) {
+          month = m;
+          const h = el("li", "ppui-menu-heading", m);
+          h.setAttribute("role", "presentation");
+          menu.appendChild(h);
+        }
+        const n = counts.get(t);
+        const name = daysBack(t) === 0 ? "Today" : daysBack(t) === 1 ? "Yesterday" : fullDayLabel(t);
+        menuItem(menu, [el("span", null, name), el("span", "ppui-menu-count", String(n))], dayFilter === t, () => {
+          dayFilter = t;
+          render();
+          if (room.getBoundingClientRect().top < 0) room.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" });
+        });
+      }
+    });
     const filterNote = el("div", "ppui-room-filter");
 
     const tools = el("div", "ppui-room-tools");
@@ -1867,7 +1904,7 @@
     const main = el("div", "ppui-room-main");
     // More of the older stories in "All stories".
     let olderShown = 0;
-    const moreBox = el("div", "ppui-room-more");
+    const moreBox = el("div", "ppui-room-older");
     const moreButton = el("button", "ppui-room-restore-all", "Show older news");
     moreButton.type = "button";
     moreButton.addEventListener("click", () => {
@@ -1875,7 +1912,7 @@
       render();
     });
     moreBox.appendChild(moreButton);
-    main.append(bar, searchNote, strip, filterNote, tools, list, moreBox);
+    main.append(bar, searchNote, filterNote, tools, list, moreBox);
     room.append(head, main);
 
     // Our view takes the list's place. The portal keeps its list in a narrow column, so take over the
@@ -2060,49 +2097,9 @@
       card.classList.add("is-glowing");
     }
 
-    let activeDay = null;
-    function renderStrip(inTab) {
-      const counts = new Map();
-      for (const item of inTab) if (item.time !== null && matches(item)) counts.set(item.time, (counts.get(item.time) || 0) + 1);
-      strip.replaceChildren();
-      for (let back = 13; back >= 0; back--) {
-        const t = newsDay(back);
-        const n = counts.get(t) || 0;
-        const d = new Date(t);
-        const b = el("button", "ppui-day-chip" + (back === 0 ? " is-today" : "") + (dayFilter === t ? " is-filter" : "") + (activeDay === t ? " is-active" : ""));
-        b.type = "button";
-        b.disabled = !n;
-        b.setAttribute("aria-label", fullDayLabel(t) + ", " + n + (n === 1 ? " story" : " stories"));
-        b.setAttribute("aria-pressed", String(dayFilter === t));
-        b.append(
-          el("span", "ppui-day-chip-wd", back === 0 ? "Today" : d.toLocaleDateString("en-AU", { weekday: "short" })),
-          el("span", "ppui-day-chip-num", String(d.getDate())),
-          el("span", "ppui-day-chip-count", n ? String(n) : ""),
-        );
-        b.addEventListener("click", () => {
-          if (dayFilter === t) {
-            dayFilter = null;
-            render();
-            return;
-          }
-          if (activeDay === t) {
-            dayFilter = t;
-            render();
-            return;
-          }
-          activeDay = t;
-          strip.querySelectorAll(".ppui-day-chip").forEach((c) => c.classList.toggle("is-active", c === b));
-          const card = list.querySelector('.ppui-room-story[data-day="' + t + '"]');
-          if (card) goTo(card);
-          else {
-            // That day is further back than the list goes: show just that day.
-            dayFilter = t;
-            render();
-          }
-        });
-        strip.appendChild(b);
-      }
-      strip.scrollLeft = strip.scrollWidth;
+    function renderStrip() {
+      dayLabel.textContent = dayFilter === null ? "Pick a day" : fullDayLabel(dayFilter);
+      dayButton.classList.toggle("is-on", dayFilter !== null);
       filterNote.replaceChildren();
       if (dayFilter !== null) {
         const pill = el("span", "ppui-room-filter-pill", "Showing " + fullDayLabel(dayFilter));
@@ -2143,7 +2140,7 @@
       }
 
       const inTab = actions.visible();
-      renderStrip(inTab);
+      renderStrip();
       const shown = arrange(inTab);
       shownNow = shown;
       const total = items.length;
@@ -2221,11 +2218,18 @@
     const archive = { done: false };
     const listPk = articles[0].closest("[data-component-pk]")?.dataset.componentPk;
     const addOlder = (raw) => {
-      const have = new Set(items.map(storyKey));
+      const have = new Map(items.map((item) => [storyKey(item), item]));
       for (const a of raw) {
         const item = archiveItem(a);
-        if (!item || have.has(storyKey(item))) continue;
-        have.add(storyKey(item));
+        if (!item) continue;
+        const known = have.get(storyKey(item));
+        if (known) {
+          // One of the page's own stories: borrow the text it was missing.
+          if (!known.summary && item.summary) known.summary = item.summary;
+          if (!known.searchText) known.searchText = item.searchText;
+          continue;
+        }
+        have.set(storyKey(item), item);
         item.rank = items.length;
         item.older = true;
         items.push(item);
