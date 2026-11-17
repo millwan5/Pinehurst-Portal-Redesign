@@ -396,13 +396,22 @@
     }
     g.putImageData(img, 0, 0);
     const mapURL = cv.toDataURL();
+    // Rim light split by the glass: red, green and blue copies of the bright edge sit at slightly
+    // different depths, so where they overlap it's white and at the sides it fans into a spectrum.
+    // Brightest top-left (the light) and bottom-right (the reflection), like a real glass edge.
+    const depths = [1.4, 2.7, 4.0];
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       const { px, py, dist } = sdf(x, y);
-      const t = 1 + dist / bevel;
-      const band = Math.exp(-(((t - 0.8) / 0.16) ** 2));
-      const light = clamp(0.4 - (py / (h / 2)) * 0.45 - (px / (w / 2)) * 0.1, 0.1, 1);
+      const depth = -dist;
       const k = (y * w + x) * 4;
-      d[k] = d[k + 1] = d[k + 2] = 255; d[k + 3] = dist > 0 ? 0 : Math.round(band * light * 255);
+      if (depth < 0) { d[k + 3] = 0; continue; }
+      const tl = clamp(-(py / (h / 2)) * 0.7 - (px / (w / 2)) * 0.5, 0, 1);
+      const br = clamp((py / (h / 2)) * 0.7 + (px / (w / 2)) * 0.5, 0, 1);
+      const light = 0.35 + 0.65 * Math.max(tl, br * 0.7);
+      const a = depths.map((dc) => Math.exp(-(((depth - dc) / 1.15) ** 2)) * light);
+      const m = Math.max(a[0], a[1], a[2]);
+      if (m < 0.01) { d[k + 3] = 0; continue; }
+      d[k] = (a[0] / m) * 255; d[k + 1] = (a[1] / m) * 255; d[k + 2] = (a[2] / m) * 255; d[k + 3] = m * 255;
     }
     g.putImageData(img, 0, 0);
     const ringURL = cv.toDataURL();
@@ -419,16 +428,16 @@
     const f = document.createElementNS("http://www.w3.org/2000/svg", "filter");
     f.setAttribute("id", id);
     for (const [a, v] of [["x", "0"], ["y", "0"], ["width", "100%"], ["height", "100%"], ["color-interpolation-filters", "sRGB"]]) f.setAttribute(a, v);
-    const chans = [["r", 34, "1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"], ["g", 46, "0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0"], ["b", 58, "0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"]];
+    const chans = [["r", 26, "1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"], ["g", 48, "0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0"], ["b", 70, "0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"]];
     f.innerHTML =
       `<feImage href="${mapURL}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" result="map"/>` +
       `<feImage href="${ringURL}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" result="ring"/>` +
-      `<feGaussianBlur in="SourceGraphic" stdDeviation="0.6" result="blurred"/>` +
-      `<feComposite in="ring" in2="blurred" operator="over" result="src"/>` +
+      `<feGaussianBlur in="SourceGraphic" stdDeviation="0.6" result="src"/>` +
       chans.map(([c, sc, m]) =>
         `<feDisplacementMap in="src" in2="map" scale="${sc}" xChannelSelector="R" yChannelSelector="G" result="d${c}"/>` +
         `<feColorMatrix in="d${c}" type="matrix" values="${m}" result="${c}"/>`).join("") +
-      `<feBlend in="r" in2="g" mode="screen" result="rg"/><feBlend in="rg" in2="b" mode="screen"/>`;
+      `<feBlend in="r" in2="g" mode="screen" result="rg"/><feBlend in="rg" in2="b" mode="screen" result="bent"/>` +
+      `<feBlend in="ring" in2="bent" mode="screen"/>`;
     defs.appendChild(f);
     lenses.set(key, id);
     return id;
@@ -447,7 +456,7 @@
     new ResizeObserver(() => {
       const w = Math.round(pill.offsetWidth), h = Math.round(pill.offsetHeight);
       if (!w || !h) return;
-      pill.style.backdropFilter = `url(#${makeLens(w, h)}) saturate(1.5) brightness(1.1)`;
+      pill.style.backdropFilter = `url(#${makeLens(w, h)}) saturate(1.7) brightness(1.1)`;
     }).observe(pill);
   }
 

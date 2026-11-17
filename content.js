@@ -88,11 +88,9 @@
       ["path", { d: "M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" }],
     ],
     moon: [["path", { d: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" }]],
-    palette: [
-      ["path", { d: "M12 22a10 10 0 1 1 10-10c0 2.8-2.2 4-4.5 4H16a2 2 0 0 0-1.5 3.3A1.6 1.6 0 0 1 12 22Z" }],
-      ["circle", { cx: 7.5, cy: 10.5, r: 1.2 }],
-      ["circle", { cx: 11, cy: 6.5, r: 1.2 }],
-      ["circle", { cx: 16, cy: 8.5, r: 1.2 }],
+    home: [
+      ["path", { d: "M3 10.5 12 3l9 7.5" }],
+      ["path", { d: "M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5" }],
     ],
     ellipsis: [
       ["circle", { cx: 5, cy: 12, r: 1 }],
@@ -740,11 +738,11 @@
   }
 
   function buildBannerPicker(banner) {
-    const btn = el("button", "ppui-bar-button ppui-banner-button");
+    const btn = el("button", "ppui-banner-edit");
     btn.type = "button";
     btn.title = "Banner style";
     btn.setAttribute("aria-label", "Banner style");
-    btn.appendChild(icon("palette"));
+    btn.append(icon("palette"), el("span", null, "Banner"));
     const menu = el("ul", "ppui-menu ppui-choice-menu");
     menu.setAttribute("role", "menu");
     menu.setAttribute("aria-label", "Banner style");
@@ -817,30 +815,40 @@
     // Banner style (Classic, Low-poly Mesh, Mosaic): drawn by banner.js over the scene.
     const banner = window.PPUIBanner ? window.PPUIBanner.mount(header, scene, savedBannerStyle()) : null;
 
-    const brand = el("a", "ppui-brand");
-    brand.href = HOME_URL;
-    brand.setAttribute("aria-label", "Pinehurst Dashboard home");
-    const plate = el("span", "ppui-logo-plate");
-    plate.appendChild(svgIcon("ppui-logo", LOGO, "75 10 460 540"));
-    brand.appendChild(plate);
-    const brandName = el("span", "ppui-brand-name");
-    brandName.append(el("span", "ppui-brand-title", "Pinehurst"), el("span", "ppui-brand-sub", "Dashboard"));
-    brand.appendChild(brandName);
+    // Left: Back and Home in their own small glass pill (no logo).
+    const navPill = el("nav", "ppui-pill ppui-nav-pill");
+    navPill.setAttribute("aria-label", "Go back or home");
+    const back = el("button", "ppui-bar-button ppui-back");
+    back.type = "button";
+    back.title = "Back";
+    back.setAttribute("aria-label", "Back");
+    back.appendChild(icon("chevronLeft"));
+    back.addEventListener("click", () => history.back());
+    // Nothing to go back to on a fresh tab.
+    back.hidden = history.length <= 1;
+    const homeLink = el("a", "ppui-bar-button ppui-home");
+    homeLink.href = HOME_URL;
+    homeLink.title = "Home";
+    homeLink.setAttribute("aria-label", "Home");
+    if (home) homeLink.setAttribute("aria-current", "page");
+    homeLink.appendChild(icon("home"));
+    navPill.append(back, homeLink);
+    if (window.PPUIBanner) window.PPUIBanner.glass(navPill);
 
     const pill = el("nav", "ppui-pill");
     pill.setAttribute("aria-label", "Portal tools");
     const messages = buildMessages();
     const account = buildAccount();
     if (messages) pill.appendChild(messages);
-    pill.append(buildCalendarButton(), buildNotebookButton(), buildApps());
-    if (banner) pill.appendChild(buildBannerPicker(banner));
-    pill.appendChild(buildToggle());
+    pill.append(buildCalendarButton(), buildNotebookButton(), buildApps(), buildToggle());
     if (account) pill.appendChild(account);
     if (window.PPUIBanner) window.PPUIBanner.glass(pill);
 
     const top = el("div", "ppui-header-top");
-    top.append(brand, pill);
+    top.append(navPill, pill);
     header.appendChild(top);
+    // Banner style lives in the banner's corner, not in the pill.
+    if (banner) header.appendChild(buildBannerPicker(banner));
 
     if (HOME_PATH.test(location.pathname)) {
       const name = studentName().split(" ")[0];

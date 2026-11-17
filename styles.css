@@ -358,63 +358,6 @@ html :focus-visible {
   gap: 16px;
 }
 
-/* Lockup: crest on a silver-edged enamel plate | hairline | the name set in the greeting's italic serif,
-   so the logo and the hero speak in one voice, with "Dashboard" as a quiet sans line beneath. */
-.ppui-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 13px;
-  color: #fff !important;
-  text-decoration: none !important;
-}
-
-.ppui-logo-plate {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  flex: none;
-  border-radius: 13px;
-  background: linear-gradient(180deg, #ffffff 0%, #f1f4f9 55%, #dfe5ef 100%);
-  box-shadow:
-    inset 0 0 0 1px rgba(167, 169, 172, 0.55),
-    inset 0 1.5px 0 #fff,
-    inset 0 -2px 3px rgba(20, 70, 160, 0.12),
-    0 6px 16px -6px rgba(0, 8, 30, 0.55),
-    0 1px 2px rgba(0, 8, 30, 0.3);
-  transition: transform 0.25s var(--ppui-ease);
-}
-
-/* hairline between crest and name */
-.ppui-logo-plate::after {
-  content: "";
-  position: absolute;
-  top: 7px;
-  bottom: 7px;
-  right: -8px;
-  width: 1px;
-  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.45), transparent);
-}
-
-@media (hover: hover) {
-  .ppui-brand:hover .ppui-logo-plate {
-    transform: translateY(-1px) rotate(-3deg);
-  }
-}
-
-.ppui-brand:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.85);
-  outline-offset: 4px;
-  border-radius: 14px;
-}
-
-.ppui-logo {
-  width: 24px;
-  height: 28px;
-}
-
 .ppui-logo-book,
 .ppui-logo-tree {
   fill: #a7a9ac;
@@ -424,35 +367,52 @@ html :focus-visible {
   fill: #1446a0;
 }
 
-.ppui-brand-name {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-left: 3px;
-  line-height: 1;
-  text-shadow: 0 1px 8px rgba(0, 10, 40, 0.35);
+/* Left: a small glass pill with Back and Home. Right: the tools pill. */
+.ppui-nav-pill .ppui-bar-button[hidden] { display: none; }
+
+/* Banner style button: sits quietly just under the tools pill, not in it. (The bottom corner is
+   covered by the dashboard cards on the home page.) */
+.ppui-banner-edit {
+  position: absolute;
+  right: var(--ppui-gutter);
+  top: 76px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px 0 9px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  -webkit-backdrop-filter: blur(10px) saturate(1.5);
+  backdrop-filter: blur(10px) saturate(1.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 4px 14px -6px rgba(0, 8, 30, 0.5);
+  color: #fff;
+  font: 600 12px var(--ppui-font);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.2s var(--ppui-ease), background-color 0.2s var(--ppui-ease);
 }
 
-.ppui-brand-title {
-  font-family: var(--ppui-display);
-  font-style: italic;
-  font-size: 25px;
-  font-weight: 700;
-  letter-spacing: -0.012em;
-  font-kerning: normal;
-  /* the italic leans right; pull it back so its stem sits over the line below */
-  margin-left: -2px;
+.ppui-banner-edit .ppui-icon { width: 15px; height: 15px; }
+
+.ppui-header:hover .ppui-banner-edit,
+.ppui-banner-edit:focus-visible,
+.ppui-banner-edit[aria-expanded="true"] {
+  opacity: 1;
 }
 
-.ppui-brand-sub {
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.7);
+.ppui-banner-edit:hover { background: rgba(255, 255, 255, 0.24); }
+
+.ppui-header.is-compact .ppui-banner-edit {
+  top: 70px;
+  height: 26px;
 }
 
-.ppui-header.is-compact .ppui-brand-title {
-  font-size: 22px;
+@media (max-width: 640px) {
+  .ppui-banner-edit span { display: none; }
+  .ppui-banner-edit { padding: 0 8px; }
 }
 
 .ppui-intro {
@@ -605,9 +565,6 @@ html :focus-visible {
 }
 
 @media (max-width: 480px) {
-  .ppui-brand-name {
-    display: none;
-  }
   .ppui-header {
     padding-bottom: 104px;
   }
