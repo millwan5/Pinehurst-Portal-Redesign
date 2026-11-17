@@ -7414,3 +7414,19 @@ html .detail-email .email-body {
 .ppui-progress-seg:has(.ppui-progress-spark) {
   overflow: visible;
 }
+
+/* No travelling shimmer on the day bar any more: the metal itself reacts to the pointer instead. */
+.ppui-progress-track.is-started::after {
+  content: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ppui-progress-spark {
+    animation: ppui-blob 2.4s ease-in-out infinite;
+  }
+}
+
+.ppui-progress-track {
+  cursor: pointer;
+  touch-action: pan-y;
+}

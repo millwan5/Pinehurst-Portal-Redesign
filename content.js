@@ -4328,6 +4328,10 @@
     let onScreen = false;
     let last = 0;
     const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // The pointer: hovering presses a soft dent into the metal that follows it; a click or tap
+    // sends ripples out from that spot.
+    const pointer = { x: 0, on: false, hover: 0 };
+    const ripples = [];
 
     // Dark, base, light and highlight tones from the theme (re-read every few seconds).
     const palette = () => {
@@ -4367,6 +4371,9 @@
       const list = pools(track, box);
       data.fill(0);
       const cap = box.height / 2;
+      // Ease the dent in and out, and forget ripples that have died away.
+      pointer.hover += ((pointer.on ? 1 : 0) - pointer.hover) * 0.18;
+      for (let i = ripples.length - 1; i >= 0; i--) if (time - ripples[i].at > 1800) ripples.splice(i, 1);
       const rows = [];
       for (let py = 0; py < h; py++) {
         const ny = ((py + 0.5) / h) * 2 - 1; // -1 top, 1 bottom: the tube's curve
@@ -4401,6 +4408,15 @@
           const fTop = metalFbm(x * 0.016 - t * 0.35, -0.6 + t * 0.12);
           const fBot = metalFbm(x * 0.016 - t * 0.35, 0.6 + t * 0.12);
           const endDist = Math.min(x - p.x, p.x + p.w - x);
+          // How much the pointer bends the reflections in this column.
+          const dx = x - pointer.x;
+          let bend = pointer.hover * 1.1 * Math.exp(-(dx * dx) / 380);
+          for (const rp of ripples) {
+            const age = (time - rp.at) / 1000;
+            const d = Math.abs(x - rp.x);
+            const front = age * 120;
+            bend += Math.sin(d * 0.22 - age * 14) * Math.exp(-((d - front) * (d - front)) / 500) * Math.exp(-age * 1.8) * 1.3;
+          }
           for (let py = 0; py < h; py++) {
             const row = rows[py];
             // Rounded ends (a capsule per pool), with a soft edge.
@@ -4414,7 +4430,7 @@
             }
             const flow = fTop + (fBot - fTop) * row.mix;
             const swirl = Math.sin(x * 0.022 - t * 1.1 + flow * 3) * 0.22;
-            const r = row.ny * 1.2 + (flow - 0.5) * 1.8 + swirl;
+            const r = row.ny * 1.2 + (flow - 0.5) * 1.8 + swirl + bend * (1 - row.ny * row.ny * 0.5);
             const a = r * 2.3 + 0.4;
             const sn = Math.sin(a);
             const cs = Math.cos(a);
@@ -4438,6 +4454,25 @@
       last = time;
       draw(time);
     }
+
+    const at = (e) => e.clientX - bar.querySelector(".ppui-progress-track").getBoundingClientRect().left;
+    const redraw = () => {
+      if (reduced() || !onScreen) draw();
+    };
+    bar.addEventListener("pointermove", (e) => {
+      pointer.x = at(e);
+      pointer.on = true;
+      redraw();
+    });
+    bar.addEventListener("pointerleave", () => {
+      pointer.on = false;
+      redraw();
+    });
+    bar.addEventListener("pointerdown", (e) => {
+      pointer.x = at(e);
+      ripples.push({ x: pointer.x, at: performance.now() });
+      if (ripples.length > 6) ripples.shift();
+    });
 
     new IntersectionObserver(([entry]) => {
       onScreen = entry.isIntersecting;
