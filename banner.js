@@ -52,9 +52,37 @@
     night:   { sky: ["#040a1a", "#0b1e45", "#142f69"], stops: [0, 0.6, 1], mid: "#081a40", near: "#030817", orb: "#dfe3ea", warm: "#e8c36a", night: 1 },
     darkday: { sky: ["#13357c", "#0f2c69", "#0b2457"], stops: [0, 0.6, 1], mid: "#0c2557", near: "#030817", orb: "#e9edf4", warm: "#e9b949", night: 0.3 },
   };
+  // Colour themes: a hue turn and saturation scale applied to the sky and ridge colours.
+  const THEMES = {
+    blue:     { name: "Blue", h: 0, s: 1 },
+    teal:     { name: "Teal", h: -38, s: 1 },
+    forest:   { name: "Forest", h: -88, s: 0.75 },
+    violet:   { name: "Violet", h: 46, s: 0.95 },
+    rose:     { name: "Rose", h: 112, s: 0.8 },
+    sunset:   { name: "Sunset", h: 168, s: 0.95 },
+    graphite: { name: "Graphite", h: 0, s: 0.1 },
+  };
+  function shiftColour(c, th) {
+    if (!th || (th.h === 0 && th.s === 1)) return c;
+    let [r, g, b] = c.map((v) => v / 255);
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+    let h = 0, s = 0;
+    if (mx !== mn) {
+      const dd = mx - mn;
+      s = l > 0.5 ? dd / (2 - mx - mn) : dd / (mx + mn);
+      h = mx === r ? (g - b) / dd + (g < b ? 6 : 0) : mx === g ? (b - r) / dd + 2 : (r - g) / dd + 4;
+      h *= 60;
+    }
+    h = (((h + th.h) % 360) + 360) % 360; s = clamp(s * th.s, 0, 1);
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+    const tc = (t) => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 0.5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+    return [tc(h / 360 + 1 / 3) * 255, tc(h / 360) * 255, tc(h / 360 - 1 / 3) * 255];
+  }
+
   const palCache = new Map();
-  function palette(sky, dark) {
-    const key = sky + dark;
+  function palette(sky, dark, theme) {
+    const key = sky + dark + theme;
+    const th = THEMES[theme] || THEMES.blue;
     if (palCache.has(key)) return palCache.get(key);
     const src = dark && sky === "day" ? SKIES.darkday : SKIES[sky] || SKIES.day;
     const p = {
@@ -62,6 +90,8 @@
       sky: src.sky.map(hex), mid: hex(src.mid), near: hex(src.near), orb: hex(src.orb), warm: hex(src.warm),
     };
     if (dark && sky !== "night") { p.mid = hex("#0c2557"); p.near = hex("#030817"); }
+    p.shift = (c) => shiftColour(c, th);
+    p.sky = p.sky.map(p.shift); p.mid = p.shift(p.mid); p.near = p.shift(p.near);
     p.at = (y) => {
       y = clamp(y, 0, 1);
       const s = p.stops;
@@ -173,7 +203,7 @@
       draw(ctx, S) {
         // Light-mode daytime gets its own brighter, more saturated sky.
         const rich = S.pal.name === "day" && !S.pal.dark;
-        const RICH = [hex("#5cb2ff"), hex("#3488ff"), hex("#1b63e6"), hex("#1450c4")];
+        const RICH = ["#5cb2ff", "#3488ff", "#1b63e6", "#1450c4"].map((c) => S.pal.shift(hex(c)));
         const at = rich ? (y) => { y = clamp(y, 0, 1) * 3; const i = Math.min(2, Math.floor(y)); return mix(RICH[i], RICH[i + 1], y - i); } : S.pal.at;
         const contrast = rich ? 0.2 : 0.12, warm = rich ? hex("#ffd27a") : S.pal.orb;
         const P = (p) => ({ x: p.x + Math.sin(S.t * 0.5 + p.ph) * 6 + S.px * 8, y: p.y + Math.cos(S.t * 0.4 + p.ph) * 6, jit: p.jit });
@@ -200,8 +230,8 @@
         drawStars(ctx, S);
         drawOrb(ctx, S, (rich ? 18 : 15) * (S.compact ? 0.6 : 1));
         if (rich) {
-          drawLowpoly(ctx, S, S.ridgeFar, hex("#4f8fe8"), 0.5);
-          drawLowpoly(ctx, S, S.ridge, hex("#1645a8"), 1);
+          drawLowpoly(ctx, S, S.ridgeFar, S.pal.shift(hex("#4f8fe8")), 0.5);
+          drawLowpoly(ctx, S, S.ridge, S.pal.shift(hex("#1645a8")), 1);
         } else {
           drawLowpoly(ctx, S, S.ridgeFar, mix(S.pal.mid, S.pal.at(0.8), 0.5), 0.5);
           drawLowpoly(ctx, S, S.ridge, lighten(S.pal.near, 0.06), 1);
@@ -292,14 +322,14 @@
   };
 
   // ---- Mount: one canvas in the header scene, redrawn ~30 times a second while on screen ----
-  function mount(header, scene, initial) {
+  function mount(header, scene, initial, initialTheme) {
     const canvas = document.createElement("canvas");
     canvas.className = "ppui-banner-canvas";
     canvas.setAttribute("aria-hidden", "true");
     scene.appendChild(canvas);
     const ctx = canvas.getContext("2d");
     const reduce = matchMedia("(prefers-reduced-motion: reduce)");
-    let style = null, S = null, visible = true, raf = 0, last = 0, ptr = null;
+    let style = null, S = null, visible = true, raf = 0, last = 0, ptr = null, theme = "blue";
     const t0 = performance.now();
 
     function sizeUp() {
@@ -317,7 +347,7 @@
       S.t = moving ? (now - t0) / 1000 : 0;
       S.now = now / 1000;
       const sky = scene.dataset.sky || "day";
-      S.pal = palette(sky, document.documentElement.getAttribute("data-ppui-theme") === "dark");
+      S.pal = palette(sky, document.documentElement.getAttribute("data-ppui-theme") === "dark", theme);
       const cs = scene.style;
       S.orb = { x: (parseFloat(cs.getPropertyValue("--orb-x")) || 70) / 100 * S.w, y: (parseFloat(cs.getPropertyValue("--orb-y")) || 30) / 100 * S.h };
       const tx = ptr ? (ptr.x / S.w - 0.5) * 2 : 0, ty = ptr ? (ptr.y / S.h - 0.5) * 2 : 0;
@@ -364,14 +394,27 @@
       kick();
     });
 
+    function setTheme(id) {
+      theme = THEMES[id] ? id : "blue";
+      header.setAttribute("data-ppui-palette", theme);
+      if (style) frame(performance.now());
+    }
+
+    setTheme(initialTheme);
     setStyle(initial);
-    return { setStyle };
+    return { setStyle, setTheme };
   }
 
   // ---- Liquid glass ----
-  // A lens map bends the backdrop most along a rounded bevel at the rim, and red, green and blue bend by
-  // different amounts, so edges behind the pill split into real rainbow fringes. A soft rim light is added
-  // before the bend, so the glass disperses its own edge light too. Chromium only; others keep frosted blur.
+  // Liquid glass, modelled on a thick drop of clear glass:
+  //  - The body is clear. A dome-shaped lens map bends the scene behind it, gently in the middle and
+  //    strongly toward the rim, so the edges magnify and curve what's behind like a drop of water.
+  //  - Dispersion is real but small: red, green and blue bend by slightly different amounts, so colour
+  //    only appears where the scene behind has an edge, and mostly near the rim, as in real glass.
+  //  - The rim catches the light as a white specular line (top-left strong, bottom-right reflection),
+  //    with a faint red fringe on its outside and blue on its inside, and light gathers softly in the
+  //    bottom of the drop (a caustic).
+  // Chromium only; other browsers keep the frosted blur from styles.css.
   const canRefract = typeof CSS !== "undefined" && CSS.supports("backdrop-filter", "url(#x)") && !/Firefox\//.test(navigator.userAgent);
   const lenses = new Map();
   let defs = null;
@@ -381,7 +424,7 @@
     if (lenses.has(key)) return lenses.get(key);
     const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
     const g = cv.getContext("2d"), img = g.createImageData(w, h), d = img.data;
-    const r = h / 2, bevel = Math.min(16, h * 0.42), cx = w / 2, cy = h / 2;
+    const r = h / 2, bevel = Math.min(22, h * 0.48), cx = w / 2, cy = h / 2;
     const sdf = (x, y) => {
       const px = x + 0.5 - cx, py = y + 0.5 - cy;
       const qx = Math.abs(px) - (w / 2 - r), qy = Math.abs(py) - (h / 2 - r);
@@ -390,31 +433,33 @@
     };
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       const { dist, nx, ny } = sdf(x, y);
-      const t = clamp(1 + dist / bevel, 0, 1), s = 1 - Math.sqrt(1 - t * t);
+      const t = clamp(1 + dist / bevel, 0, 1);
+      const s = t * t * (0.6 + 0.4 * t);           // dome: soft in the middle, steep at the rim
       const k = (y * w + x) * 4;
       d[k] = 128 - nx * s * 127; d[k + 1] = 128 - ny * s * 127; d[k + 2] = 128; d[k + 3] = 255;
     }
     g.putImageData(img, 0, 0);
     const mapURL = cv.toDataURL();
-    // Rim light split by the glass: red, green and blue copies of the bright edge sit at slightly
-    // different depths, so where they overlap it's white and at the sides it fans into a spectrum.
-    // Brightest top-left (the light) and bottom-right (the reflection), like a real glass edge.
-    const depths = [1.5, 2.3, 3.1];
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       const { px, py, dist } = sdf(x, y);
       const depth = -dist;
       const k = (y * w + x) * 4;
       if (depth < 0) { d[k + 3] = 0; continue; }
-      const tl = clamp(-(py / (h / 2)) * 0.7 - (px / (w / 2)) * 0.5, 0, 1);
-      const br = clamp((py / (h / 2)) * 0.7 + (px / (w / 2)) * 0.5, 0, 1);
-      const light = (0.2 + 0.8 * Math.max(tl, br * 0.6)) * 0.5;
-      const a = depths.map((dc) => Math.exp(-(((depth - dc) / 1.15) ** 2)) * light);
-      const m = Math.max(a[0], a[1], a[2]);
+      const tl = clamp(-(py / (h / 2)) * 0.75 - (px / (w / 2)) * 0.45, 0, 1);
+      const br = clamp((py / (h / 2)) * 0.75 + (px / (w / 2)) * 0.45, 0, 1);
+      const light = 0.12 + 0.88 * Math.max(tl, br * 0.45);
+      const core = Math.exp(-(((depth - 1.5) / 0.85) ** 2)) * light * 0.85;
+      const red = Math.exp(-(((depth - 0.7) / 0.55) ** 2)) * light * 0.28;
+      const blue = Math.exp(-(((depth - 2.6) / 0.7) ** 2)) * light * 0.28;
+      const bottom = clamp(py / (h / 2), 0, 1);
+      const caustic = Math.exp(-(((depth - h * 0.17) / (h * 0.09)) ** 2)) * bottom * bottom * 0.13;
+      const R = core + red + caustic, G = core + caustic, B = core + blue + caustic;
+      const m = Math.min(1, Math.max(R, G, B));
       if (m < 0.01) { d[k + 3] = 0; continue; }
-      d[k] = (a[0] / m) * 255; d[k + 1] = (a[1] / m) * 255; d[k + 2] = (a[2] / m) * 255; d[k + 3] = m * 255;
+      d[k] = Math.min(255, (R / m) * 255); d[k + 1] = Math.min(255, (G / m) * 255); d[k + 2] = Math.min(255, (B / m) * 255); d[k + 3] = m * 255;
     }
     g.putImageData(img, 0, 0);
-    const ringURL = cv.toDataURL();
+    const lightURL = cv.toDataURL();
 
     if (!defs) {
       const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -428,16 +473,16 @@
     const f = document.createElementNS("http://www.w3.org/2000/svg", "filter");
     f.setAttribute("id", id);
     for (const [a, v] of [["x", "0"], ["y", "0"], ["width", "100%"], ["height", "100%"], ["color-interpolation-filters", "sRGB"]]) f.setAttribute(a, v);
-    const chans = [["r", 26, "1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"], ["g", 40, "0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0"], ["b", 54, "0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"]];
+    const chans = [["r", 30, "1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"], ["g", 36, "0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0"], ["b", 42, "0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"]];
     f.innerHTML =
       `<feImage href="${mapURL}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" result="map"/>` +
-      `<feImage href="${ringURL}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" result="ring"/>` +
-      `<feGaussianBlur in="SourceGraphic" stdDeviation="0.6" result="src"/>` +
+      `<feImage href="${lightURL}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" result="light"/>` +
+      `<feGaussianBlur in="SourceGraphic" stdDeviation="0.5" result="src"/>` +
       chans.map(([c, sc, m]) =>
         `<feDisplacementMap in="src" in2="map" scale="${sc}" xChannelSelector="R" yChannelSelector="G" result="d${c}"/>` +
         `<feColorMatrix in="d${c}" type="matrix" values="${m}" result="${c}"/>`).join("") +
       `<feBlend in="r" in2="g" mode="screen" result="rg"/><feBlend in="rg" in2="b" mode="screen" result="bent"/>` +
-      `<feBlend in="ring" in2="bent" mode="screen"/>`;
+      `<feBlend in="light" in2="bent" mode="screen"/>`;
     defs.appendChild(f);
     lenses.set(key, id);
     return id;
@@ -445,23 +490,37 @@
 
   function glass(pill) {
     pill.classList.add("ppui-glass");
-    // Sheen follows the pointer.
+    // The sheen follows the pointer.
     pill.addEventListener("pointermove", (e) => {
       const r = pill.getBoundingClientRect();
       pill.style.setProperty("--hx", (((e.clientX - r.left) / r.width) * 100).toFixed(1) + "%");
       pill.style.setProperty("--hy", (((e.clientY - r.top) / r.height) * 100).toFixed(1) + "%");
     });
     pill.addEventListener("pointerleave", () => { pill.style.removeProperty("--hx"); pill.style.removeProperty("--hy"); });
+    // Liquid: pressing squashes the glass toward the finger, and it springs back on release.
+    pill.addEventListener("pointerdown", (e) => {
+      const r = pill.getBoundingClientRect();
+      pill.style.setProperty("--px", (((e.clientX - r.left) / r.width) * 100).toFixed(1) + "%");
+      pill.classList.add("is-pressed");
+    });
+    const release = () => pill.classList.remove("is-pressed");
+    pill.addEventListener("pointerup", release);
+    pill.addEventListener("pointercancel", release);
+    pill.addEventListener("pointerleave", release);
     if (!canRefract) return;
     new ResizeObserver(() => {
       const w = Math.round(pill.offsetWidth), h = Math.round(pill.offsetHeight);
       if (!w || !h) return;
-      pill.style.backdropFilter = `url(#${makeLens(w, h)}) saturate(1.7) brightness(1.1)`;
+      pill.style.backdropFilter = `url(#${makeLens(w, h)}) saturate(1.15) brightness(1.04)`;
     }).observe(pill);
   }
 
   window.PPUIBanner = {
     styles: [["classic", "Classic"], ["mesh", STYLES.mesh.name], ["mosaic", STYLES.mosaic.name]],
+    themes: Object.entries(THEMES).map(([id, t]) => {
+      const c = shiftColour(hex("#2a64cf"), t);
+      return [id, t.name, `rgb(${c.map((v) => Math.round(v)).join(",")})`];
+    }),
     mount,
     glass,
   };

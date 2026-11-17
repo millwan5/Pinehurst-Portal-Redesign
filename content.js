@@ -727,6 +727,16 @@
 
   // ---- Banner style picker (remembered per browser) ----
   const BANNER_KEY = "ppui-banner-style";
+  const BANNER_THEME_KEY = "ppui-banner-palette";
+
+  function savedBannerTheme() {
+    try {
+      const v = localStorage.getItem(BANNER_THEME_KEY);
+      return window.PPUIBanner && window.PPUIBanner.themes.some(([id]) => id === v) ? v : "blue";
+    } catch (e) {
+      return "blue";
+    }
+  }
 
   function savedBannerStyle() {
     try {
@@ -747,25 +757,48 @@
     menu.setAttribute("role", "menu");
     menu.setAttribute("aria-label", "Banner style");
     arrowNav(menu, ".ppui-menu-item");
+    // Two groups: the banner's style, then its colour.
+    const radio = (label, checked, pick, swatch) => {
+      const li = el("li");
+      const b = el("button", "ppui-menu-item" + (swatch ? " ppui-swatch-item" : ""));
+      b.type = "button";
+      b.setAttribute("role", "menuitemradio");
+      b.setAttribute("aria-checked", String(checked));
+      if (swatch) {
+        const dot = el("span", "ppui-swatch");
+        dot.style.background = swatch;
+        b.appendChild(dot);
+      }
+      b.appendChild(el("span", null, label));
+      b.addEventListener("click", () => {
+        menu.hidePopover();
+        pick();
+      });
+      li.appendChild(b);
+      menu.appendChild(li);
+    };
+    const save = (key, value) => {
+      try {
+        localStorage.setItem(key, value);
+      } catch (e) {}
+    };
     popover(btn, menu, () => {
       menu.textContent = "";
-      menu.appendChild(el("li", "ppui-menu-heading", "Banner style"));
-      const current = savedBannerStyle();
+      menu.appendChild(el("li", "ppui-menu-heading", "Style"));
+      const style = savedBannerStyle();
       for (const [id, label] of window.PPUIBanner.styles) {
-        const li = el("li");
-        const b = el("button", "ppui-menu-item", label);
-        b.type = "button";
-        b.setAttribute("role", "menuitemradio");
-        b.setAttribute("aria-checked", String(id === current));
-        b.addEventListener("click", () => {
-          menu.hidePopover();
-          try {
-            localStorage.setItem(BANNER_KEY, id);
-          } catch (e) {}
+        radio(label, id === style, () => {
+          save(BANNER_KEY, id);
           banner.setStyle(id);
         });
-        li.appendChild(b);
-        menu.appendChild(li);
+      }
+      menu.appendChild(el("li", "ppui-menu-heading", "Colour"));
+      const theme = savedBannerTheme();
+      for (const [id, label, swatch] of window.PPUIBanner.themes) {
+        radio(label, id === theme, () => {
+          save(BANNER_THEME_KEY, id);
+          banner.setTheme(id);
+        }, swatch);
       }
     });
     menu.addEventListener("toggle", (e) => {
@@ -813,7 +846,7 @@
     const scene = buildScene(!home);
     header.appendChild(scene);
     // Banner style (Classic, Low-poly Mesh, Mosaic): drawn by banner.js over the scene.
-    const banner = window.PPUIBanner ? window.PPUIBanner.mount(header, scene, savedBannerStyle()) : null;
+    const banner = window.PPUIBanner ? window.PPUIBanner.mount(header, scene, savedBannerStyle(), savedBannerTheme()) : null;
 
     // Left: Back and Home in their own small glass pill (no logo). Not shown on the home page itself.
     const navPill = el("nav", "ppui-pill ppui-nav-pill");

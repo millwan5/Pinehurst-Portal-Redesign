@@ -456,16 +456,27 @@ html :focus-visible {
   gap: 2px;
   padding: 5px;
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(255, 255, 255, 0.06) 100%);
-  -webkit-backdrop-filter: blur(10px) saturate(1.6) brightness(1.08);
-  backdrop-filter: blur(10px) saturate(1.6) brightness(1.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 45%, rgba(255, 255, 255, 0.04) 100%);
+  -webkit-backdrop-filter: blur(8px) saturate(1.3) brightness(1.05);
+  backdrop-filter: blur(8px) saturate(1.3) brightness(1.05);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.65),
-    inset 1px 0 0 rgba(255, 255, 255, 0.18),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.2),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
-    0 10px 30px -8px rgba(0, 8, 30, 0.55),
-    0 2px 6px rgba(0, 8, 30, 0.25);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 -6px 14px -10px rgba(255, 255, 255, 0.35),
+    0 12px 28px -10px rgba(0, 8, 30, 0.5),
+    0 2px 5px rgba(0, 8, 30, 0.18);
+  transform-origin: var(--px, 50%) 50%;
+  transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Liquid: pressing squashes the glass toward the finger; it springs back with a little wobble. */
+.ppui-pill.is-pressed {
+  transform: scale(1.025, 0.94);
+  transition-duration: 0.12s;
+  transition-timing-function: ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ppui-pill, .ppui-pill.is-pressed { transform: none; transition: none; }
 }
 
 .ppui-pill::after {
@@ -475,7 +486,7 @@ html :focus-visible {
   z-index: -1;
   border-radius: inherit;
   pointer-events: none;
-  background: radial-gradient(55% 120% at var(--hx) var(--hy), rgba(255, 255, 255, 0.38), transparent 60%);
+  background: radial-gradient(45% 110% at var(--hx) var(--hy), rgba(255, 255, 255, 0.3), transparent 62%);
   mix-blend-mode: soft-light;
 }
 
@@ -496,6 +507,48 @@ html :focus-visible {
 
 .ppui-header[data-ppui-banner]:not([data-ppui-banner="classic"]) .ppui-scene > :not(.ppui-banner-canvas) {
   display: none;
+}
+
+.ppui-header[data-ppui-banner="classic"][data-ppui-palette="teal"] .ppui-scene { filter: hue-rotate(-38deg); }
+.ppui-header[data-ppui-banner="classic"][data-ppui-palette="forest"] .ppui-scene { filter: hue-rotate(-88deg) saturate(0.75); }
+.ppui-header[data-ppui-banner="classic"][data-ppui-palette="violet"] .ppui-scene { filter: hue-rotate(46deg) saturate(0.95); }
+.ppui-header[data-ppui-banner="classic"][data-ppui-palette="rose"] .ppui-scene { filter: hue-rotate(112deg) saturate(0.8); }
+.ppui-header[data-ppui-banner="classic"][data-ppui-palette="sunset"] .ppui-scene { filter: hue-rotate(168deg) saturate(0.95); }
+.ppui-header[data-ppui-banner="classic"][data-ppui-palette="graphite"] .ppui-scene { filter: saturate(0.1); }
+
+/* Colour swatches in the Banner menu */
+.ppui-swatch-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ppui-swatch {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+
+/* Header text stays readable on every banner, bright skies included: a soft shadow on the words and
+   a faint dark haze behind the greeting. */
+.ppui-intro::before {
+  content: "";
+  position: absolute;
+  inset: -28px -60px -24px -40px;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgba(4, 16, 48, 0.28), rgba(4, 16, 48, 0) 100%);
+}
+
+.ppui-greeting,
+.ppui-date {
+  text-shadow: 0 1px 2px rgba(0, 10, 40, 0.45), 0 4px 18px rgba(0, 10, 40, 0.35);
+}
+
+.ppui-banner-edit {
+  text-shadow: 0 1px 2px rgba(0, 10, 40, 0.5);
 }
 
 .ppui-bar-button {
