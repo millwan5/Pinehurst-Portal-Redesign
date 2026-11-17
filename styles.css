@@ -6335,15 +6335,13 @@ html .detail-email .email-body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
-/* ---------- Dropdowns: liquid glass. A frosted, see-through panel with a bright white rim and a
-   soft lift; the item under the pointer rises as a small glass chip of its own. ---------- */
+/* ---------- Dropdowns: one solid colour with a bevelled rim and a soft lift; the item under the
+   pointer rises as a small chip of its own. ---------- */
 .ppui-popover {
   padding: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.75);
+  border: 1px solid var(--ppui-hairline);
   border-radius: 20px;
-  background: color-mix(in srgb, var(--ppui-surface) 66%, transparent);
-  -webkit-backdrop-filter: blur(24px) saturate(1.8);
-  backdrop-filter: blur(24px) saturate(1.8);
+  background: var(--ppui-surface);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.95),
     inset 0 0 0 1px rgba(255, 255, 255, 0.35),
@@ -6354,7 +6352,7 @@ html .detail-email .email-body {
 
 :root[data-ppui-theme="dark"] .ppui-popover {
   border-color: rgba(255, 255, 255, 0.14);
-  background: color-mix(in srgb, #2c2c2e 62%, transparent);
+  background: #2c2c2e;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     inset 0 0 0 1px rgba(255, 255, 255, 0.05),
@@ -6386,7 +6384,7 @@ html .detail-email .email-body {
 .ppui-popover .ppui-app:focus-visible,
 .ppui-popover .ppui-menu-item:hover:not(:disabled),
 .ppui-popover .ppui-app:hover {
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--ppui-hover-2);
   color: var(--ppui-text) !important;
   box-shadow:
     inset 0 1px 0 #fff,
