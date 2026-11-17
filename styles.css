@@ -53,6 +53,19 @@
   --ppui-ridge-mid: #123a86;
   --ppui-ridge-near: #0b1e45;
   --ppui-hover-2: rgba(11, 30, 69, 0.1);
+  /* Bevels: a lit top edge, a faint shaded bottom edge and a hairline lift. Cards and buttons share them. */
+  --ppui-bevel:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(11, 30, 69, 0.05),
+    0 1px 2px rgba(11, 30, 69, 0.05),
+    0 4px 14px -8px rgba(11, 30, 69, 0.12);
+  --ppui-bevel-btn:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -2px 0 rgba(11, 30, 69, 0.06),
+    0 1px 2px rgba(11, 30, 69, 0.1);
+  --ppui-bevel-press:
+    inset 0 1px 2px rgba(11, 30, 69, 0.12),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.6);
   --ppui-radius-card: 20px;
   --ppui-radius-pop: 16px;
   --ppui-radius-row: 12px;
@@ -67,7 +80,7 @@
    is only a fallback for the instant before the script runs. */
 :root[data-ppui-theme="dark"] {
   color-scheme: dark;
-  --ppui-bg: #000000;
+  --ppui-bg: #121214;
   --ppui-surface: #1c1c1e;
   --ppui-raised: #2c2c2e;
   --ppui-hover: rgba(255, 255, 255, 0.06);
@@ -79,6 +92,18 @@
   --ppui-logo-grey: #b4b6ba;
   --ppui-logo-blue: #2f63c4;
   --ppui-hover-2: rgba(255, 255, 255, 0.11);
+  --ppui-bevel:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.35),
+    0 6px 16px -8px rgba(0, 0, 0, 0.5);
+  --ppui-bevel-btn:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.4);
+  --ppui-bevel-press:
+    inset 0 1px 3px rgba(0, 0, 0, 0.45),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
 }
 
 :root[data-ppui-theme="light"] {
@@ -86,7 +111,7 @@
 }
 
 /* Colour themes (chosen under Customise): recolour accents, page tint and text tint everywhere.
-   Blue is the default above. In dark mode only the accent changes; surfaces stay iOS black/grey. */
+   Blue is the default above. In dark mode only the accent changes; surfaces stay iOS-style greys. */
 :root[data-ppui-palette="teal"] {
   --ppui-crest: #0f766e;
   --ppui-sky: #2bb3a8;
@@ -109,7 +134,7 @@
   --ppui-ink: #f5f5f7;
   --ppui-text: #f5f5f7;
   --ppui-muted: #8e8e93;
-  --ppui-bg: #000000;
+  --ppui-bg: #121214;
   --ppui-hover: rgba(255, 255, 255, 0.06);
   --ppui-hover-2: rgba(255, 255, 255, 0.11);
   --ppui-hairline: rgba(84, 84, 88, 0.5);
@@ -136,7 +161,7 @@
   --ppui-ink: #f5f5f7;
   --ppui-text: #f5f5f7;
   --ppui-muted: #8e8e93;
-  --ppui-bg: #000000;
+  --ppui-bg: #121214;
   --ppui-hover: rgba(255, 255, 255, 0.06);
   --ppui-hover-2: rgba(255, 255, 255, 0.11);
   --ppui-hairline: rgba(84, 84, 88, 0.5);
@@ -163,7 +188,7 @@
   --ppui-ink: #f5f5f7;
   --ppui-text: #f5f5f7;
   --ppui-muted: #8e8e93;
-  --ppui-bg: #000000;
+  --ppui-bg: #121214;
   --ppui-hover: rgba(255, 255, 255, 0.06);
   --ppui-hover-2: rgba(255, 255, 255, 0.11);
   --ppui-hairline: rgba(84, 84, 88, 0.5);
@@ -190,7 +215,7 @@
   --ppui-ink: #f5f5f7;
   --ppui-text: #f5f5f7;
   --ppui-muted: #8e8e93;
-  --ppui-bg: #000000;
+  --ppui-bg: #121214;
   --ppui-hover: rgba(255, 255, 255, 0.06);
   --ppui-hover-2: rgba(255, 255, 255, 0.11);
   --ppui-hairline: rgba(84, 84, 88, 0.5);
@@ -217,7 +242,7 @@
   --ppui-ink: #f5f5f7;
   --ppui-text: #f5f5f7;
   --ppui-muted: #8e8e93;
-  --ppui-bg: #000000;
+  --ppui-bg: #121214;
   --ppui-hover: rgba(255, 255, 255, 0.06);
   --ppui-hover-2: rgba(255, 255, 255, 0.11);
   --ppui-hairline: rgba(84, 84, 88, 0.5);
@@ -244,7 +269,7 @@
   --ppui-ink: #f5f5f7;
   --ppui-text: #f5f5f7;
   --ppui-muted: #8e8e93;
-  --ppui-bg: #000000;
+  --ppui-bg: #121214;
   --ppui-hover: rgba(255, 255, 255, 0.06);
   --ppui-hover-2: rgba(255, 255, 255, 0.11);
   --ppui-hairline: rgba(84, 84, 88, 0.5);
@@ -254,7 +279,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-ppui-theme]) {
     color-scheme: dark;
-    --ppui-bg: #000000;
+    --ppui-bg: #121214;
     --ppui-surface: #1c1c1e;
     --ppui-text: #f5f5f7;
   }
@@ -5378,7 +5403,7 @@ html body .app-container :where(h1, h2, h3, h4) {
   }
   .ppui-card:hover {
     translate: 0 -2px;
-    border-color: rgba(20, 70, 160, 0.22);
+    border-color: color-mix(in srgb, var(--ppui-accent) 28%, transparent);
   }
 
   .ppui-subject,
@@ -6352,7 +6377,7 @@ html .detail-email .email-body {
 
 :root[data-ppui-theme="dark"] .ppui-popover {
   border-color: rgba(255, 255, 255, 0.14);
-  background: #2c2c2e;
+  background: var(--ppui-raised);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     inset 0 0 0 1px rgba(255, 255, 255, 0.05),
@@ -7427,4 +7452,63 @@ html .detail-email .email-body {
 .ppui-progress-track {
   cursor: pointer;
   touch-action: pan-y;
+}
+
+/* ---------- Bevels: every card and button gets a lit top edge, a faintly shaded bottom edge and a
+   hairline lift (tokens --ppui-bevel / --ppui-bevel-btn, set per theme). Pressing sinks it. ---------- */
+.ppui-card,
+html.ppui-home .component-my-events-student,
+.ppui-ov-doc,
+.ppui-ov-class,
+.ppui-inbox-rows,
+.detail-email {
+  box-shadow: var(--ppui-bevel);
+}
+
+.ppui-feature {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ppui-crest) 88%, #fff) 0%, var(--ppui-crest) 55%, color-mix(in srgb, var(--ppui-crest) 88%, #000) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.14),
+    0 6px 16px -8px color-mix(in srgb, var(--ppui-crest) 70%, transparent);
+}
+
+.ppui-head-button,
+.ppui-story-action,
+.ppui-chip,
+.ppui-filter,
+.ppui-room-more,
+.ppui-cal-notebook,
+.ppui-room-sort-button,
+.ppui-ov-switch,
+.ppui-reader-button {
+  background: var(--ppui-surface);
+  box-shadow: var(--ppui-bevel-btn);
+}
+
+:where(:root[data-ppui-theme="dark"]) :is(.ppui-head-button, .ppui-story-action, .ppui-chip, .ppui-filter, .ppui-room-more,
+  .ppui-cal-notebook, .ppui-room-sort-button, .ppui-reader-button) {
+  background: var(--ppui-raised);
+}
+
+.ppui-reader-button {
+  border: 1px solid var(--ppui-hairline);
+}
+
+.ppui-events-open {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ppui-accent) 86%, #fff), var(--ppui-accent));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.16),
+    0 2px 6px -2px color-mix(in srgb, var(--ppui-accent) 60%, transparent);
+}
+
+:is(.ppui-head-button, .ppui-story-action, .ppui-chip, .ppui-filter, .ppui-room-more, .ppui-cal-notebook,
+  .ppui-room-sort-button, .ppui-reader-button, .ppui-events-open):active {
+  box-shadow: var(--ppui-bevel-press);
+}
+
+/* Selected items in segmented controls rise out of the track; the track sinks in. */
+.ppui-ov-switch-button[aria-selected="true"] {
+  box-shadow: var(--ppui-bevel-btn);
 }

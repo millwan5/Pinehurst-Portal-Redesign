@@ -45,7 +45,7 @@
 }
 
 :root[data-ppui-theme="dark"] {
-  --ppui-bg: #000000;
+  --ppui-bg: #121214;
   --ppui-surface: #1c1c1e;
   --ppui-text: #f5f5f7;
   --ppui-muted: #8e8e93;

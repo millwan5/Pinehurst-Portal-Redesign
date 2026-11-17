@@ -2,7 +2,7 @@
    Theme comes from early.js (the top frame sends its choice by postMessage). */
 :root[data-ppui-theme="dark"] {
   color-scheme: dark;
-  --e-bg: #000000;
+  --e-bg: #121214;
   --e-surface: #1c1c1e;
   --e-text: #f5f5f7;
   --e-muted: #8e8e93;
