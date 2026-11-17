@@ -465,36 +465,40 @@
     }
   });
 
-  function buildToggle() {
-    const btn = el("button", "ppui-bar-button ppui-theme-toggle");
-    btn.type = "button";
-    btn.title = "Switch light / dark";
-    btn.setAttribute("aria-label", "Switch between light and dark mode");
-    btn.append(icon("sun", "ppui-sun"), icon("moon", "ppui-moon"));
-    btn.addEventListener("click", () => {
-      const next = root.getAttribute("data-ppui-theme") === "dark" ? "light" : "dark";
-      try {
-        localStorage.setItem(THEME_KEY, next);
-      } catch (e) {}
-      // The new theme spreads out in a circle from the button, where the browser can do it.
-      if (!document.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        applyTheme(next);
-        return;
-      }
-      const r = btn.getBoundingClientRect();
-      const x = r.left + r.width / 2;
-      const y = r.top + r.height / 2;
-      const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-      const transition = document.startViewTransition(() => applyTheme(next));
-      transition.ready.then(() => {
-        root.animate(
-          { clipPath: ["circle(0px at " + x + "px " + y + "px)", "circle(" + radius + "px at " + x + "px " + y + "px)"] },
-          { duration: 560, easing: "cubic-bezier(0.32, 0.72, 0, 1)", pseudoElement: "::view-transition-new(root)" },
-        );
-      }).catch(() => {});
-    });
-    return btn;
+  // Light, Dark or Auto (follow the system). Chosen under Customise > Appearance.
+  function themeChoice() {
+    return savedTheme() || "auto";
   }
+
+  function setThemeChoice(choice, from) {
+    try {
+      if (choice === "auto") localStorage.removeItem(THEME_KEY);
+      else localStorage.setItem(THEME_KEY, choice);
+    } catch (e) {}
+    const next = choice === "auto" ? systemTheme() : choice;
+    if (next === root.getAttribute("data-ppui-theme")) return;
+    // The new theme spreads out in a circle from what was clicked, where the browser can do it.
+    if (!document.startViewTransition || !from || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      applyTheme(next);
+      return;
+    }
+    const r = from.getBoundingClientRect();
+    const x = r.left + r.width / 2;
+    const y = r.top + r.height / 2;
+    const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    const transition = document.startViewTransition(() => applyTheme(next));
+    transition.ready.then(() => {
+      root.animate(
+        { clipPath: ["circle(0px at " + x + "px " + y + "px)", "circle(" + radius + "px at " + x + "px " + y + "px)"] },
+        { duration: 560, easing: "cubic-bezier(0.32, 0.72, 0, 1)", pseudoElement: "::view-transition-new(root)" },
+      );
+    }).catch(() => {});
+  }
+
+  // On Auto, follow the system as it changes.
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    if (!savedTheme()) applyTheme(systemTheme());
+  });
 
   // ---- Popovers (native Popover API: light dismiss, Esc and top layer for free) ----
   let popoverCount = 0;
@@ -750,16 +754,6 @@
   }
 
   // ---- Customise: banner style, colour theme and the floating bar's look, in one panel ----
-  const MENUS_KEY = "ppui-menu-style";
-
-  function savedMenuStyle() {
-    try {
-      return localStorage.getItem(MENUS_KEY) === "glass" ? "glass" : "shadow";
-    } catch (e) {
-      return "shadow";
-    }
-  }
-  root.setAttribute("data-ppui-menus", savedMenuStyle());
 
   function buildCustomise(banner) {
     const btn = el("button", "ppui-bar-button ppui-customise-button");
@@ -783,7 +777,21 @@
     };
     const fill = () => {
       panel.textContent = "";
-      const style = savedBannerStyle(), theme = savedBannerTheme(), menus = savedMenuStyle();
+      const style = savedBannerStyle(), theme = savedBannerTheme(), mode = themeChoice();
+
+      section("Appearance");
+      const seg = el("div", "ppui-cz-seg");
+      for (const [id, label] of [["light", "Light"], ["dark", "Dark"], ["auto", "Auto"]]) {
+        const o = el("button", "ppui-cz-seg-item", label);
+        o.type = "button";
+        o.setAttribute("aria-pressed", String(id === mode));
+        o.addEventListener("click", () => {
+          setThemeChoice(id, o);
+          fill();
+        });
+        seg.appendChild(o);
+      }
+      panel.appendChild(seg);
 
       section("Banner");
       const tiles = el("div", "ppui-cz-tiles");
@@ -823,20 +831,6 @@
       }
       panel.appendChild(swatches);
 
-      section("Dropdowns");
-      const seg = el("div", "ppui-cz-seg");
-      for (const [id, label] of [["shadow", "Shadow"], ["glass", "Glass border"]]) {
-        const o = el("button", "ppui-cz-seg-item", label);
-        o.type = "button";
-        o.setAttribute("aria-pressed", String(id === menus));
-        o.addEventListener("click", () => {
-          save(MENUS_KEY, id);
-          root.setAttribute("data-ppui-menus", id);
-          fill();
-        });
-        seg.appendChild(o);
-      }
-      panel.appendChild(seg);
     };
     popover(btn, panel, fill);
     panel.addEventListener("toggle", (e) => {
@@ -914,7 +908,6 @@
     if (messages) pill.appendChild(messages);
     pill.append(buildCalendarButton(), buildNotebookButton(), buildApps());
     if (banner) pill.appendChild(buildCustomise(banner));
-    pill.appendChild(buildToggle());
     if (account) pill.appendChild(account);
     if (window.PPUIBanner) window.PPUIBanner.glass(pill);
 

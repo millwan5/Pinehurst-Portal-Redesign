@@ -695,9 +695,6 @@ html :focus-visible {
   transform: scale(0.92);
 }
 
-.ppui-theme-toggle .ppui-moon { display: none; }
-:root[data-ppui-theme="light"] .ppui-theme-toggle .ppui-sun { display: none; }
-:root[data-ppui-theme="light"] .ppui-theme-toggle .ppui-moon { display: block; }
 
 .ppui-bar-button.ppui-avatar {
   width: 30px;
@@ -5300,10 +5297,6 @@ html body .app-container :where(h1, h2, h3, h4) {
     animation: ppui-ping 1.8s ease-out infinite;
   }
 
-  .ppui-theme-toggle .ppui-icon {
-    animation: ppui-spin 0.45s var(--ppui-ease);
-  }
-
   /* Enter and exit are transitions (top layer + display kept alive by allow-discrete), so closing animates too. */
   .ppui-popover {
     opacity: 0;
@@ -6341,37 +6334,13 @@ html .detail-email .email-body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
-/* ---------- Dropdown looks (Customise > Dropdowns) ---------- */
-
-/* Shadow: a solid card lifted off the page. */
-:root[data-ppui-menus="shadow"] .ppui-popover {
+/* ---------- Dropdowns: a solid card lifted off the page by a soft shadow ---------- */
+.ppui-popover {
   background: var(--ppui-surface);
   border: 1px solid var(--ppui-hairline);
   box-shadow: 0 22px 50px -14px rgba(11, 30, 69, 0.38), 0 6px 14px -4px rgba(11, 30, 69, 0.14);
 }
 
-:root[data-ppui-theme="dark"][data-ppui-menus="shadow"] .ppui-popover {
+:root[data-ppui-theme="dark"] .ppui-popover {
   box-shadow: 0 22px 50px -14px rgba(0, 0, 0, 0.8), 0 6px 14px -4px rgba(0, 0, 0, 0.5);
-}
-
-/* Glass border: frosted, see-through glass with a bright rim, and only a faint shadow. */
-:root[data-ppui-menus="glass"] .ppui-popover {
-  background: color-mix(in srgb, var(--ppui-surface) 66%, transparent);
-  -webkit-backdrop-filter: blur(26px) saturate(1.8);
-  backdrop-filter: blur(26px) saturate(1.8);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
-    0 0 0 1px rgba(11, 30, 69, 0.06),
-    0 10px 30px -14px rgba(11, 30, 69, 0.28);
-}
-
-:root[data-ppui-theme="dark"][data-ppui-menus="glass"] .ppui-popover {
-  background: color-mix(in srgb, var(--ppui-surface) 58%, transparent);
-  border-color: rgba(255, 255, 255, 0.22);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    0 0 0 1px rgba(0, 0, 0, 0.6),
-    0 12px 32px -14px rgba(0, 0, 0, 0.7);
 }
