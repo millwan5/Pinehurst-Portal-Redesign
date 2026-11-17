@@ -368,7 +368,10 @@ html :focus-visible {
 }
 
 /* Left: a small glass pill with Back and Home. Right: the tools pill. */
+.ppui-nav-pill[hidden],
 .ppui-nav-pill .ppui-bar-button[hidden] { display: none; }
+/* keep the tools pill on the right when the nav pill is hidden (home page) */
+.ppui-header-top > .ppui-pill:not(.ppui-nav-pill) { margin-left: auto; }
 
 /* Banner style button: sits quietly just under the tools pill, not in it. (The bottom corner is
    covered by the dashboard cards on the home page.) */

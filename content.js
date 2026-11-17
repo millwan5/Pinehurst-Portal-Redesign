@@ -815,8 +815,9 @@
     // Banner style (Classic, Low-poly Mesh, Mosaic): drawn by banner.js over the scene.
     const banner = window.PPUIBanner ? window.PPUIBanner.mount(header, scene, savedBannerStyle()) : null;
 
-    // Left: Back and Home in their own small glass pill (no logo).
+    // Left: Back and Home in their own small glass pill (no logo). Not shown on the home page itself.
     const navPill = el("nav", "ppui-pill ppui-nav-pill");
+    navPill.hidden = home;
     navPill.setAttribute("aria-label", "Go back or home");
     const back = el("button", "ppui-bar-button ppui-back");
     back.type = "button";
