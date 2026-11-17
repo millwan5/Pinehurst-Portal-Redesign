@@ -88,6 +88,12 @@
       ["path", { d: "M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" }],
     ],
     moon: [["path", { d: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" }]],
+    palette: [
+      ["path", { d: "M12 22a10 10 0 1 1 10-10c0 2.8-2.2 4-4.5 4H16a2 2 0 0 0-1.5 3.3A1.6 1.6 0 0 1 12 22Z" }],
+      ["circle", { cx: 7.5, cy: 10.5, r: 1.2 }],
+      ["circle", { cx: 11, cy: 6.5, r: 1.2 }],
+      ["circle", { cx: 16, cy: 8.5, r: 1.2 }],
+    ],
     ellipsis: [
       ["circle", { cx: 5, cy: 12, r: 1 }],
       ["circle", { cx: 12, cy: 12, r: 1 }],
@@ -721,6 +727,55 @@
     return a;
   }
 
+  // ---- Banner style picker (remembered per browser) ----
+  const BANNER_KEY = "ppui-banner-style";
+
+  function savedBannerStyle() {
+    try {
+      const v = localStorage.getItem(BANNER_KEY);
+      return window.PPUIBanner && window.PPUIBanner.styles.some(([id]) => id === v) ? v : "classic";
+    } catch (e) {
+      return "classic";
+    }
+  }
+
+  function buildBannerPicker(banner) {
+    const btn = el("button", "ppui-bar-button ppui-banner-button");
+    btn.type = "button";
+    btn.title = "Banner style";
+    btn.setAttribute("aria-label", "Banner style");
+    btn.appendChild(icon("palette"));
+    const menu = el("ul", "ppui-menu ppui-choice-menu");
+    menu.setAttribute("role", "menu");
+    menu.setAttribute("aria-label", "Banner style");
+    arrowNav(menu, ".ppui-menu-item");
+    popover(btn, menu, () => {
+      menu.textContent = "";
+      menu.appendChild(el("li", "ppui-menu-heading", "Banner style"));
+      const current = savedBannerStyle();
+      for (const [id, label] of window.PPUIBanner.styles) {
+        const li = el("li");
+        const b = el("button", "ppui-menu-item", label);
+        b.type = "button";
+        b.setAttribute("role", "menuitemradio");
+        b.setAttribute("aria-checked", String(id === current));
+        b.addEventListener("click", () => {
+          menu.hidePopover();
+          try {
+            localStorage.setItem(BANNER_KEY, id);
+          } catch (e) {}
+          banner.setStyle(id);
+        });
+        li.appendChild(b);
+        menu.appendChild(li);
+      }
+    });
+    menu.addEventListener("toggle", (e) => {
+      if (e.newState === "open") (menu.querySelector("[aria-checked='true']") || menu.querySelector("button")).focus();
+    });
+    return btn;
+  }
+
   function buildAccount() {
     const initials = document.querySelector(SEL.navAccount);
     if (!initials) return null;
@@ -757,7 +812,10 @@
 
     const home = HOME_PATH.test(location.pathname);
     header.classList.toggle("is-compact", !home);
-    header.appendChild(buildScene(!home));
+    const scene = buildScene(!home);
+    header.appendChild(scene);
+    // Banner style (Classic, Low-poly Mesh, Mosaic): drawn by banner.js over the scene.
+    const banner = window.PPUIBanner ? window.PPUIBanner.mount(header, scene, savedBannerStyle()) : null;
 
     const brand = el("a", "ppui-brand");
     brand.href = HOME_URL;
@@ -774,8 +832,11 @@
     const messages = buildMessages();
     const account = buildAccount();
     if (messages) pill.appendChild(messages);
-    pill.append(buildCalendarButton(), buildNotebookButton(), buildApps(), buildToggle());
+    pill.append(buildCalendarButton(), buildNotebookButton(), buildApps());
+    if (banner) pill.appendChild(buildBannerPicker(banner));
+    pill.appendChild(buildToggle());
     if (account) pill.appendChild(account);
+    if (window.PPUIBanner) window.PPUIBanner.glass(pill);
 
     const top = el("div", "ppui-header-top");
     top.append(brand, pill);

@@ -45,13 +45,13 @@
 }
 
 :root[data-ppui-theme="dark"] {
-  --ppui-bg: #060e20;
-  --ppui-surface: #0d1a36;
-  --ppui-text: #e9eef8;
-  --ppui-muted: #8e9bb5;
-  --ppui-accent: #79a7ff;
-  --ppui-accent-soft: rgba(121, 167, 255, 0.14);
-  --ppui-hairline: rgba(167, 169, 172, 0.14);
+  --ppui-bg: #000000;
+  --ppui-surface: #1c1c1e;
+  --ppui-text: #f5f5f7;
+  --ppui-muted: #8e8e93;
+  --ppui-accent: #0a84ff;
+  --ppui-accent-soft: rgba(10, 132, 255, 0.18);
+  --ppui-hairline: rgba(84, 84, 88, 0.5);
   --ppui-hover: rgba(255, 255, 255, 0.08);
   --ppui-card-shadow: none;
   color-scheme: dark;

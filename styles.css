@@ -67,15 +67,15 @@
    is only a fallback for the instant before the script runs. */
 :root[data-ppui-theme="dark"] {
   color-scheme: dark;
-  --ppui-bg: #060e20;
-  --ppui-surface: #0d1a36;
-  --ppui-raised: #12224a;
+  --ppui-bg: #000000;
+  --ppui-surface: #1c1c1e;
+  --ppui-raised: #2c2c2e;
   --ppui-hover: rgba(255, 255, 255, 0.06);
-  --ppui-text: #e9eef8;
-  --ppui-muted: #8e9bb5;
-  --ppui-accent: #79a7ff;
-  --ppui-accent-soft: rgba(121, 167, 255, 0.14);
-  --ppui-hairline: rgba(167, 169, 172, 0.14);
+  --ppui-text: #f5f5f7;
+  --ppui-muted: #8e8e93;
+  --ppui-accent: #0a84ff;
+  --ppui-accent-soft: rgba(10, 132, 255, 0.18);
+  --ppui-hairline: rgba(84, 84, 88, 0.5);
   --ppui-logo-grey: #b4b6ba;
   --ppui-logo-blue: #2f63c4;
   --ppui-ridge-mid: #0c2557;
@@ -90,9 +90,9 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-ppui-theme]) {
     color-scheme: dark;
-    --ppui-bg: #060e20;
-    --ppui-surface: #0d1a36;
-    --ppui-text: #e9eef8;
+    --ppui-bg: #000000;
+    --ppui-surface: #1c1c1e;
+    --ppui-text: #f5f5f7;
   }
 }
 
@@ -436,16 +436,58 @@ html :focus-visible {
 }
 
 /* Control pill: Messages, Apps, theme, account. */
+/* Liquid glass: banner.js adds a lens filter in Chromium that bends the scene behind the pill and splits
+   its edges into rainbow fringes; elsewhere the pill keeps this frosted blur. A sheen follows the pointer. */
 .ppui-pill {
+  --hx: 30%;
+  --hy: 0%;
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 4px;
+  padding: 5px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(255, 255, 255, 0.06) 100%);
+  -webkit-backdrop-filter: blur(10px) saturate(1.6) brightness(1.08);
+  backdrop-filter: blur(10px) saturate(1.6) brightness(1.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 1px 0 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 10px 30px -8px rgba(0, 8, 30, 0.55),
+    0 2px 6px rgba(0, 8, 30, 0.25);
+}
+
+.ppui-pill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(55% 120% at var(--hx) var(--hy), rgba(255, 255, 255, 0.38), transparent 60%);
+  mix-blend-mode: soft-light;
+}
+
+.ppui-pill .ppui-icon {
+  filter: drop-shadow(0 1px 1px rgba(0, 10, 40, 0.35));
+}
+
+/* Banner styles other than Classic draw on a canvas; the Classic layers underneath are hidden. */
+.ppui-banner-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.ppui-banner-canvas[hidden] { display: none; }
+
+.ppui-header[data-ppui-banner]:not([data-ppui-banner="classic"]) .ppui-scene > :not(.ppui-banner-canvas) {
+  display: none;
 }
 
 .ppui-bar-button {
@@ -2363,11 +2405,11 @@ html.ppui-news-pending .app-container {
 }
 
 :root[data-ppui-theme="dark"] .ppui-newsroom {
-  --ppui-paper: #101e3c;
-  --ppui-paper-under: #0c1830;
+  --ppui-paper: #1c1c1e;
+  --ppui-paper-under: #141416;
   --ppui-paper-edge: rgba(167, 169, 172, 0.2);
   --ppui-glow: rgba(253, 252, 248, 0.55);
-  --ppui-ink-text: #dfe5f1;
+  --ppui-ink-text: #f2f2f7;
   --ppui-grain-blend: screen;
 }
 
@@ -3808,9 +3850,9 @@ button.ppui-menu-item:has(.ppui-swatch) {
 }
 
 :root[data-ppui-theme="dark"] .ppui-notebook {
-  --ppui-paper: #101e3c;
+  --ppui-paper: #1c1c1e;
   --ppui-paper-edge: rgba(167, 169, 172, 0.2);
-  --ppui-rule: rgba(121, 167, 255, 0.08);
+  --ppui-rule: rgba(10, 132, 255, 0.08);
 }
 
 .ppui-notebook[open] {
@@ -4117,7 +4159,7 @@ button.ppui-menu-item:has(.ppui-swatch) {
 }
 
 :root[data-ppui-theme="dark"] .ppui-day {
-  --ppui-paper: #101e3c;
+  --ppui-paper: #1c1c1e;
   --ppui-paper-edge: rgba(167, 169, 172, 0.2);
 }
 
@@ -4384,7 +4426,7 @@ button.ppui-menu-item:has(.ppui-swatch) {
 }
 
 :root[data-ppui-theme="dark"] .ppui-month-sheet {
-  --ppui-paper: #101e3c;
+  --ppui-paper: #1c1c1e;
   --ppui-paper-edge: rgba(167, 169, 172, 0.2);
 }
 
@@ -4696,8 +4738,8 @@ button.ppui-menu-item:has(.ppui-swatch) {
 :root[data-ppui-theme="dark"] .ppui-due {
   border-color: rgba(167, 169, 172, 0.2);
   border-top-color: var(--ppui-accent);
-  background: #101e3c;
-  color: #dfe5f1;
+  background: #1c1c1e;
+  color: #f2f2f7;
 }
 
 .ppui-due-title {
