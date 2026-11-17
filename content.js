@@ -2100,6 +2100,9 @@
     function renderStrip() {
       dayLabel.textContent = dayFilter === null ? "Pick a day" : fullDayLabel(dayFilter);
       dayButton.classList.toggle("is-on", dayFilter !== null);
+      // Keep the pill that is already showing this day, so it only pops in when the day changes.
+      if (filterNote.dataset.day === String(dayFilter)) return;
+      filterNote.dataset.day = String(dayFilter);
       filterNote.replaceChildren();
       if (dayFilter !== null) {
         const pill = el("span", "ppui-room-filter-pill", "Showing " + fullDayLabel(dayFilter));

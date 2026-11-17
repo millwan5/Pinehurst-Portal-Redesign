@@ -6894,3 +6894,89 @@ html .detail-email .email-body {
   overflow-y: auto;
   min-width: 220px;
 }
+
+/* News: pill motion. Sort's highlight slides between Newest and Oldest, the day button's chevron
+   turns while its menu is open, and the "Showing <day>" pill pops in. */
+.ppui-room-sort {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.ppui-room-sort::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  border-radius: 8px;
+  background: var(--ppui-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  transition: transform 0.38s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.ppui-room-sort:has([data-sort="oldest"][aria-pressed="true"])::before {
+  transform: translateX(100%);
+}
+
+.ppui-room-sort-item {
+  position: relative;
+  transition: color 0.2s, transform 0.15s;
+}
+
+.ppui-room-sort-item[aria-pressed="true"] {
+  background: transparent;
+  box-shadow: none;
+}
+
+.ppui-room-sort-item:active,
+.ppui-room-day-button:active {
+  transform: scale(0.95);
+}
+
+.ppui-room-day-button {
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.ppui-room-day-button .ppui-icon:last-child {
+  transition: transform 0.3s var(--ppui-ease);
+}
+
+.ppui-room-day-button[aria-expanded="true"] .ppui-icon:last-child {
+  transform: rotate(180deg);
+}
+
+.ppui-room-filter-pill {
+  animation: ppui-pill-in 0.42s cubic-bezier(0.34, 1.5, 0.64, 1) both;
+  transform-origin: left center;
+}
+
+.ppui-room-filter-clear {
+  transition: transform 0.25s var(--ppui-ease), filter 0.2s;
+}
+
+.ppui-room-filter-clear:hover {
+  transform: rotate(90deg);
+  filter: brightness(1.1);
+}
+
+@keyframes ppui-pill-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ppui-room-sort::before,
+  .ppui-room-sort-item,
+  .ppui-room-day-button,
+  .ppui-room-day-button .ppui-icon:last-child,
+  .ppui-room-filter-clear {
+    transition: none;
+  }
+  .ppui-room-filter-pill {
+    animation: none;
+  }
+}
