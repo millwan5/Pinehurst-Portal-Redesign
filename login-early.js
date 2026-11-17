@@ -9,6 +9,7 @@
     const v = localStorage.getItem("ppui-theme");
     if (v === "light" || v === "dark") theme = v;
   } catch (e) {}
-  if (!theme) theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  // Light unless dark was chosen here; the sign-in page no longer follows the system setting.
+  if (!theme) theme = "light";
   document.documentElement.setAttribute("data-ppui-theme", theme);
 })();
