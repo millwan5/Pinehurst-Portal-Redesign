@@ -463,11 +463,16 @@
       ppuiAccent: getComputedStyle(root).getPropertyValue("--ppui-accent").trim(),
     };
     document.querySelectorAll("iframe").forEach((f) => {
-      for (const origin of FRAME_ORIGINS) {
-        try {
-          f.contentWindow.postMessage(message, origin);
-        } catch (e) {}
-      }
+      // Post only to the origin the frame was loaded from: a mismatched target origin is
+      // reported in the extension's error list even though postMessage doesn't throw.
+      let origin = "";
+      try {
+        origin = new URL(f.src, location.href).origin;
+      } catch (e) {}
+      if (!FRAME_ORIGINS.includes(origin)) return;
+      try {
+        f.contentWindow.postMessage(message, origin);
+      } catch (e) {}
     });
   }
   // The frame may ask before we listen, so also push the theme whenever one finishes loading.
