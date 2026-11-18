@@ -4573,16 +4573,15 @@
     box.append(art, text);
   }
 
-  // How far through today's timetable we are: one segment per period, as wide as the period is long,
-  // filled for the ones that are over and partly filled for the one on now.
+  // How far through today's timetable we are: one segment per period, as wide as the period is long.
+  // The filled part is drawn as liquid by startLiquid; this works out the periods and the day's fraction.
   function renderProgress(bar, items) {
     const timed = items.filter((item) => item.start !== null);
     bar.hidden = timed.length < 2;
     if (bar.hidden) return;
     const d = new Date();
     const minutes = d.getHours() * 60 + d.getMinutes();
-    const track = bar.querySelector(".ppui-progress-track");
-    track.replaceChildren();
+    const periods = [];
     let total = 0;
     let passed = 0;
     let done = 0;
@@ -4593,24 +4592,9 @@
       total += length;
       passed += fill * length;
       if (fill >= 1) done++;
-      const seg = el("span", "ppui-progress-seg" + (fill > 0 && fill < 1 ? " is-now" : ""));
-      seg.style.flexGrow = String(length);
-      seg.style.setProperty("--fill", fill.toFixed(3));
-      seg.style.setProperty("--i", String(i));
-      seg.title = item.title + ", " + item.time;
-      // The period on now gets a marker at the edge of its fill.
-      if (fill > 0 && fill < 1) seg.appendChild(el("span", "ppui-progress-spark"));
-      track.appendChild(seg);
+      periods.push({ length, title: item.title + ", " + item.time });
     });
-    // How far through the day we are.
-    track.style.setProperty("--done", (passed / total).toFixed(4));
-    track.classList.toggle("is-started", passed > 0);
-    // After the last period the marker rests at the end of the day's fill.
-    if (passed > 0 && !track.querySelector(".ppui-progress-spark")) {
-      const filled = [...track.querySelectorAll(".ppui-progress-seg")].filter((seg) => parseFloat(seg.style.getPropertyValue("--fill")) > 0).pop();
-      if (filled) filled.appendChild(el("span", "ppui-progress-spark"));
-    }
-    if (bar.layout) bar.layout();
+    bar.liquid.setDay(periods, passed / total);
     bar.querySelector(".ppui-progress-label").textContent =
       done >= timed.length ? "School's out" : passed <= 0 ? timed.length + " on today" : done + " of " + timed.length + " done";
     bar.setAttribute("aria-valuenow", String(Math.round((passed / total) * 100)));
@@ -4624,27 +4608,372 @@
     bar.setAttribute("aria-valuemax", "100");
     bar.append(el("span", "ppui-progress-track"), el("span", "ppui-progress-label"));
     bar.hidden = true;
-    startGlow(bar);
+    startLiquid(bar);
     return bar;
   }
 
-  // ---- Day bar: one theme gradient across the whole day, and a soft light under the pointer ----
-  // Each period's fill shows its own slice of a single gradient sized to the full track, so the
-  // colours run on unbroken across the gaps. Nothing moves on its own; the light only follows you.
-  function startGlow(bar) {
+  // ---- Day bar as liquid ----
+  // The filled periods are one canvas of slowly flowing colour that runs on unbroken across the gaps.
+  // Two smooth noise currents drive it: one carries hue (the theme's sky drifting toward a cooler and a
+  // warmer neighbour), one carries depth (deep crest to pale). A sheen rolls through where the flow
+  // folds, and those bright parts give off light: a bloom canvas behind the track, in their own colour.
+  // A glass droplet rides the front. The day pours in left to right once; later refreshes flow on from
+  // where it was. The pointer swells and brightens the liquid and the droplet leans toward it.
+  // Everything is drawn at twice the screen's pixel density so it stays sharp when zoomed in.
+  function startLiquid(bar) {
     const track = bar.querySelector(".ppui-progress-track");
-    bar.layout = () => {
-      const width = track.clientWidth;
-      if (!width) return;
-      track.style.setProperty("--tw", width + "px");
-      for (const seg of track.children) seg.style.setProperty("--sx", seg.offsetLeft + "px");
-    };
-    new ResizeObserver(() => bar.layout()).observe(track);
-    track.addEventListener("pointermove", (e) => {
-      track.style.setProperty("--mx", e.clientX - track.getBoundingClientRect().left + "px");
-      track.classList.add("is-lit");
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const liquid = el("canvas", "ppui-progress-liquid");
+    const glow = el("canvas", "ppui-progress-glow");
+    const drop = el("span", "ppui-progress-drop");
+    for (const node of [liquid, glow, drop]) node.setAttribute("aria-hidden", "true");
+    const field = document.createElement("canvas"); // colour, on a coarse grid that is upscaled smoothly
+    const fctx = field.getContext("2d");
+    const efield = document.createElement("canvas"); // where the liquid gives off light, same grid
+    const ectx = efield.getContext("2d");
+    const emit = document.createElement("canvas"); // that light, upscaled and kept to the filled shape
+    const GP = 30; // room around the track for the bloom
+    const POUR_MS = 1300;
+
+    // Smooth value noise.
+    const perm = new Uint8Array(512);
+    {
+      const p = [...Array(256).keys()];
+      let s = 7;
+      for (let i = 255; i > 0; i--) {
+        s = (s * 16807) % 2147483647;
+        const j = s % (i + 1);
+        [p[i], p[j]] = [p[j], p[i]];
+      }
+      for (let i = 0; i < 512; i++) perm[i] = p[i & 255];
+    }
+    const smooth = (t) => t * t * t * (t * (t * 6 - 15) + 10);
+    function noise(x, y) {
+      const xi = Math.floor(x);
+      const yi = Math.floor(y);
+      const u = smooth(x - xi);
+      const v = smooth(y - yi);
+      const h = (a, b) => perm[(perm[a & 255] + b) & 511] / 255;
+      const top = h(xi, yi) + (h(xi + 1, yi) - h(xi, yi)) * u;
+      const bottom = h(xi, yi + 1) + (h(xi + 1, yi + 1) - h(xi, yi + 1)) * u;
+      return top + (bottom - top) * v;
+    }
+
+    // Palette from the theme.
+    const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+    function rgb(value) {
+      const s = value.trim();
+      const h = s.match(/^#([\da-f]{2})([\da-f]{2})([\da-f]{2})/i);
+      if (h) return h.slice(1).map((v) => parseInt(v, 16));
+      const r = s.match(/[\d.]+/g);
+      return r && r.length >= 3 ? r.slice(0, 3).map(Number) : [61, 123, 232];
+    }
+    function rotateHue([r, g, b], deg) {
+      r /= 255;
+      g /= 255;
+      b /= 255;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const l = (max + min) / 2;
+      let h = 0;
+      let s = 0;
+      if (max !== min) {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        h = (max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4) / 6;
+      }
+      h = (h + deg / 360 + 1) % 1;
+      const f = (p, q, t) => {
+        t = (t + 1) % 1;
+        return t < 1 / 6 ? p + (q - p) * 6 * t : t < 0.5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p;
+      };
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      return [f(p, q, h + 1 / 3) * 255, f(p, q, h) * 255, f(p, q, h - 1 / 3) * 255];
+    }
+    let hues, deep, pale;
+    function readPalette() {
+      const cs = getComputedStyle(document.documentElement);
+      const crest = rgb(cs.getPropertyValue("--ppui-crest"));
+      const sky = rgb(cs.getPropertyValue("--ppui-sky"));
+      hues = [rotateHue(sky, -42), mix(crest, sky, 0.55), sky, rotateHue(sky, 34), rotateHue(sky, 62)];
+      deep = mix(crest, [8, 6, 30], 0.3);
+      pale = mix(sky, [255, 255, 255], 0.78);
+    }
+    function hueAt(h) {
+      h = Math.min(Math.max(h, 0), 1) * (hues.length - 1);
+      const i = Math.min(Math.floor(h), hues.length - 2);
+      return mix(hues[i], hues[i + 1], h - i);
+    }
+
+    // Geometry.
+    let segs = [];
+    let rects = [];
+    let total = 0;
+    let W = 0;
+    let H = 0;
+    let dpr = 1;
+    function layout() {
+      W = track.clientWidth;
+      H = track.clientHeight;
+      if (!W || !H) return;
+      dpr = Math.min((window.devicePixelRatio || 1) * 2, 6);
+      liquid.width = emit.width = Math.round(W * dpr);
+      liquid.height = emit.height = Math.round(H * dpr);
+      glow.width = Math.round((W + GP * 2) * dpr);
+      glow.height = Math.round((H + GP * 2) * dpr);
+      rects = segs.map((s) => ({ x: s.el.offsetLeft, w: s.el.offsetWidth }));
+      efield.width = field.width = Math.max(Math.ceil(W / 1.5), 8);
+      efield.height = field.height = 12;
+    }
+    // A fraction of the day to an x on the track, skipping the gaps.
+    function dayToX(frac) {
+      let minutes = frac * total;
+      for (let i = 0; i < segs.length; i++) {
+        if (minutes <= segs[i].len || i === segs.length - 1) return rects[i].x + rects[i].w * Math.min(minutes / segs[i].len, 1);
+        minutes -= segs[i].len;
+      }
+      return 0;
+    }
+    function roundRect(ctx, x, w, rl, rr) {
+      ctx.moveTo(x + rl, 0);
+      ctx.lineTo(x + w - rr, 0);
+      ctx.arcTo(x + w, 0, x + w, rr, rr);
+      ctx.lineTo(x + w, H - rr);
+      ctx.arcTo(x + w, H, x + w - rr, H, rr);
+      ctx.lineTo(x + rl, H);
+      ctx.arcTo(x, H, x, H - rl, rl);
+      ctx.lineTo(x, rl);
+      ctx.arcTo(x, 0, x + rl, 0, rl);
+      ctx.closePath();
+    }
+    // The filled shape: each period up to where the liquid has run, its running front rounded.
+    function fillPath(ctx, edgeX) {
+      ctx.beginPath();
+      rects.forEach((r, i) => {
+        const w = Math.min(Math.max(edgeX - r.x, 0), r.w);
+        if (w <= 0.5) return;
+        const rl = i === 0 ? H / 2 : 4;
+        const rr = w >= r.w - 0.5 ? (i === rects.length - 1 ? H / 2 : 4) : H / 2;
+        roundRect(ctx, r.x, w, Math.min(rl, w / 2), Math.min(rr, w / 2));
+      });
+    }
+
+    // State.
+    let target = 0;
+    let reveal = 0;
+    let pourFrom = 0;
+    let pourStart = -1e9;
+    let poured = false;
+    const pointer = { x: -999, on: 0, target: 0 };
+    const ds = { x: 0, vx: 0, sx: 1, vsx: 0, lean: 0, vlean: 0, landed: true };
+
+    function drawField(t, edgeX) {
+      const fw = field.width;
+      const fh = field.height;
+      const img = fctx.createImageData(fw, fh);
+      const d = img.data;
+      const eimg = ectx.createImageData(fw, fh);
+      const e = eimg.data;
+      const px = (pointer.x / W) * fw;
+      for (let y = 0; y < fh; y++) {
+        const yy = y / (fh - 1);
+        for (let x = 0; x < fw; x++) {
+          const u = (x / fw) * 3.4;
+          const along = ((x / fw) * W) / Math.max(edgeX, 40);
+          // Folded warp: the second layer feeds on the first so pools curl rather than slide.
+          const w1 = noise(u * 0.7 + t * 0.09, yy * 0.9 + t * 0.05) * 2.4;
+          const w2 = noise(u * 1.1 - t * 0.07 + w1 * 0.8 + 3.1, yy * 1.3 + w1 * 0.5) * 1.8;
+          const hue = noise(u * 0.55 + w2 * 0.9 - t * 0.12 + 9.4, yy * 1.2 + w1 * 0.4) * 1.5 - 0.25;
+          let depth = noise(u * 0.9 + w1 - t * 0.16, yy * 1.4 + w2 * 0.6);
+          depth = ((depth - 0.25) / 0.5) * 0.75 + (along - 0.5) * 0.3 + 0.02;
+          // The sheen: a ribbon crossing the bar on a slant, folding with the flow.
+          const band = Math.sin((u * 0.9 + w2) * 1.9 - t * 0.55 + yy * 2.2);
+          const ridge = Math.pow(Math.max(0, 1 - Math.abs(band) * 1.7), 3);
+          const dx = (x - px) / (fw * 0.08);
+          const swell = Math.exp(-dx * dx) * pointer.on;
+          depth += swell * 0.3 + ridge * 0.18;
+          const base = hueAt(hue);
+          const c = depth < 0.5 ? mix(deep, base, Math.max(depth, 0) / 0.5) : mix(base, pale, Math.min((depth - 0.5) / 0.5, 1) * 0.6);
+          const i = (y * fw + x) * 4;
+          d[i] = c[0];
+          d[i + 1] = c[1];
+          d[i + 2] = c[2];
+          d[i + 3] = 255;
+          // Light given off: the sheen, the brightest pools and the pointer.
+          const light = Math.min(1, ridge * 0.85 + Math.max(depth - 0.7, 0) * 1.4 + swell * 0.5);
+          const g = mix(base, [255, 255, 255], 0.12);
+          e[i] = g[0];
+          e[i + 1] = g[1];
+          e[i + 2] = g[2];
+          e[i + 3] = light * 255;
+        }
+      }
+      fctx.putImageData(img, 0, 0);
+      ectx.putImageData(eimg, 0, 0);
+    }
+
+    function draw(edgeX) {
+      const ctx = liquid.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.save();
+      fillPath(ctx, edgeX);
+      ctx.clip();
+      ctx.drawImage(field, 0, 0, W, H);
+      // Light from inside, so bright pools read as lit rather than painted.
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = 0.35;
+      ctx.filter = "blur(1.5px)";
+      ctx.drawImage(efield, 0, 0, W, H);
+      ctx.filter = "none";
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      // Tube gloss: a lit upper lip, a soft lower shade.
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "rgba(255,255,255,.42)");
+      g.addColorStop(0.3, "rgba(255,255,255,.05)");
+      g.addColorStop(0.6, "rgba(255,255,255,0)");
+      g.addColorStop(1, "rgba(0,0,0,.16)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+
+      // The light, kept to the liquid's shape, then bloomed outward: a tight halo and a wider spill.
+      const ec = emit.getContext("2d");
+      ec.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ec.clearRect(0, 0, W, H);
+      ec.imageSmoothingQuality = "high";
+      ec.save();
+      fillPath(ec, edgeX);
+      ec.clip();
+      ec.drawImage(efield, 0, 0, W, H);
+      ec.restore();
+      const gc = glow.getContext("2d");
+      gc.setTransform(1, 0, 0, 1, 0, 0);
+      gc.clearRect(0, 0, glow.width, glow.height);
+      gc.globalCompositeOperation = "lighter";
+      for (const [blur, alpha] of [[3, 0.8], [7, 0.6], [12, 0.4]]) {
+        gc.filter = "blur(" + blur * dpr + "px)";
+        gc.globalAlpha = alpha;
+        gc.drawImage(emit, GP * dpr, GP * dpr);
+      }
+      gc.filter = "none";
+      gc.globalAlpha = 1;
+      gc.globalCompositeOperation = "source-over";
+    }
+
+    // The droplet rides the front on a spring, stretches with speed, squashes when the pour lands,
+    // and leans toward the pointer.
+    function stepDrop(elapsed, edgeX, arriving, now) {
+      // Small fixed steps keep the springs steady when frames come slowly.
+      for (let left = elapsed; left > 0; left -= 1 / 120) springs(Math.min(left, 1 / 120), edgeX);
+      if (!arriving && !ds.landed) {
+        ds.landed = true;
+        ds.vsx -= 4.5;
+      }
+      const sx = ds.sx + Math.abs(ds.lean) * 0.12 + Math.sin(now / 900) * 0.025;
+      const sy = 1 / Math.max(sx, 0.7);
+      drop.style.transform = "translateX(" + (ds.x + ds.lean * 4).toFixed(2) + "px) scale(" + sx.toFixed(3) + ", " + sy.toFixed(3) + ")";
+      drop.hidden = edgeX < 1;
+    }
+    function springs(dt, edgeX) {
+      ds.vx += ((edgeX - ds.x) * 260 - ds.vx * 18) * dt;
+      ds.x += ds.vx * dt;
+      let lean = 0;
+      if (pointer.on > 0.01) {
+        const d = pointer.x - edgeX;
+        lean = Math.max(-1, Math.min(1, d / 60)) * Math.exp(-Math.abs(d) / 140) * pointer.on;
+      }
+      ds.vlean += ((lean - ds.lean) * 120 - ds.vlean * 14) * dt;
+      ds.lean += ds.vlean * dt;
+      ds.vsx += ((1 + Math.min(Math.abs(ds.vx) / 900, 0.35) - ds.sx) * 340 - ds.vsx * 11) * dt;
+      ds.sx += ds.vsx * dt;
+    }
+
+    let raf = 0;
+    let last = 0;
+    let visible = true;
+    function frame(now) {
+      raf = 0;
+      if (!W || !segs.length) return;
+      const dt = Math.min(Math.max((now - last) / 1000, 0), 0.25);
+      last = now;
+      const p = reduced ? 1 : Math.min(Math.max((now - pourStart) / POUR_MS, 0), 1);
+      reveal = pourFrom + (target - pourFrom) * (1 - Math.pow(1 - p, 3.2));
+      pointer.on += (pointer.target - pointer.on) * Math.min(dt * 6, 1);
+      const edgeX = dayToX(reveal);
+      drawField(reduced ? 3 : now / 1000, edgeX);
+      draw(edgeX);
+      if (reduced) {
+        drop.style.transform = "translateX(" + edgeX.toFixed(2) + "px)";
+        drop.hidden = edgeX < 1;
+      } else stepDrop(dt, edgeX, p < 1, now);
+      if (visible && !reduced && !bar.hidden) raf = requestAnimationFrame(frame);
+    }
+    function kick() {
+      if (raf) return;
+      last = performance.now();
+      raf = requestAnimationFrame(frame);
+    }
+
+    function setDay(periods, frac) {
+      track.replaceChildren();
+      segs = periods.map((period) => {
+        const seg = el("span", "ppui-progress-seg");
+        seg.style.flexGrow = String(period.length);
+        seg.title = period.title;
+        track.appendChild(seg);
+        return { el: seg, len: period.length };
+      });
+      total = periods.reduce((n, period) => n + period.length, 0);
+      track.append(glow, liquid, drop);
+      // The first time, pour in from empty; afterwards flow on from where it is.
+      pourFrom = poured ? reveal : 0;
+      if (!poured) ds.landed = false;
+      poured = true;
+      pourStart = performance.now();
+      target = frac;
+      requestAnimationFrame(() => {
+        layout();
+        kick();
+      });
+    }
+    bar.liquid = { setDay };
+
+    readPalette();
+    new MutationObserver(() => {
+      readPalette();
+      kick();
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-ppui-theme", "data-ppui-palette"] });
+    new ResizeObserver(() => {
+      layout();
+      kick();
+    }).observe(track);
+    // Browser zoom changes the pixel density without resizing the track.
+    window.addEventListener("resize", () => {
+      layout();
+      kick();
     });
-    track.addEventListener("pointerleave", () => track.classList.remove("is-lit"));
+    new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      if (visible) kick();
+    }).observe(track);
+    document.addEventListener("visibilitychange", () => {
+      visible = !document.hidden;
+      if (visible) kick();
+    });
+    track.addEventListener("pointermove", (e) => {
+      pointer.x = e.clientX - track.getBoundingClientRect().left;
+      pointer.target = 1;
+      kick();
+    });
+    track.addEventListener("pointerleave", () => {
+      pointer.target = 0;
+      kick();
+    });
   }
 
   // Placeholder rows that shimmer while a card loads.

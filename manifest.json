@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Pinehurst Dashboard",
-  "version": "3.1",
+  "version": "4.0",
   "permissions": ["storage", "scripting"],
   "host_permissions": ["*://portals.veracross.au/pinehurst/*", "*://accounts.veracross.au/pinehurst/*", "*://classes.veracross.au/pinehurst/*", "*://documents.veracross.au/pinehurst/*"],
   "background": { "service_worker": "background.js", "scripts": ["background.js"] },
