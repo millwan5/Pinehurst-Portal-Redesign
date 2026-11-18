@@ -3019,6 +3019,23 @@ button.ppui-menu-item:disabled {
   background: rgba(255, 255, 255, 0.22);
 }
 
+/* Dark mode: ink turns light in the colour themes, so the toast takes a raised dark surface instead. */
+:root[data-ppui-theme="dark"] .ppui-toast {
+  border-color: var(--ppui-hairline);
+  background: var(--ppui-raised);
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+  color: var(--ppui-text);
+}
+
+:root[data-ppui-theme="dark"] .ppui-toast-action {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ppui-text);
+}
+
+:root[data-ppui-theme="dark"] .ppui-toast-action:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
 /* ---------- Calendar and notebook ---------- */
 
 /* Small buttons that open them from the dashboard. */

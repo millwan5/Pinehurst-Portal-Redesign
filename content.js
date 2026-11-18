@@ -562,6 +562,9 @@
       ppuiPalette: root.getAttribute("data-ppui-palette") || "",
       // The accent as it is now (theme and colour applied), for frames that don't load our tokens.
       ppuiAccent: getComputedStyle(root).getPropertyValue("--ppui-accent").trim(),
+      // The liquid bar's colours (crest and sky of the colour theme), for the grades card.
+      ppuiCrest: getComputedStyle(root).getPropertyValue("--ppui-crest").trim(),
+      ppuiSky: getComputedStyle(root).getPropertyValue("--ppui-sky").trim(),
     };
     document.querySelectorAll("iframe").forEach((f) => {
       // Post only to the origin the frame was loaded from: a mismatched target origin is

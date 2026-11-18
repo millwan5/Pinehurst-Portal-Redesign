@@ -25,8 +25,11 @@
       if (e.origin === PORTAL_ORIGIN && e.data && (e.data.ppuiTheme === "light" || e.data.ppuiTheme === "dark")) {
         root.setAttribute("data-ppui-theme", e.data.ppuiTheme);
         // The portal's accent (its colour theme), so links and today's column match the page around.
-        const accent = e.data.ppuiAccent;
-        if (typeof accent === "string" && /^#[0-9a-f]{3,8}$/i.test(accent)) root.style.setProperty("--e-accent", accent);
+        const hex = (v) => typeof v === "string" && /^#[0-9a-f]{3,8}$/i.test(v);
+        if (hex(e.data.ppuiAccent)) root.style.setProperty("--e-accent", e.data.ppuiAccent);
+        // The colour theme's crest and sky, for the liquid grade bar.
+        if (hex(e.data.ppuiCrest)) root.style.setProperty("--e-theme-crest", e.data.ppuiCrest);
+        if (hex(e.data.ppuiSky)) root.style.setProperty("--e-sky", e.data.ppuiSky);
       }
     });
     window.parent.postMessage({ ppuiAskTheme: true }, PORTAL_ORIGIN);
