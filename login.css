@@ -1,120 +1,178 @@
-/* Pinehurst Dashboard: restyle of the Veracross login page (accounts.veracross.au).
-   Tokens mirror styles.css; the two pages live on different hosts so they can't share a file. */
-
-/* Playfair Display, bundled (SIL OFL), variable weight, roman and italic: the big headings only (set in italic). */
-@font-face {
-  font-family: "Playfair Display";
-  src: url("chrome-extension://__MSG_@@extension_id__/fonts/PlayfairDisplay.ttf") format("truetype"),
-       url("moz-extension://__MSG_@@extension_id__/fonts/PlayfairDisplay.ttf") format("truetype");
-  font-weight: 400 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Playfair Display";
-  src: url("chrome-extension://__MSG_@@extension_id__/fonts/PlayfairDisplay-Italic.ttf") format("truetype"),
-       url("moz-extension://__MSG_@@extension_id__/fonts/PlayfairDisplay-Italic.ttf") format("truetype");
-  font-weight: 400 900;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Plus Jakarta Sans";
-  src: url("chrome-extension://__MSG_@@extension_id__/fonts/PlusJakartaSans.ttf") format("truetype"),
-       url("moz-extension://__MSG_@@extension_id__/fonts/PlusJakartaSans.ttf") format("truetype");
-  font-weight: 200 800;
-  font-style: normal;
-  font-display: swap;
-}
-
-:root {
-  --ppui-bg: #eef1f6;
-  --ppui-surface: #ffffff;
-  --ppui-text: #0b1e45;
-  --ppui-muted: #5e6b82;
-  --ppui-accent: #1446a0;
-  --ppui-accent-soft: rgba(20, 70, 160, 0.09);
-  --ppui-hairline: rgba(11, 30, 69, 0.09);
-  --ppui-hover: rgba(11, 30, 69, 0.05);
-  --ppui-card-shadow: none;
-  --ppui-ease: cubic-bezier(0.32, 0.72, 0, 1);
-  --ppui-font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-  color-scheme: light;
-}
-
-:root[data-ppui-theme="dark"] {
-  --ppui-bg: #121214;
-  --ppui-surface: #1c1c1e;
-  --ppui-text: #f5f5f7;
-  --ppui-muted: #8e8e93;
-  --ppui-accent: #0a84ff;
-  --ppui-accent-soft: rgba(10, 132, 255, 0.18);
-  --ppui-hairline: rgba(84, 84, 88, 0.5);
-  --ppui-hover: rgba(255, 255, 255, 0.08);
-  --ppui-card-shadow: none;
-  color-scheme: dark;
-}
+/* Pinehurst Dashboard: the Veracross sign-in pages (accounts.veracross.au): sign in, reset password,
+   My Account. A crest-coloured band like the portal's banner, with one centred card over it.
+   Fonts and tokens come from tokens.css (loaded first). */
 
 html,
 body {
+  min-height: 100%;
+  margin: 0 !important;
   background: var(--ppui-bg) !important;
   color: var(--ppui-text) !important;
   font-family: var(--ppui-font) !important;
   -webkit-font-smoothing: antialiased;
 }
 
+html body :is(p, li, a, label, input, button, h1, h2, h3, div, span, em, strong) {
+  font-family: var(--ppui-font) !important;
+}
+
+/* The band: theme colour with two soft ridges along its foot, as on the portal and class sites. */
+body::before,
+body::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+body::before {
+  top: 0;
+  height: 300px;
+  background:
+    radial-gradient(120% 140% at 85% -20%, color-mix(in srgb, var(--ppui-sky) 70%, transparent) 0%, transparent 55%),
+    linear-gradient(160deg, color-mix(in srgb, var(--ppui-crest) 82%, var(--ppui-sky)) 0%, var(--ppui-crest) 55%, color-mix(in srgb, var(--ppui-crest) 70%, #000) 100%);
+}
+
+body::after {
+  top: 244px;
+  height: 56px;
+  background: color-mix(in srgb, var(--ppui-crest) 55%, #000);
+  clip-path: polygon(0 70%, 9% 38%, 18% 58%, 30% 22%, 41% 52%, 52% 30%, 63% 60%, 74% 26%, 86% 54%, 100% 30%, 100% 100%, 0 100%);
+  opacity: 0.5;
+}
+
 .ae-container {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  max-width: none !important;
+  padding: 96px 16px 48px !important;
   background: transparent !important;
+}
+
+.ae-grid {
+  display: block !important;
+  margin: 0 !important;
 }
 
 /* Card */
 .ae-grid .card {
+  position: relative;
+  box-sizing: border-box;
+  width: auto !important;
+  max-width: 440px !important;
+  margin: 0 auto !important;
+  padding: 64px 36px 22px !important;
+  left: auto !important;
+  float: none !important;
   background: var(--ppui-surface) !important;
   color: var(--ppui-text) !important;
   border: 1px solid var(--ppui-hairline) !important;
-  border-radius: 22px !important;
-  box-shadow: var(--ppui-card-shadow) !important;
+  border-radius: 24px !important;
+  box-shadow: var(--ppui-bevel), 0 30px 60px -30px rgba(11, 30, 69, 0.45) !important;
   animation: ppui-enter 0.5s var(--ppui-ease) both;
 }
 
 @keyframes ppui-enter {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(12px); }
 }
 
-/* Crest badge: ring matches the page so it reads as a cut-out in the card */
+/* Crest badge, half above the card, ringed in the card's colour so it reads as a cut-out. */
 .banner.round {
+  position: absolute !important;
+  top: -48px !important;
+  left: 50% !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: translateX(-50%);
   background: transparent !important;
 }
 
+/* The site draws a big shadowed disc behind the crest; the ring on the image replaces it. */
+.banner.round::before,
+.banner.round::after {
+  display: none !important;
+}
+
 .banner.round .school-image {
+  display: block;
+  width: 96px !important;
+  height: 96px !important;
   border: 6px solid var(--ppui-surface) !important;
-  box-shadow: none !important;
+  border-radius: 50% !important;
+  background: var(--ppui-surface);
+  box-shadow: 0 8px 20px -10px rgba(11, 30, 69, 0.5) !important;
 }
 
-/* Text */
-.card-header-title {
+.account-form-container {
+  padding: 0 !important;
+}
+
+/* Heading */
+.card-header {
+  margin: 0 0 22px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  text-align: center;
+}
+
+.card-header-title,
+.card-header-title2 {
+  margin: 0 0 6px !important;
   color: var(--ppui-text) !important;
-  font-family: "Playfair Display", Georgia, serif !important;
+  font-family: var(--ppui-display) !important;
   font-style: italic !important;
-  font-size: 28px !important;
+  font-size: 30px !important;
   font-weight: 700 !important;
-  letter-spacing: -0.005em;
+  line-height: 1.15 !important;
+  letter-spacing: -0.01em;
 }
 
-.ae-grid .card p,
-.ae-grid .card li {
+.card-header .school-name {
+  margin: 0 0 4px !important;
+  color: var(--ppui-accent) !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.card-header p:empty,
+.account-form-container > p:empty {
+  display: none;
+}
+
+.card-header p,
+.card-header .school-text {
+  margin: 0 !important;
   color: var(--ppui-muted) !important;
-  font-family: var(--ppui-font) !important;
-  font-size: 14px !important;
+  font-size: 14.5px !important;
   line-height: 1.5;
+}
+
+/* Body text and links */
+.ae-grid .card :is(p, li) {
+  color: var(--ppui-muted) !important;
+  font-size: 13.5px !important;
+  line-height: 1.55 !important;
+}
+
+.ae-grid .card .vx-BodyText {
+  margin: 0 0 18px !important;
+  color: var(--ppui-muted) !important;
+  font-size: 14.5px !important;
+  text-align: center;
 }
 
 .ae-grid .card a {
   color: var(--ppui-accent) !important;
+  font-weight: 600;
   text-decoration: none !important;
-  font-weight: 500;
 }
 
 .ae-grid .card a:hover {
@@ -123,52 +181,68 @@ body {
 
 /* Form */
 .vx-FormLabel {
-  color: var(--ppui-muted) !important;
-  font-family: var(--ppui-font) !important;
+  display: block;
+  margin: 0 0 6px !important;
+  color: var(--ppui-text) !important;
   font-size: 13px !important;
-  font-weight: 600 !important;
+  font-weight: 650 !important;
   letter-spacing: 0 !important;
   text-transform: none !important;
 }
 
+.vx-TextField {
+  margin: 0 !important;
+}
+
 .vx-TextField_Input {
   box-sizing: border-box;
-  height: 40px;
-  padding: 0 12px !important;
-  background: var(--ppui-bg) !important;
+  width: 100% !important;
+  height: 46px !important;
+  padding: 0 14px !important;
+  background: var(--ppui-raised) !important;
   color: var(--ppui-text) !important;
   border: 1px solid var(--ppui-hairline) !important;
   border-radius: 12px !important;
   box-shadow: none !important;
-  font-family: var(--ppui-font) !important;
   font-size: 15px !important;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
 }
 
 .vx-TextField_Input:focus {
   background: var(--ppui-surface) !important;
   border-color: var(--ppui-accent) !important;
-  outline: 2px solid var(--ppui-accent) !important;
-  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--ppui-accent-soft) !important;
+  outline: none !important;
+}
+
+form footer {
+  margin: 14px 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
 }
 
 .vx-Button {
-  height: 40px;
+  width: 100% !important;
+  height: 46px !important;
   padding: 0 22px !important;
   background: var(--ppui-accent) !important;
   color: #fff !important;
   border: 0 !important;
   border-radius: 12px !important;
-  box-shadow: none !important;
-  font-family: var(--ppui-font) !important;
-  font-size: 14px !important;
-  font-weight: 600 !important;
+  box-shadow: var(--ppui-bevel-btn) !important;
+  font-size: 15px !important;
+  font-weight: 650 !important;
   cursor: pointer;
-  transition: filter 0.15s;
+  transition: filter 0.15s, transform 0.15s;
 }
 
 .vx-Button:hover:not(:disabled) {
   filter: brightness(1.08);
+}
+
+.vx-Button:active:not(:disabled) {
+  transform: scale(0.985);
 }
 
 .vx-Button:focus-visible {
@@ -178,22 +252,81 @@ body {
 
 .vx-Button:disabled,
 .vx-Button[disabled] {
-  background: var(--ppui-hover) !important;
+  background: var(--ppui-hover-2) !important;
   color: var(--ppui-muted) !important;
+  box-shadow: none !important;
   cursor: default;
-  opacity: 0.8;
 }
 
-/* Footer */
-.card-footer,
-.card-footer a {
+/* "Can't access your account?" / "Back to Login" */
+.forgot-link {
+  display: block;
+  margin: 14px 0 0 !important;
+  font-size: 13.5px !important;
+  text-align: center;
+}
+
+/* Help notes under the form: set apart by a rule, small and quiet. */
+.forgot-link ~ :is(p, ul):not(:empty) {
+  margin: 0 !important;
+}
+
+.forgot-link + p.card-footer,
+.forgot-link + p:not(:empty) {
+  margin-top: 20px !important;
+  padding-top: 18px !important;
+  border-top: 1px solid var(--ppui-hairline);
+}
+
+.account-form-container > p.card-footer {
+  color: var(--ppui-muted) !important;
+  font-size: 13.5px !important;
+}
+
+.account-form-container > ul {
+  margin: 20px 0 8px !important;
+  padding: 16px 0 0 18px !important;
+  border-top: 1px solid var(--ppui-hairline);
+}
+
+.account-form-container > ul li {
+  margin: 0 0 6px !important;
+}
+
+.account-form-container > p + p {
+  margin-top: 6px !important;
+}
+
+/* Card foot: copyright and privacy */
+.ae-grid .card > .card-footer {
+  margin: 22px -36px -22px !important;
+  padding: 14px 20px !important;
+  border-top: 1px solid var(--ppui-hairline) !important;
+  border-radius: 0 0 24px 24px;
+  background: var(--ppui-raised) !important;
+  text-align: center;
+}
+
+.ae-grid .card > .card-footer,
+.ae-grid .card > .card-footer a {
   color: var(--ppui-muted) !important;
   font-size: 12px !important;
+  font-weight: 500;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 520px) {
+  .ae-container {
+    padding: 84px 12px 32px !important;
+  }
+
   .ae-grid .card {
-    border-radius: 18px !important;
+    padding: 60px 22px 20px !important;
+    border-radius: 20px !important;
+  }
+
+  .ae-grid .card > .card-footer {
+    margin: 20px -22px -20px !important;
+    border-radius: 0 0 20px 20px;
   }
 }
 

@@ -45,7 +45,7 @@
     },
     {
       "matches": ["*://accounts.veracross.au/pinehurst/*"],
-      "css": ["login.css"],
+      "css": ["tokens.css", "login.css"],
       "js": ["login-early.js"],
       "run_at": "document_start"
     },

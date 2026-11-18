@@ -12,4 +12,15 @@
   // Light unless dark was chosen here; the sign-in page no longer follows the system setting.
   if (!theme) theme = "light";
   document.documentElement.setAttribute("data-ppui-theme", theme);
+
+  // The colour theme chosen on the portal (mirrored to extension storage by content.js) tints the
+  // band and buttons here too. Light or dark stays as above: the sign-in page is light by default.
+  try {
+    chrome.storage.local.get("ppuiLook", (got) => {
+      const palette = got && got.ppuiLook && got.ppuiLook.palette;
+      if (/^(teal|forest|violet|rose|sunset|graphite)$/.test(palette || "")) {
+        document.documentElement.setAttribute("data-ppui-palette", palette);
+      }
+    });
+  } catch (e) {}
 })();
