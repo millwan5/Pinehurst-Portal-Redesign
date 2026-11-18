@@ -27,7 +27,7 @@
   "content_scripts": [
     {
       "matches": ["*://portals.veracross.au/pinehurst/*"],
-      "css": ["styles.css"],
+      "css": ["tokens.css", "styles.css"],
       "js": ["early.js"],
       "run_at": "document_start"
     },
