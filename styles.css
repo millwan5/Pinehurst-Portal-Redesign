@@ -4937,7 +4937,7 @@ html body .app-container :where(h1, h2, h3, h4) {
   color: var(--ppui-text) !important;
 }
 
-:root[data-ppui-theme="dark"] .app-container :where(h1, h2, h3, h4, h5, h6, p, span, small, li, td, th, label, strong, b, div):not(.ppui-dash *):not(.ppui-newsroom *):not(.ppui-overview *):not(.ppui-inbox *):not(.ppui-header *):not(.ppui-stub *):not(.ppui-native-head *):not(.ppui-article-empty *) {
+:root[data-ppui-theme="dark"] .app-container :where(h1, h2, h3, h4, h5, h6, p, span, small, li, td, th, label, strong, b, div):not(.ppui-dash *):not(.ppui-newsroom *):not(.ppui-overview *):not(.ppui-inbox *):not(.ppui-header *):not(.ppui-stub *):not(.ppui-native-head *):not(.ppui-article-empty *):not(.ppui-timetable *) {
   color: var(--ppui-text) !important;
 }
 
@@ -4945,7 +4945,7 @@ html body .app-container :where(h1, h2, h3, h4) {
   color: var(--ppui-muted) !important;
 }
 
-:root[data-ppui-theme="dark"] .app-container a:not(.ppui-dash a):not(.ppui-header a):not(.ppui-newsroom a):not(.ppui-overview a):not(.ppui-inbox a):not(.ppui-native-head a):not(.ppui-article-empty a),
+:root[data-ppui-theme="dark"] .app-container a:not(.ppui-dash a):not(.ppui-header a):not(.ppui-newsroom a):not(.ppui-overview a):not(.ppui-inbox a):not(.ppui-native-head a):not(.ppui-article-empty a):not(.ppui-timetable a),
 :root[data-ppui-theme="dark"] .app-container .vx-button {
   color: var(--ppui-accent) !important;
 }
@@ -5438,6 +5438,74 @@ html body .app-container :where(h1, h2, h3, h4) {
   background: transparent !important;
   color: var(--ppui-muted) !important;
   font-size: 13.5px !important;
+}
+
+/* ---- Timetable (Daily Schedule page at #timetable): the printable timetable framed on a card ---- */
+
+:root.ppui-timetable-page .app-container > :not(.ppui-native-head):not(.ppui-timetable) {
+  display: none !important;
+}
+
+.ppui-tt-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 14px;
+}
+
+.ppui-tt-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  margin-left: auto;
+  padding: 0 16px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 999px;
+  background: var(--ppui-surface);
+  box-shadow: var(--ppui-bevel-btn) !important;
+  color: var(--ppui-text) !important;
+  font-size: 13.5px;
+  font-weight: 650;
+  text-decoration: none !important;
+}
+
+.ppui-tt-download[hidden] {
+  display: none;
+}
+
+.ppui-tt-download .ppui-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--ppui-accent);
+}
+
+.ppui-tt-download:hover {
+  border-color: color-mix(in srgb, var(--ppui-accent) 45%, transparent);
+}
+
+.ppui-tt-status {
+  margin: 0 0 12px !important;
+  color: var(--ppui-muted) !important;
+  font-size: 14px;
+}
+
+.ppui-tt-card {
+  overflow: hidden;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: var(--ppui-radius-card);
+  background: var(--ppui-surface);
+  box-shadow: var(--ppui-bevel) !important;
+}
+
+.ppui-tt-frame {
+  display: block;
+  width: 100%;
+  height: 640px;
+  border: 0;
+  background: var(--ppui-surface);
+  transition: height 0.25s var(--ppui-ease);
 }
 
 /* ---- A story's own page: bigger body text; newsletter font tags no longer shrink it ---- */

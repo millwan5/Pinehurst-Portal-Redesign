@@ -1,0 +1,140 @@
+/* The printable timetable (documents.veracross.au) as shown inside the portal's Timetable page.
+   Only applies in that frame (html.ppui-tt-embed, set by timetable.js); opened on its own, the
+   page stays the portal's print page. Blocks keep the portal's class colours. */
+
+html.ppui-tt-embed,
+html.ppui-tt-embed body {
+  margin: 0 !important;
+  background: var(--ppui-surface) !important;
+  color: var(--ppui-text) !important;
+}
+
+html.ppui-tt-embed body {
+  padding: 8px 12px 16px !important;
+}
+
+/* The portal page sizes the frame to the week, so the frame itself never scrolls. */
+html.ppui-tt-embed {
+  overflow: hidden !important;
+}
+
+html.ppui-tt-embed body,
+html.ppui-tt-embed body * {
+  font-family: var(--ppui-font) !important;
+}
+
+/* The page's white sheet: let the card show through. */
+html.ppui-tt-embed body > div {
+  /* The days are floated at fixed widths: keep the sheet wide enough for all five, and let
+     timetable.js shrink it (zoom) to fit the frame. */
+  width: auto !important;
+  min-width: 1040px;
+  margin: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* The page's own black Print to PDF bar: the portal page has Week / PDF and Download instead. */
+html.ppui-tt-embed body > div > div:has(.menu):not(:has(.schedule-block)) {
+  display: none !important;
+}
+
+/* Name, year and homeroom: one quiet line under the portal's own heading. */
+html.ppui-tt-embed h1 {
+  margin: 4px 0 6px !important;
+  color: var(--ppui-text) !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  text-align: left !important;
+}
+
+html.ppui-tt-embed .sf-grid img {
+  display: none !important;
+}
+
+html.ppui-tt-embed .sf-grid,
+html.ppui-tt-embed .sf-grid * {
+  color: var(--ppui-muted) !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+/* The grid's floats only pack as drawn at the page's own width: any wider and the hour column
+   jumps up beside the day names, pushing the days down a row. */
+html.ppui-tt-embed .schedule-block {
+  width: 1016px !important;
+}
+
+/* Day names */
+html.ppui-tt-embed .schedule-block > ul {
+  border-radius: 10px;
+  background: var(--ppui-hover) !important;
+}
+
+html.ppui-tt-embed .schedule-block > ul li {
+  color: var(--ppui-text) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+/* Hour labels */
+html.ppui-tt-embed .schedule-block li {
+  color: var(--ppui-muted) !important;
+  font-size: 11px !important;
+}
+
+html.ppui-tt-embed .schedule-block .day {
+  border-radius: 10px;
+  background: var(--ppui-raised) !important;
+}
+
+html.ppui-tt-embed .schedule-block .block {
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 3px 6px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  box-shadow: inset 0 0 0 1px rgba(11, 30, 69, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  color: #0b1e45 !important;
+  font-size: 10.5px !important;
+  line-height: 1.3 !important;
+}
+
+html.ppui-tt-embed .schedule-block .block * {
+  color: inherit !important;
+  font-size: inherit !important;
+}
+
+html.ppui-tt-embed .schedule-block .block p:first-child {
+  font-weight: 700;
+}
+
+html.ppui-tt-embed .schedule-block .block.ppui-tt-plain {
+  background: var(--ppui-surface) !important;
+  box-shadow: inset 0 0 0 1px var(--ppui-hairline);
+  color: var(--ppui-muted) !important;
+}
+
+/* Dark: the pastel class colours dim a little so they don't glare. */
+html.ppui-tt-embed[data-ppui-theme="dark"] .schedule-block .block:not(.ppui-tt-plain) {
+  filter: brightness(0.86) saturate(0.95);
+}
+
+/* The PDF, shown inside the frame (Week / PDF switch on the portal page). */
+html.ppui-tt-show-pdf body {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+html.ppui-tt-show-pdf body > :not(.ppui-tt-pdf) {
+  display: none !important;
+}
+
+.ppui-tt-pdf {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: var(--ppui-surface);
+}

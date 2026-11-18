@@ -3,7 +3,7 @@
   "name": "Pinehurst Dashboard",
   "version": "3.1",
   "permissions": ["storage", "scripting"],
-  "host_permissions": ["*://portals.veracross.au/pinehurst/*", "*://accounts.veracross.au/pinehurst/*"],
+  "host_permissions": ["*://portals.veracross.au/pinehurst/*", "*://accounts.veracross.au/pinehurst/*", "*://documents.veracross.au/pinehurst/*"],
   "background": { "service_worker": "background.js", "scripts": ["background.js"] },
   "browser_specific_settings": {
     "gecko": { "id": "pinehurst-dashboard@miltonwang", "strict_min_version": "128.0" }
@@ -54,12 +54,19 @@
       "js": ["embed.js"],
       "run_at": "document_idle",
       "all_frames": true
+    },
+    {
+      "matches": ["*://documents.veracross.au/pinehurst/schedule/*"],
+      "css": ["tokens.css", "timetable.css"],
+      "js": ["timetable.js"],
+      "run_at": "document_start",
+      "all_frames": true
     }
   ],
   "web_accessible_resources": [
     {
       "resources": ["fonts/*", "assets/clouds.jpg"],
-      "matches": ["*://portals.veracross.au/*", "*://accounts.veracross.au/*", "*://portals-embed.veracross.au/*"]
+      "matches": ["*://portals.veracross.au/*", "*://accounts.veracross.au/*", "*://portals-embed.veracross.au/*", "*://documents.veracross.au/*"]
     }
   ]
 }

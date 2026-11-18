@@ -444,8 +444,10 @@
   }
 
   // Embedded portal pages (other origin) can't read our saved theme: send it to them.
+  // The printable timetable (documents.veracross.au) is shown in a frame on the Timetable page too.
   const EMBED_ORIGIN = "https://portals-embed.veracross.au";
-  const FRAME_ORIGINS = [EMBED_ORIGIN];
+  const DOCS_ORIGIN = "https://documents.veracross.au";
+  const FRAME_ORIGINS = [EMBED_ORIGIN, DOCS_ORIGIN];
   function tellFrames(theme) {
     const message = {
       ppuiTheme: theme,
@@ -4303,9 +4305,142 @@
     article.appendChild(note);
   }
 
+  // ---- Timetable: the portal's printable timetable, inside a portal page ----
+  // The portal's "My Timetable" link leaves for a bare print page on documents.veracross.au. Instead
+  // it opens the Daily Schedule page at #timetable, which shows that page in a frame (timetable.js
+  // styles it there), with a Week / PDF switch: PDF shows the same file inside the page.
+
+  const TIMETABLE_LINK = /\/pinehurst\/student\/redirect\/student_schedule\/?$/;
+  const TIMETABLE_SOURCE = "/pinehurst/student/redirect/student_schedule";
+  const TIMETABLE_HASH = "#timetable";
+
+  document.addEventListener(
+    "click",
+    (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = e.target.closest && e.target.closest("a[href]");
+      if (!a) return;
+      let url;
+      try {
+        url = new URL(a.getAttribute("href"), location.href);
+      } catch (err) {
+        return;
+      }
+      if (url.origin !== location.origin || !TIMETABLE_LINK.test(url.pathname)) return;
+      e.preventDefault();
+      location.href = SCHEDULE_URL + TIMETABLE_HASH;
+    },
+    true,
+  );
+
+  function buildTimetable() {
+    const app = document.querySelector(SEL.app);
+    if (!app || app.querySelector(".ppui-timetable")) return;
+    root.classList.add("ppui-timetable-page");
+    const title = app.querySelector(".ppui-native-head .ppui-room-title");
+    if (title) {
+      title.dataset.was = title.textContent;
+      title.textContent = "Timetable";
+    }
+
+    const view = el("section", "ppui-timetable");
+    view.setAttribute("aria-label", "Timetable");
+    const tools = el("div", "ppui-tt-tools");
+    const switcher = el("div", "ppui-ov-switch");
+    switcher.setAttribute("role", "tablist");
+    switcher.setAttribute("aria-label", "Timetable view");
+    const modes = [["week", "Week"], ["pdf", "PDF"]].map(([id, label]) => {
+      const b = el("button", "ppui-ov-switch-button", label);
+      b.type = "button";
+      b.setAttribute("role", "tab");
+      b.dataset.mode = id;
+      switcher.appendChild(b);
+      return b;
+    });
+    const download = el("a", "ppui-tt-download");
+    download.append(icon("fileText"), el("span", null, "Download PDF"));
+    download.hidden = true;
+    tools.append(switcher, download);
+
+    const status = el("p", "ppui-tt-status", "Loading your timetable…");
+    const card = el("div", "ppui-tt-card");
+    const frame = el("iframe", "ppui-tt-frame");
+    frame.title = "Timetable";
+    frame.src = TIMETABLE_SOURCE;
+    card.appendChild(frame);
+    view.append(tools, status, card);
+    app.appendChild(view);
+
+    let mode = "week";
+    let weekHeight = 0;
+    const fitWindow = () => {
+      const top = frame.getBoundingClientRect().top + scrollY;
+      return Math.max(480, innerHeight - top - 24);
+    };
+    const size = () => {
+      frame.style.height = (mode === "pdf" ? fitWindow() : weekHeight || fitWindow()) + "px";
+    };
+    const setMode = (next) => {
+      mode = next;
+      modes.forEach((b) => b.setAttribute("aria-selected", String(b.dataset.mode === mode)));
+      try {
+        frame.contentWindow.postMessage({ ppuiShowPdf: mode === "pdf" }, DOCS_ORIGIN);
+      } catch (e) {}
+      size();
+    };
+    modes.forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+    // PDF picked before the frame had loaded: ask again once it has.
+    frame.addEventListener("load", () => {
+      if (mode === "pdf") setMode("pdf");
+    });
+    setMode("week");
+    addEventListener("resize", size);
+
+    addEventListener("message", (e) => {
+      if (e.origin !== DOCS_ORIGIN || e.source !== frame.contentWindow || !e.data || !e.data.ppuiTimetable) return;
+      status.hidden = true;
+      if (typeof e.data.height === "number" && e.data.height > 0) {
+        weekHeight = Math.min(e.data.height, 4000);
+        size();
+      }
+      if (typeof e.data.pdf === "string") {
+        try {
+          const pdf = new URL(e.data.pdf);
+          if (pdf.origin === DOCS_ORIGIN && /\.pdf$/.test(pdf.pathname)) {
+            download.href = pdf.href;
+            download.hidden = false;
+          }
+        } catch (err) {}
+      }
+      if (e.data.pdfFailed) {
+        status.textContent = "The PDF couldn't be shown here. Use Download PDF instead.";
+        status.hidden = false;
+        setMode("week");
+      }
+    });
+    // A frame that never reports (signed out, or the page changed) still shows what it loaded.
+    setTimeout(() => {
+      if (!status.hidden && !weekHeight) status.textContent = "Still loading. If nothing appears, open the timetable from the Apps menu again.";
+    }, 8000);
+  }
+
+  function leaveTimetable() {
+    const view = document.querySelector(".ppui-timetable");
+    if (!view) return;
+    view.remove();
+    root.classList.remove("ppui-timetable-page");
+    const title = document.querySelector(".ppui-native-head .ppui-room-title");
+    if (title && title.dataset.was) title.textContent = title.dataset.was;
+  }
+
   if (!HOME_PATH.test(location.pathname)) {
     try {
       buildNativeHead();
+      if (nativeRoute() === "daily") {
+        const sync = () => (location.hash === TIMETABLE_HASH ? buildTimetable() : leaveTimetable());
+        sync();
+        addEventListener("hashchange", sync);
+      }
       if (nativeRoute() === "planner") fitPlannerFrame();
       if (nativeRoute() === "article") setTimeout(emptyStoryNote, 5000);
     } catch (e) {
