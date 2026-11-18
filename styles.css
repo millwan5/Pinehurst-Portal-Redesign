@@ -4937,15 +4937,15 @@ html body .app-container :where(h1, h2, h3, h4) {
   color: var(--ppui-text) !important;
 }
 
-:root[data-ppui-theme="dark"] .app-container :where(h1, h2, h3, h4, h5, h6, p, span, small, li, td, th, label, strong, b, div):not(.ppui-dash *):not(.ppui-newsroom *):not(.ppui-overview *):not(.ppui-inbox *):not(.ppui-header *):not(.ppui-stub *) {
+:root[data-ppui-theme="dark"] .app-container :where(h1, h2, h3, h4, h5, h6, p, span, small, li, td, th, label, strong, b, div):not(.ppui-dash *):not(.ppui-newsroom *):not(.ppui-overview *):not(.ppui-inbox *):not(.ppui-header *):not(.ppui-stub *):not(.ppui-native-head *):not(.ppui-article-empty *) {
   color: var(--ppui-text) !important;
 }
 
-:root[data-ppui-theme="dark"] .app-container :where(small, .vx-subtitle, .vx-tab-bar__description, .message-from-label, .message-category, .item-subtitle, .vx-heading-6, .day-number):not(.ppui-dash *):not(.ppui-newsroom *):not(.ppui-overview *):not(.ppui-inbox *) {
+:root[data-ppui-theme="dark"] .app-container :where(small, .vx-subtitle, .vx-tab-bar__description, .message-from-label, .message-category, .item-subtitle, .vx-heading-6, .day-number):not(.ppui-dash *):not(.ppui-newsroom *):not(.ppui-overview *):not(.ppui-inbox *):not(.ppui-native-head *) {
   color: var(--ppui-muted) !important;
 }
 
-:root[data-ppui-theme="dark"] .app-container a:not(.ppui-dash a):not(.ppui-header a):not(.ppui-newsroom a):not(.ppui-overview a):not(.ppui-inbox a),
+:root[data-ppui-theme="dark"] .app-container a:not(.ppui-dash a):not(.ppui-header a):not(.ppui-newsroom a):not(.ppui-overview a):not(.ppui-inbox a):not(.ppui-native-head a):not(.ppui-article-empty a),
 :root[data-ppui-theme="dark"] .app-container .vx-button {
   color: var(--ppui-accent) !important;
 }
@@ -5011,6 +5011,498 @@ html body .app-container :where(h1, h2, h3, h4) {
    the frame itself from showing a white flash while it loads. */
 :root[data-ppui-theme="dark"] .old-portals-iframe {
   background: var(--ppui-bg) !important;
+}
+
+/* ---------- Native page shell (html.ppui-native and html.ppui-route-*, set by early.js) ----------
+   Portal pages we don't rebuild (calendars, planner, info pages, story pages, class pages) sit in the
+   dashboard's centred column under one heading row (buildNativeHead in content.js). This comes after
+   the dark-theme remaps so its rules win at equal weight. */
+
+:root.ppui-native body .app-container {
+  width: auto !important;
+  max-width: 1200px !important;
+  margin: 0 auto 72px !important;
+  padding: 0 20px !important;
+  box-sizing: border-box !important;
+}
+
+:root.ppui-native .ppui-native-moved {
+  display: none !important;
+}
+
+:root.ppui-native .ppui-native-head {
+  margin: 28px 0 22px;
+}
+
+/* ---- Calendars: the month on one card, FullCalendar's toolbar as pills ---- */
+
+:root.ppui-route-calendar .detail-calendar {
+  padding: 18px 18px 12px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: var(--ppui-radius-card);
+  background: var(--ppui-surface) !important;
+  box-shadow: var(--ppui-bevel) !important;
+}
+
+:root.ppui-route-calendar .fc .fc-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin: 0 0 14px !important;
+}
+
+:root.ppui-route-calendar .fc .fc-toolbar > * {
+  float: none !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+:root.ppui-route-calendar .fc .fc-toolbar .fc-left { order: 1; }
+:root.ppui-route-calendar .fc .fc-toolbar .fc-center { order: 2; flex: 1; justify-content: center; }
+:root.ppui-route-calendar .fc .fc-toolbar .fc-right { order: 3; }
+:root.ppui-route-calendar .fc .fc-toolbar .fc-clear { display: none; }
+
+:root.ppui-route-calendar .fc .fc-toolbar h2 {
+  margin: 0 !important;
+  color: var(--ppui-text) !important;
+  font-family: var(--ppui-display) !important;
+  font-style: italic;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em;
+}
+
+:root.ppui-route-calendar .fc .fc-button-group {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--ppui-hover);
+}
+
+:root.ppui-route-calendar .fc .fc-button {
+  float: none !important;
+  height: 32px !important;
+  margin: 0 !important;
+  padding: 0 14px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  background-image: none !important;
+  color: var(--ppui-muted) !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  text-transform: none !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+:root.ppui-route-calendar .fc .fc-button:hover {
+  color: var(--ppui-text) !important;
+}
+
+:root.ppui-route-calendar .fc .fc-button.fc-state-active {
+  background: var(--ppui-surface) !important;
+  color: var(--ppui-accent) !important;
+  box-shadow: var(--ppui-bevel-btn) !important;
+}
+
+:root.ppui-route-calendar .fc .fc-prev-button,
+:root.ppui-route-calendar .fc .fc-next-button {
+  width: 32px;
+  padding: 0 !important;
+}
+
+/* Today stands alone: an outlined pill, greyed while this month is showing. */
+:root.ppui-route-calendar .fc .fc-today-button {
+  border: 1px solid var(--ppui-hairline) !important;
+  color: var(--ppui-text) !important;
+}
+
+:root.ppui-route-calendar .fc .fc-button.fc-state-disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+:root.ppui-route-calendar .fc :is(td, th),
+:root.ppui-route-calendar .fc .fc-row,
+:root.ppui-route-calendar .fc .fc-widget-content,
+:root.ppui-route-calendar .fc .fc-widget-header {
+  border-color: var(--ppui-hairline) !important;
+}
+
+:root.ppui-route-calendar .fc .fc-view > table,
+:root.ppui-route-calendar .fc .fc-head-container {
+  border: 0 !important;
+}
+
+:root.ppui-route-calendar .fc th.fc-day-header {
+  padding: 8px 0 !important;
+  border-width: 0 0 1px !important;
+  background: transparent !important;
+  color: var(--ppui-muted) !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em;
+  text-align: center !important;
+  text-transform: uppercase;
+}
+
+:root.ppui-route-calendar .fc th.fc-day-header * {
+  color: inherit !important;
+}
+
+:root.ppui-route-calendar .fc td.fc-day {
+  background: transparent !important;
+}
+
+:root.ppui-route-calendar .fc td.fc-day.fc-today {
+  background: var(--ppui-accent-soft) !important;
+}
+
+:root.ppui-route-calendar .fc .fc-day-number {
+  display: inline-block;
+  min-width: 22px;
+  margin: 4px 4px 2px;
+  padding: 2px 6px !important;
+  border-radius: 999px;
+  color: var(--ppui-muted) !important;
+  font-size: 12.5px;
+  font-weight: 650;
+  text-align: center;
+}
+
+:root.ppui-route-calendar .fc .fc-day-top.fc-today .fc-day-number {
+  background: var(--ppui-accent);
+  color: #fff !important;
+}
+
+:root.ppui-route-calendar .fc .fc-other-month .fc-day-number {
+  opacity: 0.45;
+}
+
+/* Events keep the portal's category colours, as rounded chips. */
+:root.ppui-route-calendar .fc .fc-event {
+  margin: 1px 4px 2px !important;
+  padding: 1px 6px;
+  border: 0 !important;
+  border-radius: 6px !important;
+  font-size: 11.5px !important;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+:root.ppui-route-calendar .fc .fc-event * {
+  color: inherit !important;
+}
+
+:root.ppui-route-calendar .fc .fc-more {
+  margin-left: 6px;
+  color: var(--ppui-accent) !important;
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
+/* ---- Assignment Planner: the old planner, framed on a card that fills the window (one scrollbar) ---- */
+
+/* The portal pins the planner's box and frame to the window; here they sit in the page column. */
+:root.ppui-route-planner body .app-container,
+:root.ppui-route-planner .nav-embed,
+:root.ppui-route-planner .old-portals-iframe {
+  position: relative !important;
+  inset: auto !important;
+}
+
+:root.ppui-route-planner .nav-embed {
+  overflow: hidden;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: var(--ppui-radius-card);
+  background: var(--ppui-surface) !important;
+  box-shadow: var(--ppui-bevel) !important;
+}
+
+:root.ppui-route-planner .old-portals-iframe {
+  display: block;
+  width: 100% !important;
+  border: 0 !important;
+}
+
+:root.ppui-route-planner .iframe-loading {
+  background: transparent !important;
+}
+
+/* ---- Info pages (/pages/*): intro card, section headings, one tile style for every link ---- */
+
+:root.ppui-route-hub .component-rich-text {
+  padding: 22px 26px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: var(--ppui-radius-card);
+  background: var(--ppui-surface) !important;
+  box-shadow: var(--ppui-bevel) !important;
+  color: var(--ppui-text);
+  font-size: 15.5px;
+  line-height: 1.65;
+}
+
+:root.ppui-route-hub .component-rich-text .text {
+  border: 0 !important;
+}
+
+:root.ppui-route-hub .component-rich-text :is(div, span, p, font) {
+  background: transparent !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+
+:root.ppui-route-hub .component-heading,
+:root.ppui-route-hub .component-heading * {
+  background: transparent !important;
+}
+
+:root.ppui-route-hub .component-heading :is(h1, h2, h3, .heading-text) {
+  margin: 22px 0 4px !important;
+  padding: 0 0 8px !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--ppui-hairline) !important;
+  color: var(--ppui-text) !important;
+  font-family: var(--ppui-font) !important;
+  font-size: 17px !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.01em;
+}
+
+:root.ppui-route-hub .component-icon-link a.icon-block {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 12px;
+  height: auto !important;
+  min-height: 64px;
+  padding: 12px 16px !important;
+  box-sizing: border-box;
+  border: 1px solid var(--ppui-hairline) !important;
+  border-radius: 16px !important;
+  background: var(--ppui-surface) !important;
+  box-shadow: var(--ppui-bevel) !important;
+  color: var(--ppui-text) !important;
+  text-align: left !important;
+  text-decoration: none !important;
+  transition: transform 0.2s var(--ppui-ease), border-color 0.15s ease;
+}
+
+:root.ppui-route-hub .component-icon-link a.icon-block:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--ppui-accent) 45%, transparent) !important;
+}
+
+:root.ppui-route-hub .component-icon-link a.icon-block i {
+  display: grid !important;
+  flex: none;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin: 0 !important;
+  border-radius: 11px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ppui-crest) 78%, var(--ppui-sky)) 0%, var(--ppui-crest) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -1px 0 rgba(0, 0, 0, 0.18) !important;
+  color: #fff !important;
+  font-size: 17px !important;
+}
+
+:root[data-ppui-theme="dark"].ppui-route-hub .component-icon-link a.icon-block i,
+:root[data-ppui-theme="dark"].ppui-route-hub a.component-unread-messages-count .mail-icon,
+:root[data-ppui-theme="dark"].ppui-route-hub .component-notification-link .icon {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ppui-accent) 30%, #2c2c2e), color-mix(in srgb, var(--ppui-accent) 16%, #1c1c1e)) !important;
+  color: color-mix(in srgb, var(--ppui-accent) 70%, #fff) !important;
+}
+
+:root.ppui-route-hub .component-icon-link .icon-description {
+  margin: 0 !important;
+  color: var(--ppui-text) !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+  line-height: 1.3;
+}
+
+/* Side column: unread messages as a tile, empty event lists as a quiet dashed box. */
+:root.ppui-route-hub a.component-unread-messages-count {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px !important;
+  border: 1px solid var(--ppui-hairline) !important;
+  border-radius: 16px !important;
+  background: var(--ppui-surface) !important;
+  box-shadow: var(--ppui-bevel) !important;
+  color: var(--ppui-text) !important;
+  text-decoration: none !important;
+}
+
+:root.ppui-route-hub a.component-unread-messages-count :is(.mail-icon, .notification-text) {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--ppui-text) !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+}
+
+:root.ppui-route-hub a.component-unread-messages-count .mail-icon {
+  display: grid !important;
+  flex: none;
+  place-items: center;
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 11px !important;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ppui-crest) 78%, var(--ppui-sky)) 0%, var(--ppui-crest) 100%) !important;
+  color: #fff !important;
+}
+
+:root.ppui-route-hub a.component-unread-messages-count .mail-icon * {
+  max-width: 20px;
+  max-height: 20px;
+  color: #fff !important;
+  fill: currentColor;
+}
+
+/* Notice links ("Student code of conduct ..."): a tile with an accent icon, like the link tiles. */
+:root.ppui-route-hub .component-notification-link a.link {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 16px !important;
+  box-sizing: border-box;
+  border: 1px solid var(--ppui-hairline) !important;
+  border-radius: 16px !important;
+  background: var(--ppui-surface) !important;
+  box-shadow: var(--ppui-bevel) !important;
+  color: var(--ppui-text) !important;
+  text-decoration: none !important;
+  transition: transform 0.2s var(--ppui-ease), border-color 0.15s ease;
+}
+
+:root.ppui-route-hub .component-notification-link a.link:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--ppui-accent) 45%, transparent) !important;
+}
+
+:root.ppui-route-hub .component-notification-link .icon {
+  display: grid !important;
+  flex: none;
+  place-items: center;
+  width: 38px !important;
+  height: 38px !important;
+  margin: 0 !important;
+  border-radius: 11px !important;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ppui-crest) 78%, var(--ppui-sky)) 0%, var(--ppui-crest) 100%) !important;
+}
+
+:root.ppui-route-hub .component-notification-link .icon i {
+  color: #fff !important;
+  font-size: 16px !important;
+}
+
+:root.ppui-route-hub .component-notification-link :is(.notification-text, .message) {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--ppui-text) !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+}
+
+:root.ppui-route-hub .component-article-single-line-list .blankslate {
+  padding: 16px !important;
+  border: 1px dashed var(--ppui-hairline) !important;
+  border-radius: 16px !important;
+  background: transparent !important;
+  color: var(--ppui-muted) !important;
+  font-size: 13.5px !important;
+}
+
+:root.ppui-route-hub .component-event-vertical-card-list :is(.event-list, .control-load-more) {
+  border: 0 !important;
+  background: transparent !important;
+}
+
+:root.ppui-route-hub .component-event-vertical-card-list .blankslate {
+  padding: 16px !important;
+  border: 1px dashed var(--ppui-hairline) !important;
+  border-radius: 16px !important;
+  background: transparent !important;
+  color: var(--ppui-muted) !important;
+  font-size: 13.5px !important;
+}
+
+/* ---- A story's own page: bigger body text; newsletter font tags no longer shrink it ---- */
+
+:root.ppui-route-article .detail-article {
+  border-radius: var(--ppui-radius-card);
+  box-shadow: var(--ppui-bevel) !important;
+}
+
+:root.ppui-route-article .detail-article :is(p, div, td, li, span) {
+  font-size: 17px !important;
+  line-height: 1.75 !important;
+}
+
+:root.ppui-route-article .detail-article font {
+  font-size: inherit !important;
+}
+
+:root.ppui-route-article .detail-article table {
+  max-width: 100% !important;
+}
+
+/* The portal sometimes sends a story page with nothing in it (content.js adds this card). */
+.ppui-article-empty {
+  padding: 40px 28px;
+  text-align: center;
+  color: var(--ppui-text);
+}
+
+.ppui-article-empty h1 {
+  margin: 0 0 8px;
+}
+
+.ppui-article-empty p {
+  margin: 0 0 20px !important;
+  color: var(--ppui-muted) !important;
+}
+
+/* Beats the story page's own link colour (accent), which would hide the label on the button. */
+:root.ppui-route-article .detail-article .ppui-article-empty a {
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: var(--ppui-accent);
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 650;
+  text-decoration: none !important;
+}
+
+@media (max-width: 640px) {
+  :root.ppui-native body .app-container {
+    padding: 0 16px !important;
+  }
+
+  :root.ppui-route-calendar .detail-calendar {
+    padding: 10px 8px 6px;
+  }
+
+  :root.ppui-route-calendar .fc .fc-toolbar .fc-center {
+    order: 0;
+    flex-basis: 100%;
+  }
 }
 
 /* ---------- Motion ----------

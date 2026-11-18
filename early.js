@@ -22,6 +22,9 @@
     addEventListener("message", (e) => {
       if (e.origin === PORTAL_ORIGIN && e.data && (e.data.ppuiTheme === "light" || e.data.ppuiTheme === "dark")) {
         root.setAttribute("data-ppui-theme", e.data.ppuiTheme);
+        // The portal's accent (its colour theme), so links and today's column match the page around.
+        const accent = e.data.ppuiAccent;
+        if (typeof accent === "string" && /^#[0-9a-f]{3,8}$/i.test(accent)) root.style.setProperty("--e-accent", accent);
       }
     });
     window.parent.postMessage({ ppuiAskTheme: true }, PORTAL_ORIGIN);
@@ -43,6 +46,23 @@
 
   root.classList.add("ppui-booting");
   if (/^\/pinehurst\/student\/?$/.test(location.pathname)) root.classList.add("ppui-home");
+
+  // Which native portal page this is, so styles.css can lay each one out from the first paint.
+  const ROUTES = [
+    ["calendar", /\/student\/calendar\/(student|school|athletic)\/?$/],
+    ["subscribe", /\/student\/calendar\/subscribe(\/|$)/],
+    ["planner", /\/student\/student\/upcoming-assignments\/?$/],
+    ["daily", /\/student\/student\/daily-schedule\/?$/],
+    ["class", /\/student\/student\/classes\/\d+/],
+    ["hub", /\/student\/pages\/[^/]+\/?$/],
+    ["article", /\/student\/detail\/article\//],
+  ];
+  for (const [name, re] of ROUTES) {
+    if (re.test(location.pathname)) {
+      root.classList.add("ppui-native", "ppui-route-" + name);
+      break;
+    }
+  }
 
   // The News page: hide the portal's own list until content.js has built ours (it removes the class).
   try {

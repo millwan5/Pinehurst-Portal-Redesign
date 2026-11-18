@@ -445,11 +445,20 @@
 
   // Embedded portal pages (other origin) can't read our saved theme: send it to them.
   const EMBED_ORIGIN = "https://portals-embed.veracross.au";
+  const FRAME_ORIGINS = [EMBED_ORIGIN];
   function tellFrames(theme) {
+    const message = {
+      ppuiTheme: theme,
+      ppuiPalette: root.getAttribute("data-ppui-palette") || "",
+      // The accent as it is now (theme and colour applied), for frames that don't load our tokens.
+      ppuiAccent: getComputedStyle(root).getPropertyValue("--ppui-accent").trim(),
+    };
     document.querySelectorAll("iframe").forEach((f) => {
-      try {
-        f.contentWindow.postMessage({ ppuiTheme: theme }, EMBED_ORIGIN);
-      } catch (e) {}
+      for (const origin of FRAME_ORIGINS) {
+        try {
+          f.contentWindow.postMessage(message, origin);
+        } catch (e) {}
+      }
     });
   }
   // The frame may ask before we listen, so also push the theme whenever one finishes loading.
@@ -461,7 +470,7 @@
     true,
   );
   addEventListener("message", (e) => {
-    if (e.origin === EMBED_ORIGIN && e.data && e.data.ppuiAskTheme) {
+    if (FRAME_ORIGINS.includes(e.origin) && e.data && e.data.ppuiAskTheme) {
       tellFrames(root.getAttribute("data-ppui-theme") || "light");
     }
   });
@@ -4213,6 +4222,94 @@
       document.querySelector(".ppui-inbox")?.remove();
     } finally {
       root.classList.remove("ppui-page-pending");
+    }
+  }
+
+  // ---- Native pages we don't rebuild: one heading row, as on Overview and Messages ----
+  // The portal's title strip and section tab bar become a room title and a row of pills; the
+  // page itself stays the portal's, laid out by the "Native page shell" section of styles.css.
+
+  const NATIVE_TITLES = { planner: "Assignment Planner", daily: "Daily Schedule" };
+
+  function nativeRoute() {
+    const m = root.className.match(/\bppui-route-(\w+)/);
+    return m ? m[1] : null;
+  }
+
+  function buildNativeHead() {
+    const route = nativeRoute();
+    const app = document.querySelector(SEL.app);
+    if (!route || !app || app.querySelector(".ppui-native-head")) return;
+    // The News page has its own heading row.
+    try {
+      if (localStorage.getItem(NEWS_PATH_KEY) === location.pathname) return;
+    } catch (e) {}
+    const toolbar = app.querySelector(":scope > .screen-toolbar");
+    const tabBar = app.querySelector(".vx-tab-bar.my-children-nav");
+    const title = NATIVE_TITLES[route] || clean(toolbar && toolbar.textContent);
+    if (!title) return;
+
+    const head = el("header", "ppui-ov-head ppui-native-head");
+    head.appendChild(el("h1", "ppui-room-title", title));
+    if (tabBar) {
+      const nav = el("nav", "ppui-ov-nav");
+      nav.setAttribute("aria-label", "Student sections");
+      for (const a of tabBar.querySelectorAll("a.vx-tab-bar__tab")) {
+        const href = sameOriginHref(a.getAttribute("href"));
+        if (!href) continue;
+        const key = new URL(href).pathname.split("/").filter(Boolean).pop();
+        const link = el("a", "ppui-ov-nav-link");
+        link.href = href;
+        link.append(icon(SECTION_ICONS[key] || "external"), el("span", null, SECTION_NAMES[key] || clean(a.textContent)));
+        if (a.classList.contains("vx-tab-bar__tab--active")) link.setAttribute("aria-current", "page");
+        nav.appendChild(link);
+      }
+      if (nav.children.length) head.appendChild(nav);
+      tabBar.classList.add("ppui-native-moved");
+    }
+    if (toolbar) toolbar.classList.add("ppui-native-moved");
+    app.prepend(head);
+  }
+
+  // The planner scrolls inside its frame, so the frame fills the rest of the window and the page
+  // itself never scrolls: one scrollbar, not two.
+  function fitPlannerFrame() {
+    const frame = document.querySelector(".nav-embed .old-portals-iframe");
+    if (!frame) return;
+    const fit = () => {
+      const top = frame.getBoundingClientRect().top + scrollY;
+      frame.style.setProperty("height", Math.max(420, innerHeight - top - 24) + "px", "important");
+    };
+    fit();
+    addEventListener("resize", fit);
+  }
+
+  // A story page the portal sent empty: say so, and point to the News page, where it can be read.
+  function emptyStoryNote() {
+    const article = document.querySelector(".detail-article");
+    if (!article || clean(article.textContent) || article.querySelector("img")) return;
+    let newsPath = "/pinehurst/student/pages/9-13-news";
+    try {
+      newsPath = localStorage.getItem(NEWS_PATH_KEY) || newsPath;
+    } catch (e) {}
+    const note = el("div", "ppui-article-empty");
+    note.append(
+      el("h1", null, "This story didn't load"),
+      el("p", null, "The portal sent this page with nothing in it. The story can still be read on the News page."),
+    );
+    const link = el("a", null, "Open News");
+    link.href = newsPath;
+    note.appendChild(link);
+    article.appendChild(note);
+  }
+
+  if (!HOME_PATH.test(location.pathname)) {
+    try {
+      buildNativeHead();
+      if (nativeRoute() === "planner") fitPlannerFrame();
+      if (nativeRoute() === "article") setTimeout(emptyStoryNote, 5000);
+    } catch (e) {
+      console.warn("[Pinehurst Dashboard] Page heading failed; keeping the portal's.", e);
     }
   }
 
