@@ -3,6 +3,8 @@
 (function () {
   // Lets background.js tell a styled tab from one that loaded before the extension did.
   window.__ppuiLoaded = true;
+  // Timing marks are named ppui:* (DevTools > Performance > Timings); content.js can print them.
+  performance.mark("ppui:early");
 
   const root = document.documentElement;
   const PORTAL_ORIGIN = "https://portals.veracross.au";
@@ -46,7 +48,15 @@
   } catch (e) {}
 
   root.classList.add("ppui-booting");
-  if (/^\/pinehurst\/student\/?$/.test(location.pathname)) root.classList.add("ppui-home");
+  if (/^\/pinehurst\/student\/?$/.test(location.pathname)) {
+    root.classList.add("ppui-home");
+    // Today's timetable is asked for now, while the portal is still loading; content.js picks it up.
+    window.__ppuiSchedule = fetch("/pinehurst/student/student/daily-schedule", { credentials: "same-origin" }).then((res) => {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.text();
+    });
+    window.__ppuiSchedule.catch(() => {});
+  }
 
   // Which native portal page this is, so styles.css can lay each one out from the first paint.
   const ROUTES = [

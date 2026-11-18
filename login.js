@@ -26,11 +26,8 @@
       if (window.PPUIBanner) window.PPUIBanner.mount(scene, scene, "mesh", palette || "blue");
     } catch (e) {}
   };
-  try {
-    chrome.storage.local.get("ppuiLook", (got) => mountScene(got && got.ppuiLook && got.ppuiLook.palette));
-  } catch (e) {
-    mountScene("blue");
-  }
+  // The saved look, as login-early.js already read it.
+  (window.__ppuiLook || Promise.resolve({})).then((look) => mountScene(look.palette));
 
   // ---- Less text ----
   const form = card.querySelector("form");

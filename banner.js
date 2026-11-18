@@ -262,67 +262,84 @@
       },
       draw(ctx, S) {
         const q = S.q, N = S.noise, t = S.t, cols = Math.ceil(S.w / q) + 1, rows = Math.ceil(S.h / q) + 1;
-        ctx.fillStyle = css(darken(S.pal.at(0.5), 0.35)); ctx.fillRect(0, 0, S.w, S.h);
-        const night = S.pal.name === "night", golden = S.pal.name === "dawn" || S.pal.name === "dusk";
+        const pal = S.pal, orb = pal.orb, warm = pal.warm, near = pal.near, mid = pal.mid;
+        ctx.fillStyle = css(darken(pal.at(0.5), 0.35)); ctx.fillRect(0, 0, S.w, S.h);
+        const night = pal.name === "night", golden = pal.name === "dawn" || pal.name === "dusk";
         const sunR = S.compact ? 10 : 18;
         // Clouds: two drifting bands of soft noise. The high one sits above the greeting, the near one
         // (faster, brighter) sits below it, just over the skyline, so the text stays on clear sky.
-        const CLOUD = 0.36, memo = new Map();
-        const cloudAt = (i, j, layer) => {
-          const k = (layer * 4096 + j + 1) * 4096 + i;
-          let v = memo.get(k);
-          if (v === undefined) {
-            const y = (j * q) / S.h, centre = layer ? (S.compact ? 0.42 : 0.6) : 0.12, spread = layer ? 0.09 : 0.09;
-            const band = Math.exp(-(((y - centre) / spread) ** 2));
-            v = N.fbm((i + t * (layer ? 2.6 : 1.1) + layer * 300) / (layer ? 11 : 18), j / (layer ? 3 : 2.6) + layer * 7, 4) * band * 1.05;
-            memo.set(k, v);
+        // Worked out for the whole frame first, one row above and below the tiles (cloud edges look at
+        // their neighbours). A row too far from its band to reach the cloud level needs no noise at all.
+        const CLOUD = 0.36, SPREAD = 0.09, size = (rows + 2) * cols;
+        if (!S.cloud || S.cloud.length !== size * 2) S.cloud = new Float64Array(size * 2);
+        const cloud = S.cloud;
+        for (let layer = 0; layer < 2; layer++) {
+          const centre = layer ? (S.compact ? 0.42 : 0.6) : 0.12;
+          const speed = layer ? 2.6 : 1.1, wide = layer ? 11 : 18, tall = layer ? 3 : 2.6;
+          for (let j = -1; j <= rows; j++) {
+            const at = layer * size + (j + 1) * cols;
+            const band = Math.exp(-((((j * q) / S.h - centre) / SPREAD) ** 2));
+            if (band * 1.05 < CLOUD) { cloud.fill(0, at, at + cols); continue; }
+            for (let i = 0; i < cols; i++) cloud[at + i] = N.fbm((i + t * speed + layer * 300) / wide, j / tall + layer * 7, 4) * band * 1.05;
           }
-          return v;
-        };
+        }
         const now = S.now;
         S.ripples = S.ripples.filter((r) => now - r.t0 < 1.8);
-        for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
-          const x = i * q, y = j * q;
-          let c = S.pal.at(y / S.h);
-          const n = N.hash(i, j);
-          const breathe = Math.sin(t * 1.3 + n * TAU) * 0.05;
-          c = n > 0.5 ? lighten(c, Math.max(0, (n - 0.5) * 0.16 + breathe)) : darken(c, Math.max(0, (0.5 - n) * 0.2 - breathe));
-          const w1 = Math.sin(i * 0.16 + j * 0.22 - t * 1.7), w2 = Math.sin(i * 0.07 - j * 0.3 - t * 0.9);
-          const wave = Math.max(0, w1) * 0.07 + Math.max(0, w2) * 0.04;
-          c = lighten(c, wave);
-          for (let layer = 0; layer < 2; layer++) {
-            const v = cloudAt(i, j, layer);
-            if (v < CLOUD) continue;
-            const top = cloudAt(i, j - 1, layer) < CLOUD, bottom = cloudAt(i, j + 1, layer) < CLOUD;
-            let cc = lighten(c, night ? 0.1 + layer * 0.05 : 0.32 + layer * 0.14 + (v - CLOUD) * 0.6);
-            if (top) cc = lighten(cc, night ? 0.08 : 0.3);
-            if (bottom) cc = mix(darken(cc, 0.1), S.pal.warm, golden ? 0.35 : 0.06);
-            c = cc;
+        const ripples = S.ripples, hover = S.mx != null, half = q / 2;
+        const topLight = night ? 0.08 : 0.3, underWarm = golden ? 0.35 : 0.06;
+        // Each tile's colour is kept as three plain numbers (r, g, b) all the way to the fill.
+        for (let j = 0; j < rows; j++) {
+          const y = j * q, sky = pal.at(y / S.h), fromBottom = rows - 1 - j;
+          for (let i = 0; i < cols; i++) {
+            const x = i * q;
+            let r = sky[0], g = sky[1], b = sky[2], k;
+            const n = N.hash(i, j);
+            const breathe = Math.sin(t * 1.3 + n * TAU) * 0.05;
+            if (n > 0.5) { k = Math.max(0, (n - 0.5) * 0.16 + breathe); r += (255 - r) * k; g += (255 - g) * k; b += (255 - b) * k; }
+            else { k = Math.max(0, (0.5 - n) * 0.2 - breathe); r -= r * k; g -= g * k; b -= b * k; }
+            const w1 = Math.sin(i * 0.16 + j * 0.22 - t * 1.7), w2 = Math.sin(i * 0.07 - j * 0.3 - t * 0.9);
+            const wave = Math.max(0, w1) * 0.07 + Math.max(0, w2) * 0.04;
+            r += (255 - r) * wave; g += (255 - g) * wave; b += (255 - b) * wave;
+            for (let layer = 0; layer < 2; layer++) {
+              const at = layer * size + (j + 1) * cols + i, v = cloud[at];
+              if (v < CLOUD) continue;
+              k = night ? 0.1 + layer * 0.05 : 0.32 + layer * 0.14 + (v - CLOUD) * 0.6;
+              r += (255 - r) * k; g += (255 - g) * k; b += (255 - b) * k;
+              // Lit along the top edge; shaded and warmed along the bottom.
+              if (cloud[at - cols] < CLOUD) { r += (255 - r) * topLight; g += (255 - g) * topLight; b += (255 - b) * topLight; }
+              if (cloud[at + cols] < CLOUD) {
+                r -= r * 0.1; g -= g * 0.1; b -= b * 0.1;
+                r += (warm[0] - r) * underWarm; g += (warm[1] - g) * underWarm; b += (warm[2] - b) * underWarm;
+              }
+            }
+            const od = Math.sqrt((x - S.orb.x) ** 2 + (y - S.orb.y) ** 2);
+            if (od < sunR) { r = orb[0]; g = orb[1]; b = orb[2]; }
+            else { k = Math.max(0, 1 - od / 220) * 0.28; r += (orb[0] - r) * k; g += (orb[1] - g) * k; b += (orb[2] - b) * k; }
+            if (night && N.hash(i + 9, j) > 0.988) { k = 0.35 + 0.35 * Math.sin(t * 3 + i); r += (255 - r) * k; g += (255 - g) * k; b += (255 - b) * k; }
+            const tiles = S.skyline[i] || 0;
+            if (fromBottom < 2) { r = near[0]; g = near[1]; b = near[2]; }
+            else if (fromBottom < 2 + tiles) {
+              if (fromBottom >= 1 + tiles - 0.5) { r = mid[0]; g = mid[1]; b = mid[2]; }
+              else { k = 0.3 * ((i + j) % 2) + wave; r = near[0] + (mid[0] - near[0]) * k; g = near[1] + (mid[1] - near[1]) * k; b = near[2] + (mid[2] - near[2]) * k; }
+            }
+            let lift = w1 > 0.93 && fromBottom >= 2 + tiles ? (w1 - 0.93) * 8 : 0;
+            if (N.hash(i * 7 + Math.floor(t * 2.5), j * 3) > 0.996) lift = Math.max(lift, 0.8);
+            if (hover) {
+              k = Math.max(0, 1 - Math.sqrt((x + half - S.mx) ** 2 + (y + half - S.my) ** 2) / 130);
+              if (k > 0) { lift = Math.max(lift, k * 1.2); k *= 0.08; r += (255 - r) * k; g += (255 - g) * k; b += (255 - b) * k; }
+            }
+            for (const ripple of ripples) {
+              const age = now - ripple.t0, dd = Math.sqrt((x + half - ripple.x) ** 2 + (y + half - ripple.y) ** 2);
+              const hit = Math.exp(-(((dd - age * 480) / 26) ** 2)) * (1 - age / 1.8);
+              if (hit > 0.02) { lift = Math.max(lift, hit * 1.6); k = hit * 0.25; r += (255 - r) * k; g += (255 - g) * k; b += (255 - b) * k; }
+            }
+            if (lift > 0) {
+              ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.fillRect(x + 1, y + 1 + lift * 2, q - 1, q - 1);
+              k = lift * 0.18; r += (255 - r) * k; g += (255 - g) * k; b += (255 - b) * k;
+            }
+            ctx.fillStyle = `rgb(${r | 0},${g | 0},${b | 0})`;
+            ctx.fillRect(x + 0.5, y + 0.5 - lift * 2.5, q - 1, q - 1);
           }
-          const od = Math.hypot(x - S.orb.x, y - S.orb.y);
-          if (od < sunR) c = S.pal.orb;
-          else c = mix(c, S.pal.orb, Math.max(0, 1 - od / 220) * 0.28);
-          if (night && N.hash(i + 9, j) > 0.988) c = lighten(c, 0.35 + 0.35 * Math.sin(t * 3 + i));
-          const tiles = S.skyline[i] || 0, fromBottom = rows - 1 - j;
-          if (fromBottom < 2) c = S.pal.near;
-          else if (fromBottom < 2 + tiles) c = fromBottom >= 1 + tiles - 0.5 ? S.pal.mid : mix(S.pal.near, S.pal.mid, 0.3 * ((i + j) % 2) + wave);
-          let lift = w1 > 0.93 && fromBottom >= 2 + tiles ? (w1 - 0.93) * 8 : 0;
-          if (N.hash(i * 7 + Math.floor(t * 2.5), j * 3) > 0.996) lift = Math.max(lift, 0.8);
-          if (S.mx != null) {
-            const near = Math.max(0, 1 - Math.hypot(x + q / 2 - S.mx, y + q / 2 - S.my) / 130);
-            if (near > 0) { lift = Math.max(lift, near * 1.2); c = lighten(c, near * 0.08); }
-          }
-          for (const r of S.ripples) {
-            const age = now - r.t0, dd = Math.hypot(x + q / 2 - r.x, y + q / 2 - r.y);
-            const hit = Math.exp(-(((dd - age * 480) / 26) ** 2)) * (1 - age / 1.8);
-            if (hit > 0.02) { lift = Math.max(lift, hit * 1.6); c = lighten(c, hit * 0.25); }
-          }
-          if (lift > 0) {
-            ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.fillRect(x + 1, y + 1 + lift * 2, q - 1, q - 1);
-            c = lighten(c, lift * 0.18);
-          }
-          ctx.fillStyle = css(c);
-          ctx.fillRect(x + 0.5, y + 0.5 - lift * 2.5, q - 1, q - 1);
         }
       },
       clicks: true,
@@ -380,7 +397,13 @@
     function loop(now) {
       raf = 0;
       if (!style || !visible || document.hidden) return;
-      if (now - last >= 32) { last = now; frame(now); }
+      if (now - last >= 32) {
+        last = now;
+        // content.js sets __ppuiCost while it is counting frame times (see reportPerf there).
+        const cost = window.__ppuiCost, from = cost ? performance.now() : 0;
+        frame(now);
+        if (cost) { cost.banner = (cost.banner || 0) + performance.now() - from; cost.bannerFrames = (cost.bannerFrames || 0) + 1; }
+      }
       if (STYLES[style].still) return;
       if (!reduce.matches || ptr || (S && S.ripples.length)) raf = requestAnimationFrame(loop);
     }
@@ -442,9 +465,29 @@
   const lenses = new Map();
   let defs = null;
 
-  function makeLens(w, h) {
-    const key = w + "x" + h;
-    if (lenses.has(key)) return lenses.get(key);
+  // A lens's two pictures (its bend map and its light) depend on its size alone and take a few
+  // milliseconds to draw, so they are kept between visits, a handful of sizes at most.
+  // The number in the key goes up whenever lensImages changes what it draws.
+  const LENS_KEY = "ppui-lens-1";
+  const LENS_SIZES = 8;
+  const PNG = /^data:image\/png;base64,[A-Za-z0-9+\/=]+$/;
+  let lensStore = null;
+
+  function savedLens(key, draw) {
+    if (!lensStore) {
+      try { lensStore = JSON.parse(localStorage.getItem(LENS_KEY)) || {}; } catch (e) { lensStore = {}; }
+    }
+    const had = lensStore[key];
+    if (Array.isArray(had) && had.length === 2 && had.every((url) => typeof url === "string" && PNG.test(url))) return had;
+    const made = draw();
+    const keys = Object.keys(lensStore);
+    if (keys.length >= LENS_SIZES) delete lensStore[keys[0]];
+    lensStore[key] = made;
+    try { localStorage.setItem(LENS_KEY, JSON.stringify(lensStore)); } catch (e) {}
+    return made;
+  }
+
+  function lensImages(w, h) {
     const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
     const g = cv.getContext("2d"), img = g.createImageData(w, h), d = img.data;
     const r = h / 2, bevel = Math.min(22, h * 0.48), cx = w / 2, cy = h / 2;
@@ -482,7 +525,13 @@
       d[k] = Math.min(255, (R / m) * 255); d[k + 1] = Math.min(255, (G / m) * 255); d[k + 2] = Math.min(255, (B / m) * 255); d[k + 3] = m * 255;
     }
     g.putImageData(img, 0, 0);
-    const lightURL = cv.toDataURL();
+    return [mapURL, cv.toDataURL()];
+  }
+
+  function makeLens(w, h) {
+    const key = w + "x" + h;
+    if (lenses.has(key)) return lenses.get(key);
+    const [mapURL, lightURL] = savedLens(key, () => lensImages(w, h));
 
     if (!defs) {
       const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
