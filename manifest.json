@@ -50,6 +50,11 @@
       "run_at": "document_start"
     },
     {
+      "matches": ["*://accounts.veracross.au/pinehurst/*"],
+      "js": ["banner.js", "login.js"],
+      "run_at": "document_idle"
+    },
+    {
       "matches": ["*://portals-embed.veracross.au/pinehurst/*"],
       "js": ["embed.js"],
       "run_at": "document_idle",

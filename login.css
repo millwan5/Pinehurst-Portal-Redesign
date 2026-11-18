@@ -16,31 +16,32 @@ html body :is(p, li, a, label, input, button, h1, h2, h3, div, span, em, strong)
   font-family: var(--ppui-font) !important;
 }
 
-/* The band: theme colour with two soft ridges along its foot, as on the portal and class sites. */
-body::before,
-body::after {
+/* Background: the portal's Low Poly banner across the whole page (login.js draws it with banner.js).
+   The gradient underneath shows until the canvas is drawn, or if it can't be. */
+.ppui-login-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 80% 0%, color-mix(in srgb, var(--ppui-sky) 65%, transparent) 0%, transparent 60%),
+    linear-gradient(160deg, color-mix(in srgb, var(--ppui-crest) 82%, var(--ppui-sky)) 0%, var(--ppui-crest) 55%, color-mix(in srgb, var(--ppui-crest) 60%, #000) 100%);
+}
+
+.ppui-login-scene canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* A soft shade behind the card so it lifts off the pattern. */
+.ppui-login-scene::after {
   content: "";
   position: absolute;
-  z-index: 0;
-  left: 0;
-  right: 0;
-  pointer-events: none;
-}
-
-body::before {
-  top: 0;
-  height: 300px;
-  background:
-    radial-gradient(120% 140% at 85% -20%, color-mix(in srgb, var(--ppui-sky) 70%, transparent) 0%, transparent 55%),
-    linear-gradient(160deg, color-mix(in srgb, var(--ppui-crest) 82%, var(--ppui-sky)) 0%, var(--ppui-crest) 55%, color-mix(in srgb, var(--ppui-crest) 70%, #000) 100%);
-}
-
-body::after {
-  top: 244px;
-  height: 56px;
-  background: color-mix(in srgb, var(--ppui-crest) 55%, #000);
-  clip-path: polygon(0 70%, 9% 38%, 18% 58%, 30% 22%, 41% 52%, 52% 30%, 63% 60%, 74% 26%, 86% 54%, 100% 30%, 100% 100%, 0 100%);
-  opacity: 0.5;
+  inset: 0;
+  background: radial-gradient(60% 55% at 50% 50%, rgba(5, 12, 30, 0.35), transparent 75%);
 }
 
 .ae-container {
@@ -48,7 +49,11 @@ body::after {
   z-index: 1;
   box-sizing: border-box;
   max-width: none !important;
-  padding: 96px 16px 48px !important;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 80px 16px 40px !important;
   background: transparent !important;
 }
 
@@ -62,7 +67,7 @@ body::after {
   position: relative;
   box-sizing: border-box;
   width: auto !important;
-  max-width: 440px !important;
+  max-width: 400px !important;
   margin: 0 auto !important;
   padding: 64px 36px 22px !important;
   left: auto !important;
@@ -71,7 +76,7 @@ body::after {
   color: var(--ppui-text) !important;
   border: 1px solid var(--ppui-hairline) !important;
   border-radius: 24px !important;
-  box-shadow: var(--ppui-bevel), 0 30px 60px -30px rgba(11, 30, 69, 0.45) !important;
+  box-shadow: var(--ppui-bevel), 0 40px 80px -30px rgba(0, 0, 0, 0.6) !important;
   animation: ppui-enter 0.5s var(--ppui-ease) both;
 }
 
@@ -266,35 +271,47 @@ form footer {
   text-align: center;
 }
 
-/* Help notes under the form: set apart by a rule, small and quiet. */
-.forgot-link ~ :is(p, ul):not(:empty) {
-  margin: 0 !important;
+/* The site's long help notes; login.js puts one short row of links in their place. */
+.ppui-login-moved {
+  display: none !important;
 }
 
-.forgot-link + p.card-footer,
-.forgot-link + p:not(:empty) {
-  margin-top: 20px !important;
-  padding-top: 18px !important;
-  border-top: 1px solid var(--ppui-hairline);
-}
-
-.account-form-container > p.card-footer {
+.ppui-login-note {
+  margin: 14px 0 0 !important;
   color: var(--ppui-muted) !important;
-  font-size: 13.5px !important;
+  font-size: 12.5px !important;
+  line-height: 1.5 !important;
+  text-align: center;
 }
 
-.account-form-container > ul {
-  margin: 20px 0 8px !important;
-  padding: 16px 0 0 18px !important;
+.ppui-login-help {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 18px;
+  margin: 20px 0 0;
+  padding-top: 16px;
   border-top: 1px solid var(--ppui-hairline);
 }
 
-.account-form-container > ul li {
-  margin: 0 0 6px !important;
+.ae-grid .card .ppui-login-help a {
+  color: var(--ppui-muted) !important;
+  font-size: 12.5px !important;
+  font-weight: 600;
 }
 
-.account-form-container > p + p {
-  margin-top: 6px !important;
+.ae-grid .card .ppui-login-help a:hover {
+  color: var(--ppui-accent) !important;
+}
+
+.vx-TextField_Input::placeholder {
+  color: var(--ppui-muted);
+  opacity: 0.7;
+}
+
+/* Hidden labels the site leaves empty never take up space. */
+.card-header :empty {
+  display: none !important;
 }
 
 /* Card foot: copyright and privacy */
@@ -316,7 +333,7 @@ form footer {
 
 @media (max-width: 520px) {
   .ae-container {
-    padding: 84px 12px 32px !important;
+    padding: 72px 12px 28px !important;
   }
 
   .ae-grid .card {
