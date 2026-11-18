@@ -147,7 +147,6 @@ html :focus-visible {
   background: linear-gradient(180deg, #040a1a 0%, #0b1e45 60%, #142f69 100%);
 }
 
-
 /* Sun by day, moon by night: a disc on the arc content.js computes. */
 .ppui-orb {
   position: absolute;
@@ -369,14 +368,6 @@ html :focus-visible {
   display: none;
 }
 
-
-/* Colour swatches in the Banner menu */
-.ppui-swatch-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .ppui-swatch {
   width: 14px;
   height: 14px;
@@ -405,7 +396,6 @@ html :focus-visible {
 .ppui-date {
   text-shadow: 0 1px 2px rgba(0, 10, 40, 0.45), 0 4px 18px rgba(0, 10, 40, 0.35);
 }
-
 
 .ppui-bar-button {
   position: relative;
@@ -437,7 +427,6 @@ html :focus-visible {
 .ppui-bar-button:active {
   transform: scale(0.92);
 }
-
 
 .ppui-bar-button.ppui-avatar {
   width: 30px;
@@ -1148,27 +1137,6 @@ a.ppui-class:hover {
   text-align: center;
 }
 
-.ppui-stub-month {
-  grid-row: 1;
-  padding: 2px 0;
-  background: var(--ppui-crest);
-  color: #fff;
-  font-size: 10.5px;
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-.ppui-stub-day {
-  grid-row: 2;
-  padding: 3px 0 4px;
-  color: var(--ppui-text);
-  font-size: 18px;
-  font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
-}
-
 .ppui-stub > .ppui-icon {
   grid-row: 1 / -1;
   justify-self: center;
@@ -1359,22 +1327,6 @@ a.ppui-subject {
   width: 18px;
   height: 18px;
   stroke-width: 2.4;
-}
-
-.ppui-badge {
-  min-width: 22px;
-  height: 22px;
-  padding: 0 7px;
-  box-sizing: border-box;
-  border-radius: 999px;
-  background: var(--ppui-crest);
-  color: #fff !important;
-  font-size: 12px;
-  font-weight: 750;
-  line-height: 22px;
-  text-align: center;
-  text-decoration: none !important;
-  font-variant-numeric: tabular-nums;
 }
 
 .ppui-more {
@@ -1796,7 +1748,6 @@ a.ppui-ov-class-name:hover {
   white-space: nowrap;
 }
 
-.ppui-ov-updates,
 .ppui-ov-grade {
   flex: none;
   padding: 3px 10px;
@@ -1804,12 +1755,6 @@ a.ppui-ov-class-name:hover {
   font-size: 12.5px;
   font-weight: 750;
   white-space: nowrap;
-}
-
-.ppui-ov-updates {
-  background: var(--ppui-accent);
-  color: var(--ppui-surface) !important;
-  text-decoration: none !important;
 }
 
 .ppui-ov-grade {
@@ -1945,63 +1890,6 @@ html.ppui-news-pending .app-container {
   gap: 4px;
 }
 
-.ppui-room-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-left: auto;
-  padding-bottom: 8px;
-}
-
-.ppui-room-choice {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 34px;
-  padding: 0 10px 0 12px;
-  border: 1px solid var(--ppui-hairline);
-  border-radius: 999px;
-  background: var(--ppui-surface);
-  color: var(--ppui-text);
-  font: inherit;
-  font-size: 13.5px;
-  font-weight: 650;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.ppui-room-choice .ppui-icon {
-  width: 15px;
-  height: 15px;
-  color: var(--ppui-muted);
-}
-
-.ppui-room-choice .ppui-choice-caret {
-  width: 14px;
-  height: 14px;
-  transition: rotate 0.25s var(--ppui-ease);
-}
-
-.ppui-room-choice[aria-expanded="true"] .ppui-choice-caret {
-  rotate: 180deg;
-}
-
-.ppui-room-choice:hover,
-.ppui-room-choice[aria-expanded="true"] {
-  background: var(--ppui-hover);
-}
-
-.ppui-room-choice.is-active {
-  border-color: transparent;
-  background: var(--ppui-accent-soft);
-  color: var(--ppui-accent);
-}
-
-.ppui-room-choice.is-active .ppui-icon {
-  color: var(--ppui-accent);
-}
-
 .ppui-choice-menu {
   min-width: 200px;
 }
@@ -2093,188 +1981,9 @@ html.ppui-news-pending .app-container {
   pointer-events: none;
 }
 
-/* Timeline on the left, reading column on the right. */
-.ppui-room-layout {
-  display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
-  gap: 32px;
-  align-items: start;
-  margin-top: 22px;
-}
-
-.ppui-room-layout:has(> .ppui-rail[hidden]) {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.ppui-rail {
-  position: sticky;
-  top: 28px;
-  height: min(70vh, calc(var(--count, 2) * 64px));
-  min-height: 160px;
-}
-
-.ppui-rail[hidden] {
-  display: none;
-}
-
-/* The track runs from the first dot's centre to the last's; the fill grows down it as you read. */
-.ppui-rail-track {
-  position: absolute;
-  left: 8px;
-  top: 9px;
-  bottom: 9px;
-  width: 2px;
-  overflow: hidden;
-  border-radius: 2px;
-  background: var(--ppui-hairline);
-}
-
-.ppui-rail-fill {
-  position: absolute;
-  inset: 0;
-  background: var(--ppui-accent);
-  transform-origin: top;
-  transform: scaleY(var(--rail-progress, 0));
-  transition: transform 0.12s linear;
-}
-
-.ppui-rail-nodes {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.ppui-rail-item {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(var(--pos) * (100% - 18px));
-}
-
-.ppui-rail-node {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  height: 18px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--ppui-muted);
-  font-size: 12.5px;
-  font-weight: 600;
-  text-align: left;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.ppui-rail-dot {
-  flex: none;
-  width: 10px;
-  height: 10px;
-  margin-left: 4px;
-  box-sizing: border-box;
-  border: 2px solid var(--ppui-silver);
-  border-radius: 50%;
-  background: var(--ppui-surface);
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease;
-}
-
-.ppui-rail-node.is-past .ppui-rail-dot {
-  border-color: var(--ppui-accent);
-  background: var(--ppui-accent);
-}
-
-.ppui-rail-node.is-current .ppui-rail-dot {
-  border-color: var(--ppui-accent);
-  background: var(--ppui-surface);
-  outline: 4px solid var(--ppui-accent-soft);
-  transform: scale(1.5);
-}
-
-.ppui-rail-node.is-current {
-  color: var(--ppui-text);
-  font-weight: 750;
-}
-
-.ppui-rail-node:hover {
-  color: var(--ppui-accent);
-}
-
-/* How many stories that day has. */
-.ppui-rail-count {
-  display: inline-grid;
-  place-items: center;
-  min-width: 20px;
-  height: 18px;
-  margin-left: auto;
-  padding: 0 6px;
-  box-sizing: border-box;
-  border-radius: 999px;
-  background: var(--ppui-hover);
-  color: var(--ppui-muted);
-  font-size: 11px;
-  font-weight: 750;
-  font-variant-numeric: tabular-nums;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.ppui-rail-node.is-current .ppui-rail-count {
-  background: var(--ppui-accent);
-  color: #fff;
-}
-
-.ppui-rail-chip {
-  display: none;
-}
-
 /* Phones: no room for the timeline, so a sticky chip says where you are ("3 of 12  28 Oct"). */
 @media (max-width: 760px) {
-  .ppui-room-layout {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-  }
-  .ppui-rail {
-    top: 10px;
-    z-index: 5;
-    display: flex;
-    justify-content: center;
-    height: auto;
-    min-height: 0;
-    pointer-events: none;
-  }
-  .ppui-rail-track,
-  .ppui-rail-nodes {
-    display: none;
-  }
-  .ppui-rail-chip {
-    position: relative;
-    display: inline-flex;
-    overflow: hidden;
-    padding: 7px 14px 9px;
-    border-radius: 999px;
-    background: var(--ppui-crest);
-    color: #fff;
-    font-size: 12.5px;
-    font-weight: 700;
-    white-space: pre;
-    font-variant-numeric: tabular-nums;
-  }
   /* The chip's own little progress line. */
-  .ppui-rail-chip::after {
-    content: "";
-    position: absolute;
-    left: 14px;
-    right: 14px;
-    bottom: 4px;
-    height: 2px;
-    border-radius: 2px;
-    background: rgba(255, 255, 255, 0.85);
-    transform-origin: left;
-    transform: scaleX(var(--rail-progress, 0));
-  }
   .ppui-room-tab {
     padding: 10px 10px 12px;
     font-size: 14px;
@@ -2307,8 +2016,7 @@ html.ppui-news-pending .app-container {
   font-size: 14px;
 }
 
-.ppui-room-restore-all,
-.ppui-room-more {
+.ppui-room-restore-all {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -2330,13 +2038,11 @@ html.ppui-news-pending .app-container {
   height: 15px;
 }
 
-.ppui-room-restore-all:hover,
-.ppui-room-more:hover {
+.ppui-room-restore-all:hover {
   background: var(--ppui-accent-soft);
 }
 
-.ppui-room-restore-all:active,
-.ppui-room-more:active {
+.ppui-room-restore-all:active {
   transform: scale(0.96);
 }
 
@@ -2425,47 +2131,8 @@ html.ppui-news-pending .app-container {
   rotate: 2deg;
 }
 
-.ppui-room-meta {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.ppui-room-meta .ppui-stub {
-  border-radius: 4px;
-  background: var(--ppui-paper);
-  border-color: var(--ppui-paper-edge);
-}
-
-.ppui-room-when {
-  display: grid;
-  gap: 2px;
-  font-size: 13.5px;
-}
-
-.ppui-room-when .ppui-pinned-mark {
-  margin: 0;
-}
-
-.ppui-room-date {
-  font-weight: 650;
-}
-
 .ppui-room-ago {
   color: var(--ppui-muted);
-}
-
-.ppui-room-actions {
-  display: flex;
-  gap: 6px;
-  margin-left: auto;
-}
-
-.ppui-room-actions .ppui-story-action {
-  width: 36px;
-  height: 36px;
-  background: var(--ppui-paper);
-  border-color: var(--ppui-paper-edge);
 }
 
 .ppui-room-headline {
@@ -2480,14 +2147,6 @@ html.ppui-news-pending .app-container {
   line-height: 1.18 !important;
   letter-spacing: -0.005em;
   text-wrap: balance;
-}
-
-.ppui-room-picture:empty {
-  display: none;
-}
-
-.ppui-room-picture {
-  margin-bottom: 20px;
 }
 
 .ppui-room-story .ppui-photo {
@@ -2506,40 +2165,6 @@ html.ppui-news-pending .app-container {
   border-radius: 2px;
 }
 
-/* Body: comfortable reading size and measure. */
-.ppui-room-body {
-  max-width: 66ch;
-  height: auto;
-  overflow: clip;
-  outline: none;
-  color: var(--ppui-ink-text);
-  font-size: 17.5px;
-  line-height: 1.8;
-}
-
-.ppui-room-body p {
-  margin: 0 0 1.1em;
-}
-
-/* A drop cap opens each longer story, as in print (short notices are too brief for one). */
-.ppui-room-story:is(.is-folded, .is-open) .ppui-room-body > p:first-child::first-letter {
-  float: left;
-  margin: 0.06em 0.1em 0 0;
-  color: var(--ppui-accent);
-  font-family: var(--ppui-display);
-  font-style: italic;
-  font-size: 3.3em;
-  font-weight: 700;
-  line-height: 0.85;
-}
-
-/* Folded (the default): the first few lines, fading out. */
-.ppui-room-story.is-folded .ppui-room-body {
-  height: 7.4em;
-  -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent);
-  mask-image: linear-gradient(180deg, #000 45%, transparent);
-}
-
 /* A story's picture sits beside the text as a small clipping, slightly askew, folded or open. */
 .ppui-room-story.has-picture {
   display: grid;
@@ -2550,42 +2175,6 @@ html.ppui-news-pending .app-container {
 
 .ppui-room-story.has-picture > * {
   grid-column: 1;
-}
-
-.ppui-room-story.has-picture > .ppui-room-picture {
-  grid-column: 2;
-  grid-row: 1 / span 4;
-  margin: 4px 0 0;
-  rotate: 1.2deg;
-}
-
-.ppui-room-foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.ppui-room-foot:empty {
-  display: none;
-}
-
-.ppui-room-more {
-  background: var(--ppui-accent);
-  border-color: transparent;
-  color: #fff;
-}
-
-.ppui-room-more:hover {
-  background: var(--ppui-crest);
-  filter: brightness(1.1);
-}
-
-.ppui-room-story.is-open .ppui-room-more {
-  background: transparent;
-  border-color: var(--ppui-paper-edge);
-  color: var(--ppui-accent);
 }
 
 .ppui-room-story .ppui-reader-source {
@@ -2623,22 +2212,9 @@ html.ppui-news-pending .app-container {
   border-color: var(--ppui-accent);
 }
 
-.ppui-room-story.is-compact .ppui-room-meta {
-  display: contents;
-}
-
-/* A story folded back keeps its built text, out of sight. */
-.ppui-room-story.is-compact > :is(.ppui-room-picture, .ppui-room-body, .ppui-room-foot) {
-  display: none;
-}
-
 .ppui-room-story.is-compact .ppui-read-box {
   grid-column: 1;
   grid-row: 1 / span 2;
-}
-
-.ppui-room-story.is-compact :is(.ppui-stub, .ppui-room-date, .ppui-room-toggle-caret) {
-  display: none;
 }
 
 .ppui-room-story.is-compact .ppui-room-headline {
@@ -2649,26 +2225,6 @@ html.ppui-news-pending .app-container {
   border: 0;
   font-size: 19px !important;
   line-height: 1.3 !important;
-}
-
-.ppui-room-story.is-compact .ppui-room-when {
-  grid-column: 2;
-  grid-row: 2;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 10px;
-  font-size: 12.5px;
-}
-
-.ppui-room-story.is-compact .ppui-room-actions {
-  grid-column: 3;
-  grid-row: 1 / span 2;
-}
-
-.ppui-room-story.is-compact .ppui-room-actions .ppui-story-action {
-  width: 32px;
-  height: 32px;
 }
 
 /* In a row the pin only shows on hover or focus, or when the story is pinned. */
@@ -2772,75 +2328,6 @@ html.ppui-news-pending .app-container {
   outline-offset: 2px;
 }
 
-/* Ticked: a line runs through the headline and it greys out. */
-.ppui-room-toggle > span {
-  background: linear-gradient(currentColor, currentColor) no-repeat 0 58% / 0 2px;
-  transition: background-size 0.35s var(--ppui-ease), color 0.2s ease;
-}
-
-.ppui-room-story.is-done .ppui-room-toggle > span {
-  background-size: 100% 2px;
-  color: var(--ppui-muted);
-}
-
-/* The tick box, date and pin sit above the row-wide click area. */
-.ppui-room-story.is-compact :is(.ppui-read-box, .ppui-room-when, .ppui-room-actions) {
-  position: relative;
-  z-index: 1;
-}
-
-.ppui-room-toggle {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  letter-spacing: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-/* In a row, the whole row opens the story. */
-.ppui-room-story.is-compact .ppui-room-toggle::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-}
-
-.ppui-room-toggle:hover > span {
-  color: var(--ppui-accent);
-}
-
-.ppui-room-toggle:focus-visible {
-  outline: 2px solid var(--ppui-sky);
-  outline-offset: 4px;
-  border-radius: 2px;
-}
-
-.ppui-room-toggle-caret {
-  flex: none;
-  width: 18px;
-  height: 18px;
-  margin-top: 0.3em;
-  color: var(--ppui-muted);
-  transition: rotate 0.25s var(--ppui-ease);
-}
-
-.ppui-room-toggle[aria-expanded="true"] .ppui-room-toggle-caret {
-  rotate: 180deg;
-}
-
-/* Opened from a row, the story shows in full: its headline folds it back, so no "Show less". */
-.ppui-room-story.from-titles .ppui-room-more {
-  display: none;
-}
-
 /* A date picked on the timeline: its stories glow for a moment in the card's own paper colour. */
 .ppui-room-story.is-glowing {
   animation: ppui-glow 1.4s ease-out;
@@ -2858,18 +2345,9 @@ html.ppui-news-pending .app-container {
   }
 }
 
-
 @media (max-width: 700px) {
   .ppui-room-story.has-picture {
     display: block;
-  }
-  .ppui-room-story.has-picture > .ppui-room-picture {
-    max-width: 260px;
-    margin-bottom: 18px;
-  }
-  .ppui-room-controls {
-    margin-left: 0;
-    padding-bottom: 10px;
   }
 }
 
@@ -2877,17 +2355,11 @@ html.ppui-news-pending .app-container {
   .ppui-room-story {
     padding: 22px 20px 22px;
   }
-  .ppui-room-body {
-    font-size: 17px;
-  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .ppui-room-tab-indicator {
     transition: translate 0.45s var(--ppui-ease), width 0.45s var(--ppui-ease);
-  }
-  .ppui-room-body {
-    transition: height 0.55s var(--ppui-ease);
   }
   .ppui-room-list.is-switching {
     animation: ppui-settle 0.4s var(--ppui-ease);
@@ -2897,9 +2369,6 @@ html.ppui-news-pending .app-container {
   }
   .ppui-room-head > :nth-child(2) { animation-delay: 0.06s; }
   .ppui-room-head > :nth-child(3) { animation-delay: 0.12s; }
-  .ppui-rail {
-    animation: ppui-fade 0.8s ease 0.2s both;
-  }
 }
 
 /* ---------- News reader: stories open in a panel on the right (a sheet on phones) ---------- */
@@ -4931,7 +4400,7 @@ html body .app-container :where(h1, h2, h3, h4) {
   color: var(--ppui-muted) !important;
 }
 
-:root[data-ppui-theme="dark"] .app-container a:not(.ppui-dash a):not(.ppui-header a):not(.ppui-newsroom a):not(.ppui-overview a):not(.ppui-inbox a):not(.ppui-native-head a):not(.ppui-article-empty a):not(.ppui-timetable a),
+:root[data-ppui-theme="dark"] .app-container a:not(.ppui-dash a):not(.ppui-header a):not(.ppui-newsroom a):not(.ppui-overview a):not(.ppui-inbox a):not(.ppui-native-head a):not(.ppui-article-empty a):not(.ppui-story-nav a):not(.ppui-timetable a),
 :root[data-ppui-theme="dark"] .app-container .vx-button {
   color: var(--ppui-accent) !important;
 }
@@ -5494,56 +4963,6 @@ html body .app-container :where(h1, h2, h3, h4) {
   transition: height 0.25s var(--ppui-ease);
 }
 
-/* ---- A story's own page: bigger body text; newsletter font tags no longer shrink it ---- */
-
-:root.ppui-route-article .detail-article {
-  border-radius: var(--ppui-radius-card);
-  box-shadow: var(--ppui-bevel) !important;
-}
-
-:root.ppui-route-article .detail-article :is(p, div, td, li, span) {
-  font-size: 17px !important;
-  line-height: 1.75 !important;
-}
-
-:root.ppui-route-article .detail-article font {
-  font-size: inherit !important;
-}
-
-:root.ppui-route-article .detail-article table {
-  max-width: 100% !important;
-}
-
-/* The portal sometimes sends a story page with nothing in it (content.js adds this card). */
-.ppui-article-empty {
-  padding: 40px 28px;
-  text-align: center;
-  color: var(--ppui-text);
-}
-
-.ppui-article-empty h1 {
-  margin: 0 0 8px;
-}
-
-.ppui-article-empty p {
-  margin: 0 0 20px !important;
-  color: var(--ppui-muted) !important;
-}
-
-/* Beats the story page's own link colour (accent), which would hide the label on the button. */
-:root.ppui-route-article .detail-article .ppui-article-empty a {
-  display: inline-flex;
-  align-items: center;
-  height: 38px;
-  padding: 0 18px;
-  border-radius: 999px;
-  background: var(--ppui-accent);
-  color: #fff !important;
-  font-size: 14px !important;
-  font-weight: 650;
-  text-decoration: none !important;
-}
-
 @media (max-width: 640px) {
   :root.ppui-native body .app-container {
     padding: 0 16px !important;
@@ -5727,7 +5146,6 @@ html body .app-container :where(h1, h2, h3, h4) {
     animation: ppui-unveil 0.9s var(--ppui-ease) 0.1s both;
   }
 
-  .ppui-badge,
   .ppui-count {
     animation: ppui-boing 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.7s both;
   }
@@ -5783,7 +5201,6 @@ html body .app-container :where(h1, h2, h3, h4) {
   }
 
   .ppui-more,
-  .ppui-badge,
   .ppui-later-toggle,
   .ppui-app,
   .ppui-menu-item,
@@ -5791,7 +5208,6 @@ html body .app-container :where(h1, h2, h3, h4) {
     transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s var(--ppui-ease);
   }
   .ppui-more:active,
-  .ppui-badge:active,
   .ppui-app:active,
   .ppui-menu-item:active,
   .ppui-story-link:active {
@@ -5955,15 +5371,23 @@ html body .app-container :where(h1, h2, h3, h4) {
 }
 
 /* ---------- A news story's own portal page (.detail-article) ----------
-   Stories are newsletter-style tables with white bgcolor and inline black text. Shown as one card,
-   centred; in dark mode the white tables and inline colours give way so the text stays readable. */
+   A story is written as a newsletter: 640px tables with their own text sizes, weights, colours and
+   pictures. It is shown the way it was written, on one centred card, in the portal's typeface and a
+   little larger so it reads like the pages around it. Only what can't work here is changed: the fixed
+   width, and in dark mode the white tables and black text. */
 html .detail-article {
   max-width: 760px;
   margin: 24px auto 64px;
   overflow: hidden;
   border: 1px solid var(--ppui-hairline);
-  border-radius: var(--ppui-radius-row);
+  border-radius: var(--ppui-radius-card);
   background: var(--ppui-surface);
+  box-shadow: var(--ppui-bevel) !important;
+}
+
+/* The newsletter, scaled as one piece so its own proportions hold. */
+html .detail-article > table {
+  zoom: 1.15;
 }
 
 html .detail-article table.main,
@@ -5972,25 +5396,72 @@ html .detail-article table.main-background {
   max-width: 100% !important;
 }
 
-html .detail-article h1 {
+html .detail-article table,
+html .detail-article img {
+  max-width: 100% !important;
+}
+
+html .detail-article :is(h1, h2, h3, h4, p, div, td, th, li, span, a, strong, em, font) {
+  font-family: var(--ppui-font) !important;
+}
+
+/* The story's title is the page's heading, so it is set like the page titles elsewhere (display face,
+   italic). Its colour stays the school's. 28px is 32px after the scaling above. */
+html .detail-article h1,
+html .detail-article h1 :is(span, strong, b, em, a, font) {
   font-family: var(--ppui-display) !important;
   font-style: italic !important;
-  font-size: clamp(28px, 3.6vw, 36px) !important;
   font-weight: 700 !important;
   line-height: 1.15 !important;
+  letter-spacing: -0.01em;
 }
 
-html .detail-article img {
-  display: block;
-  margin: 0 auto;
-  max-width: 100% !important;
-  height: auto !important;
-  border-radius: 8px;
+html .detail-article table h1 {
+  font-size: 28px !important;
+  text-wrap: balance;
 }
 
-html .detail-article :is(p, div, td, li, span) {
-  font-size: 16px !important;
-  line-height: 1.7 !important;
+/* The way back, above the story (content.js, buildStoryPage). */
+.ppui-story-nav {
+  max-width: 760px;
+  margin: 24px auto 12px;
+}
+
+html .ppui-story-nav + .detail-article {
+  margin-top: 0;
+}
+
+html .app-container a.ppui-story-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 16px 0 10px;
+  border: 1px solid var(--ppui-hairline);
+  border-radius: 999px;
+  background: var(--ppui-surface);
+  color: var(--ppui-text) !important;
+  font-family: var(--ppui-font);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1;
+  text-decoration: none !important;
+  transition: background-color 0.15s ease;
+}
+
+html .app-container a.ppui-story-back:hover {
+  background: var(--ppui-accent-soft);
+}
+
+html .app-container a.ppui-story-back:focus-visible {
+  outline: 2px solid var(--ppui-accent);
+  outline-offset: 2px;
+}
+
+.ppui-story-back .ppui-icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
 }
 
 :root[data-ppui-theme="dark"] .detail-article :is(table, tbody, tr, td, div, p, span, font, center) {
@@ -6007,6 +5478,69 @@ html .detail-article :is(p, div, td, li, span) {
 :root[data-ppui-theme="dark"] .detail-article a,
 :root[data-ppui-theme="dark"] .detail-article a * {
   color: var(--ppui-accent) !important;
+}
+
+/* A story with no body text: the portal's page is blank, so content.js (fillEmptyStory) shows the
+   story as the news list gave it, or, for a story it never listed, a short note. */
+.ppui-article-empty {
+  padding: 40px 28px;
+  text-align: center;
+  color: var(--ppui-text);
+}
+
+.ppui-article-empty.ppui-story-own {
+  padding: 30px 36px 34px;
+  text-align: left;
+}
+
+html .detail-article .ppui-article-empty h1 {
+  margin: 0 0 10px !important;
+  font-size: 32px !important;
+  color: var(--ppui-accent) !important;
+  text-wrap: balance;
+}
+
+html .detail-article .ppui-article-empty p {
+  margin: 0 0 20px !important;
+  color: var(--ppui-muted) !important;
+}
+
+html .detail-article .ppui-story-own .ppui-story-date {
+  font-size: 14px !important;
+  font-weight: 550;
+}
+
+.ppui-story-picture {
+  display: block;
+  max-height: 440px;
+  margin: 0 0 20px;
+  border-radius: 12px;
+}
+
+html .detail-article .ppui-story-text {
+  margin: 0 0 26px;
+}
+
+html .detail-article .ppui-story-text :is(p, li, blockquote) {
+  margin: 0 0 12px !important;
+  font-size: 16px !important;
+  line-height: 1.65 !important;
+  color: var(--ppui-text) !important;
+}
+
+/* A story we know nothing of: the way to News, as a button (beats the story page's own link colour,
+   which would hide its label). */
+html .detail-article .ppui-article-empty a.ppui-story-news {
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: var(--ppui-accent);
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 650;
+  text-decoration: none !important;
 }
 
 /* Other portal pages built the same way (white bgcolor tables) stop glaring in dark mode too. */
@@ -6579,7 +6113,6 @@ html .detail-email .email-body {
 :root[data-ppui-theme="dark"] .detail-email .email-body a {
   color: var(--ppui-accent) !important;
 }
-
 
 /* ---------- Customise panel ---------- */
 /* .ppui-popover sets a tight 6px padding further down; this panel needs room to breathe. */
@@ -7491,18 +7024,12 @@ html.ppui-home .component-my-events-student,
 .ppui-story-action,
 .ppui-chip,
 .ppui-filter,
-.ppui-room-more,
 .ppui-cal-notebook,
 .ppui-room-sort-button,
 .ppui-ov-switch,
 .ppui-reader-button {
   background: var(--ppui-surface);
   box-shadow: var(--ppui-bevel-btn);
-}
-
-:where(:root[data-ppui-theme="dark"]) :is(.ppui-head-button, .ppui-story-action, .ppui-chip, .ppui-filter, .ppui-room-more,
-  .ppui-cal-notebook, .ppui-room-sort-button, .ppui-reader-button) {
-  background: var(--ppui-raised);
 }
 
 .ppui-reader-button {
@@ -7515,11 +7042,6 @@ html.ppui-home .component-my-events-student,
     inset 0 1px 0 rgba(255, 255, 255, 0.3),
     inset 0 -2px 0 rgba(0, 0, 0, 0.16),
     0 2px 6px -2px color-mix(in srgb, var(--ppui-accent) 60%, transparent);
-}
-
-:is(.ppui-head-button, .ppui-story-action, .ppui-chip, .ppui-filter, .ppui-room-more, .ppui-cal-notebook,
-  .ppui-room-sort-button, .ppui-reader-button, .ppui-events-open):active {
-  box-shadow: var(--ppui-bevel-press);
 }
 
 /* Selected items in segmented controls rise out of the track; the track sinks in. */

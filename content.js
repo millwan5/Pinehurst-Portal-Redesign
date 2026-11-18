@@ -3,6 +3,42 @@
 // Runs only on the signed-in student's own portal and reads only same-origin pages.
 
 (() => {
+  // Timing marks, named ppui:* (DevTools > Performance > Timings), each set once. With localStorage
+  // "ppui-perf" set to "1" they are printed once the page has settled, along with what the banner and
+  // the day bar cost per second (keep the tab in front and the header in view while it counts).
+  const marked = new Set();
+  function mark(name) {
+    if (marked.has(name)) return;
+    marked.add(name);
+    performance.mark("ppui:" + name);
+  }
+  mark("content");
+  const perfOn = stored("ppui-perf") === "1";
+  const PERF_SETTLE_MS = 2500;
+  const PERF_COUNT_MS = 5000;
+  function reportPerf() {
+    if (!perfOn) return;
+    setTimeout(() => {
+      // banner.js and the day bar add their frame times here while it exists.
+      const cost = (window.__ppuiCost = {});
+      setTimeout(() => {
+        window.__ppuiCost = null;
+        const nav = performance.getEntriesByType("navigation")[0];
+        const rows = nav ? [["domContentLoaded", nav.domContentLoadedEventEnd], ["load", nav.loadEventEnd]] : [];
+        for (const m of performance.getEntriesByType("mark")) {
+          if (m.name.startsWith("ppui:")) rows.push([m.name.slice(5), m.startTime]);
+        }
+        rows.sort((a, b) => a[1] - b[1]);
+        const seconds = PERF_COUNT_MS / 1000;
+        for (const key of ["banner", "liquid"]) {
+          if (!cost[key + "Frames"]) continue;
+          rows.push([key + " ms per second", cost[key] / seconds], [key + " frames per second", cost[key + "Frames"] / seconds]);
+        }
+        console.table(Object.fromEntries(rows.map(([k, v]) => [k, Math.round(v * 10) / 10])));
+      }, PERF_COUNT_MS);
+    }, PERF_SETTLE_MS);
+  }
+
   // Everything that depends on the portal's markup lives here.
   const SEL = {
     app: ".app-container",
@@ -300,24 +336,28 @@
     const k = compact ? 0.5 : 1;
     const scene = el("div", "ppui-scene");
     scene.setAttribute("aria-hidden", "true");
-    const stars = el("div", "ppui-stars");
-    const orb = el("div", "ppui-orb");
-    // A faint cloud photograph drifting slowly across, and film grain on the sky (the forest stays flat).
-    const clouds = el("div", "ppui-clouds");
-    clouds.appendChild(el("span", "ppui-cloud-photo"));
-    scene.append(stars, orb, clouds, el("div", "ppui-grain"));
-    const ns = "http://www.w3.org/2000/svg";
-    const svg = document.createElementNS(ns, "svg");
-    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
-    svg.setAttribute("preserveAspectRatio", "xMidYMax slice");
-    svg.setAttribute("class", "ppui-forest");
-    for (const r of RIDGES) {
-      const p = document.createElementNS(ns, "path");
-      p.setAttribute("class", "ppui-ridge " + r.cls);
-      p.setAttribute("d", ridgePath(seeded(r.seed), { base: r.base * k, dip: r.dip * k, gap: r.gap * k, height: r.height * k }, W, H));
-      svg.appendChild(p);
+    // The scene's own stars, sun, clouds, grain and pines only show when banner.js is missing (its canvas
+    // takes their place and styles.css hides them), so with a banner they are not built at all.
+    if (!window.PPUIBanner) {
+      const stars = el("div", "ppui-stars");
+      const orb = el("div", "ppui-orb");
+      // A faint cloud photograph drifting slowly across, and film grain on the sky (the forest stays flat).
+      const clouds = el("div", "ppui-clouds");
+      clouds.appendChild(el("span", "ppui-cloud-photo"));
+      scene.append(stars, orb, clouds, el("div", "ppui-grain"));
+      const ns = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(ns, "svg");
+      svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+      svg.setAttribute("preserveAspectRatio", "xMidYMax slice");
+      svg.setAttribute("class", "ppui-forest");
+      for (const r of RIDGES) {
+        const p = document.createElementNS(ns, "path");
+        p.setAttribute("class", "ppui-ridge " + r.cls);
+        p.setAttribute("d", ridgePath(seeded(r.seed), { base: r.base * k, dip: r.dip * k, gap: r.gap * k, height: r.height * k }, W, H));
+        svg.appendChild(p);
+      }
+      scene.appendChild(svg);
     }
-    scene.appendChild(svg);
 
     // 6 am to 7 pm the sun rides an arc across the header; 7 pm to 6 am the moon does.
     const update = () => {
@@ -344,9 +384,64 @@
     return node;
   }
 
+  // A <button type="button"> (left as the default type, it would submit any form it sat in).
+  function button(className, text) {
+    const b = el("button", className, text);
+    b.type = "button";
+    return b;
+  }
+
   function clean(text) {
     return (text || "").replace(/\s+/g, " ").trim();
   }
+
+  // Things kept in this browser (localStorage), as text or as JSON. Storage can be blocked or full:
+  // then nothing is read and nothing is kept, and the page carries on.
+  function stored(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function store(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {}
+  }
+
+  function readJson(key, fallback) {
+    try {
+      const v = JSON.parse(stored(key) || "null");
+      return v === null ? fallback : v;
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  function writeJson(key, value) {
+    store(key, JSON.stringify(value));
+  }
+
+  // Dates as text. A formatter is slow to make, so each kind is made once, the first time it is used.
+  function dateFormat(options, locale = "en-AU") {
+    let format = null;
+    return (date) => {
+      if (isNaN(date)) return "Invalid Date";
+      format = format || new Intl.DateTimeFormat(locale, options);
+      return format.format(date);
+    };
+  }
+  const longDate = dateFormat({ weekday: "long", day: "numeric", month: "long" });
+  const shortDate = dateFormat({ weekday: "short", day: "numeric", month: "short" });
+  const weekdayName = dateFormat({ weekday: "long" });
+  const monthName = dateFormat({ month: "long" });
+  const monthShort = dateFormat({ month: "short" });
+  const monthYear = dateFormat({ month: "long", year: "numeric" });
+  const pillDate = dateFormat({ weekday: "short", day: "numeric" });
+  // The form the portal's news list writes its dates in ("Tue, Nov 17").
+  const portalDate = dateFormat({ weekday: "short", month: "short", day: "2-digit" }, "en-US");
 
   // Only trust links that stay on this portal's own origin.
   function sameOriginHref(href) {
@@ -401,6 +496,12 @@
     a.appendChild(el("span", "ppui-sr", " (opens in new tab)"));
   }
 
+  // Run fn when the page has a quiet moment (within two seconds at most).
+  function whenIdle(fn) {
+    if (window.requestIdleCallback) requestIdleCallback(fn, { timeout: 2000 });
+    else setTimeout(fn, 1);
+  }
+
   // Run fn once `ready()` returns truthy, watching the DOM until timeoutMs; then run it anyway.
   function whenReady(ready, fn, timeoutMs) {
     if (ready()) {
@@ -421,18 +522,18 @@
     setTimeout(finish, timeoutMs);
   }
 
+  // Whether the system asks for less motion (asked many times, so the query is made once).
+  const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
+  const reducedMotion = () => motionQuery.matches;
+
   // ---- Theme (every portal page) ----
   const THEME_KEY = "ppui-theme";
   const root = document.documentElement;
 
   // Light, Dark or Auto, as chosen under Customise > Appearance. Nothing chosen yet means Light.
   function themeChoice() {
-    try {
-      const v = localStorage.getItem(THEME_KEY);
-      return v === "light" || v === "dark" || v === "auto" ? v : "light";
-    } catch (e) {
-      return "light";
-    }
+    const v = stored(THEME_KEY);
+    return v === "light" || v === "dark" || v === "auto" ? v : "light";
   }
 
   // The theme in use now: the choice, with Auto resolved against the system setting.
@@ -505,13 +606,11 @@
 
 
   function setThemeChoice(choice, from) {
-    try {
-      localStorage.setItem(THEME_KEY, choice);
-    } catch (e) {}
+    store(THEME_KEY, choice);
     const next = choice === "auto" ? systemTheme() : choice;
     if (next === root.getAttribute("data-ppui-theme")) return;
     // The new theme spreads out in a circle from what was clicked, where the browser can do it.
-    if (!document.startViewTransition || !from || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (!document.startViewTransition || !from || reducedMotion()) {
       applyTheme(next);
       return;
     }
@@ -585,12 +684,15 @@
       trigger.setAttribute("aria-expanded", String(open));
       if (open) placePopover(trigger, pop);
     });
-    addEventListener("resize", () => {
-      if (pop.matches(":popover-open")) placePopover(trigger, pop);
-    });
     document.body.appendChild(pop);
     return pop;
   }
+  // One listener for them all: an open popover stays by its button when the window changes size.
+  addEventListener("resize", () => {
+    for (const [pop, trigger] of popovers) {
+      if (pop.matches(":popover-open")) placePopover(trigger, pop);
+    }
+  });
 
   // Up/Down arrows move between the focusable items inside a popover.
   function arrowNav(pop, selector) {
@@ -629,18 +731,8 @@
   }
 
   function cachedApps() {
-    try {
-      const list = JSON.parse(localStorage.getItem(APPS_KEY) || "[]");
-      return Array.isArray(list) ? list : [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  function saveApps(items) {
-    try {
-      localStorage.setItem(APPS_KEY, JSON.stringify(items));
-    } catch (e) {}
+    const list = readJson(APPS_KEY, []);
+    return Array.isArray(list) ? list : [];
   }
 
   // Live links first, then the copy saved from the home page; one entry per label.
@@ -709,8 +801,7 @@
   }
 
   function buildApps() {
-    const btn = el("button", "ppui-bar-button ppui-apps-button");
-    btn.type = "button";
+    const btn = button("ppui-bar-button ppui-apps-button");
     btn.title = "Apps and links";
     btn.setAttribute("aria-label", "Apps and links");
     btn.appendChild(icon("grid"));
@@ -811,7 +902,7 @@
   }
 
   function todayLabel() {
-    return new Date().toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" });
+    return longDate(new Date());
   }
 
   function buildMessages() {
@@ -831,40 +922,24 @@
   const BANNER_KEY = "ppui-banner-style";
   const BANNER_THEME_KEY = "ppui-banner-palette";
 
-  function savedBannerTheme() {
-    try {
-      const v = localStorage.getItem(BANNER_THEME_KEY);
-      return window.PPUIBanner && window.PPUIBanner.themes.some(([id]) => id === v) ? v : "blue";
-    } catch (e) {
-      return "blue";
-    }
+  // The saved choice if banner.js still offers it, else the first-use one.
+  function savedChoice(key, offered, fallback) {
+    const v = stored(key);
+    return window.PPUIBanner && window.PPUIBanner[offered].some(([id]) => id === v) ? v : fallback;
   }
-
-  function savedBannerStyle() {
-    try {
-      const v = localStorage.getItem(BANNER_KEY);
-      return window.PPUIBanner && window.PPUIBanner.styles.some(([id]) => id === v) ? v : "mesh";
-    } catch (e) {
-      return "mesh";
-    }
-  }
+  const savedBannerTheme = () => savedChoice(BANNER_THEME_KEY, "themes", "blue");
+  const savedBannerStyle = () => savedChoice(BANNER_KEY, "styles", "mesh");
 
   // ---- Customise: banner style, colour theme and the floating bar's look, in one panel ----
 
   function buildCustomise(banner) {
-    const btn = el("button", "ppui-bar-button ppui-customise-button");
-    btn.type = "button";
+    const btn = button("ppui-bar-button ppui-customise-button");
     btn.title = "Customise";
     btn.setAttribute("aria-label", "Customise");
     btn.appendChild(icon("palette"));
     const panel = el("div", "ppui-customise");
     panel.setAttribute("role", "dialog");
     panel.setAttribute("aria-label", "Customise");
-    const save = (key, value) => {
-      try {
-        localStorage.setItem(key, value);
-      } catch (e) {}
-    };
     const section = (title, note) => {
       const head = el("div", "ppui-cz-head");
       const h = el("h3", "ppui-cz-title", title);
@@ -879,8 +954,7 @@
       section("Appearance");
       const seg = el("div", "ppui-cz-seg");
       for (const [id, label] of [["light", "Light"], ["dark", "Dark"], ["auto", "Auto"]]) {
-        const o = el("button", "ppui-cz-seg-item", label);
-        o.type = "button";
+        const o = button("ppui-cz-seg-item", label);
         o.setAttribute("aria-pressed", String(id === mode));
         o.addEventListener("click", () => {
           setThemeChoice(id, o);
@@ -893,14 +967,13 @@
       section("Banner");
       const tiles = el("div", "ppui-cz-tiles");
       for (const [id, label] of window.PPUIBanner.styles) {
-        const t = el("button", "ppui-cz-tile");
-        t.type = "button";
+        const t = button("ppui-cz-tile");
         t.setAttribute("aria-pressed", String(id === style));
         const c = el("canvas", "ppui-cz-preview");
         c.setAttribute("aria-hidden", "true");
         t.append(c, el("span", null, label));
         t.addEventListener("click", () => {
-          save(BANNER_KEY, id);
+          store(BANNER_KEY, id);
           banner.setStyle(id);
           fill();
         });
@@ -913,14 +986,13 @@
       section("Colour", themeName);
       const swatches = el("div", "ppui-cz-swatches");
       for (const [id, label, colour] of window.PPUIBanner.themes) {
-        const sw = el("button", "ppui-cz-swatch");
-        sw.type = "button";
+        const sw = button("ppui-cz-swatch");
         sw.title = label;
         sw.setAttribute("aria-label", label);
         sw.setAttribute("aria-pressed", String(id === theme));
         sw.style.setProperty("--sw", colour);
         sw.addEventListener("click", () => {
-          save(BANNER_THEME_KEY, id);
+          store(BANNER_THEME_KEY, id);
           banner.setTheme(id);
           fill();
         });
@@ -939,8 +1011,7 @@
   function buildAccount() {
     const initials = document.querySelector(SEL.navAccount);
     if (!initials) return null;
-    const a = el("button", "ppui-bar-button ppui-avatar", clean(initials.textContent).slice(0, 3));
-    a.type = "button";
+    const a = button("ppui-bar-button ppui-avatar", clean(initials.textContent).slice(0, 3));
     a.title = "Account";
     a.setAttribute("aria-label", "Account");
 
@@ -981,8 +1052,7 @@
     const navPill = el("nav", "ppui-pill ppui-nav-pill");
     navPill.hidden = home;
     navPill.setAttribute("aria-label", "Go back or home");
-    const back = el("button", "ppui-bar-button ppui-back");
-    back.type = "button";
+    const back = button("ppui-bar-button ppui-back");
     back.title = "Back";
     back.setAttribute("aria-label", "Back");
     back.appendChild(icon("chevronLeft"));
@@ -1051,6 +1121,8 @@
   // Lift the early.js cover once our UI is in place.
   function reveal() {
     root.classList.remove("ppui-booting");
+    if (!marked.has("reveal")) reportPerf();
+    mark("reveal");
   }
   // Home waits for the page column (the hero goes inside it) and the top bar. Every other page gets
   // its header, with Back and Home, straight away, even pages the portal leaves bare.
@@ -1058,6 +1130,7 @@
     () => !HOME_PATH.test(location.pathname) || (document.querySelector(SEL.navAccount) && document.querySelector(SEL.app)),
     () => {
       if (!document.querySelector(".ppui-header")) buildHeader();
+      mark("header");
       if (HOME_PATH.test(location.pathname)) showUnread();
       else reveal();
     },
@@ -1179,11 +1252,11 @@
     const days = Math.round((new Date().setHours(0, 0, 0, 0) - new Date(d).setHours(0, 0, 0, 0)) / 864e5);
     // "Today", "Yesterday", otherwise the date itself ("Mon 13 Oct"), never a bare weekday.
     const ago = days === 0 ? "Today" : days === 1 ? "Yesterday" :
-      d.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" }).replace(",", "") +
+      shortDate(d).replace(",", "") +
       (d.getFullYear() !== new Date().getFullYear() ? " " + d.getFullYear() : "");
     return {
       day: String(d.getDate()),
-      month: d.toLocaleDateString("en-AU", { month: "short" }),
+      month: monthShort(d),
       ago,
     };
   }
@@ -1286,6 +1359,7 @@
   // The story's picture in a mounted frame. Until (or unless) there is one, a drawn cover shows:
   // a stand of crest pines on blue with the story's date.
   // With `zoomable`, clicking the picture (once there is one) opens it full size.
+  let coverPines = "";
   function photoFrame(item, zoomable) {
     const frame = el("span", "ppui-photo" + (zoomable ? " is-zoomable" : ""));
     frame.setAttribute("aria-hidden", "true");
@@ -1304,7 +1378,8 @@
       });
     }
     const cover = el("span", "ppui-photo-cover");
-    cover.appendChild(svgIcon("ppui-cover-pines", [["path", { d: ridgePath(seeded(11), { base: 20, dip: 6, gap: 46, height: 120 }, 400) }]], "0 60 400 180"));
+    coverPines = coverPines || ridgePath(seeded(11), { base: 20, dip: 6, gap: 46, height: 120 }, 400);
+    cover.appendChild(svgIcon("ppui-cover-pines", [["path", { d: coverPines }]], "0 60 400 180"));
     if (item.date.day) cover.appendChild(el("span", "ppui-cover-date", item.date.day + " " + item.date.month));
     frame.appendChild(cover);
     if (item.image) addPicture(frame, item.image);
@@ -1336,7 +1411,7 @@
       if (from && from.isConnected) from.closest(".ppui-photo")?.focus({ preventScroll: true });
     };
     const visible = from && from.isConnected && from.getBoundingClientRect().width > 0;
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches || !visible) return finish();
+    if (reducedMotion() || !visible) return finish();
     dialog.classList.add("is-closing");
     img.animate([{ transform: "none" }, { transform: overThumbnail(img, from) }],
       { duration: 340, easing: "cubic-bezier(0.32, 0.72, 0, 1)", fill: "forwards" }).finished.then(finish, finish);
@@ -1348,8 +1423,7 @@
       dialog.setAttribute("aria-label", "Picture");
       const img = el("img", "ppui-viewer-image");
       img.alt = "";
-      const close = el("button", "ppui-viewer-close");
-      close.type = "button";
+      const close = button("ppui-viewer-close");
       close.setAttribute("aria-label", "Close picture");
       close.title = "Close";
       close.appendChild(icon("close"));
@@ -1373,7 +1447,7 @@
     dialog.classList.remove("is-closing");
     dialog.showModal();
     dialog.querySelector(".ppui-viewer-close").focus({ preventScroll: true });
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (reducedMotion()) return;
     // The same file as the thumbnail, so it is already loaded: grow it out of the thumbnail.
     (img.decode ? img.decode() : Promise.resolve()).catch(() => {}).then(() => {
       if (!dialog.open) return;
@@ -1403,6 +1477,10 @@
     if (item.full) return item.full;
     const listed = { body: item.body, image: null };
     const samePage = (a, b) => new URL(a).pathname.replace(/\/$/, "") === new URL(b).pathname.replace(/\/$/, "");
+    // A page the portal serves blank (a story with no body text): the list's copy is the whole story.
+    const whole = { body: item.body, image: null, blank: true };
+    if (item.noPage) return (item.full = Promise.resolve(whole));
+    // No page of its own, or the news list itself: the list's copy is all there is.
     if (!item.href || samePage(item.href, reader.newsHref)) return (item.full = Promise.resolve(listed));
     let last = -1;
     let steadySince = 0;
@@ -1431,7 +1509,12 @@
       node = node || [...doc.querySelectorAll(STORY_PAGE)]
         .find((n) => clean(n.textContent).length > 120 && norm(n.textContent).includes(want));
       // A page that has finished loading and still shows nothing of the story won't: stop waiting.
-      if (!node) return doc.readyState === "complete" && Date.now() - started > STORY_GIVE_UP_MS ? { none: true } : null;
+      if (!node) {
+        if (doc.readyState !== "complete" || Date.now() - started <= STORY_GIVE_UP_MS) return null;
+        // Blank means the story's page is there with nothing on it but, at most, the title again.
+        const page = doc.querySelector(".detail-article");
+        return { none: true, blank: !!page && !page.querySelector("img") && !norm(page.textContent).replace(want, "").trim() };
+      }
       const length = clean(node.textContent).length;
       if (length !== last) {
         last = length;
@@ -1445,7 +1528,10 @@
       // A page that never settles (a ticking clock, say) still gives whatever it had at the end.
       .catch(() => (lastNode ? take(lastNode) : { none: true }))
       .then((found) => {
-        if (found.none) return listed;
+        if (found.none) {
+          if (found.blank) item.noPage = true;
+          return found.blank ? whole : listed;
+        }
         if (found.image) setPicture(item, found.image);
         // Template filler ("This is a text box.") or nearly nothing is not the story.
         const text = clean(found.body.textContent);
@@ -1455,6 +1541,35 @@
       })
       .catch(() => listed);
     return item.full;
+  }
+
+  // ---- A story's own portal page ----
+  // A story with no body text (a headline, perhaps a line of summary and a picture) still has a page on
+  // the portal, and the portal serves that page blank. So each story we link to is remembered as the
+  // news list gave it, under its page's address, and shown on that page when the portal sends nothing.
+  const STORY_PAGES_KEY = "ppui-story-pages";
+  const STORY_PAGES_MAX = 40;
+  const STORY_BODY_MAX = 6000;
+
+  function rememberStories(items) {
+    const saved = readJson(STORY_PAGES_KEY, {});
+    const pages = saved && typeof saved === "object" && !Array.isArray(saved) ? saved : {};
+    let changed = false;
+    for (const item of items) {
+      if (!item.href) continue;
+      const address = new URL(item.href).pathname;
+      const body = item.body.innerHTML;
+      const story = { title: item.title, dateText: item.dateText, summary: item.summary, image: item.image, body: body.length <= STORY_BODY_MAX ? body : "" };
+      if (JSON.stringify(pages[address]) === JSON.stringify(story)) continue;
+      // Taken out and put back, so the newest are last and the oldest are the ones dropped.
+      delete pages[address];
+      pages[address] = story;
+      changed = true;
+    }
+    if (!changed) return;
+    const addresses = Object.keys(pages);
+    addresses.slice(0, Math.max(0, addresses.length - STORY_PAGES_MAX)).forEach((address) => delete pages[address]);
+    writeJson(STORY_PAGES_KEY, pages);
   }
 
   function readerPage(item, direction) {
@@ -1473,9 +1588,11 @@
     title.id = "ppui-reader-title";
     const body = el("div", "ppui-reader-body");
     page.append(meta, title, body);
-    // The portal's own page for the story, always at the end.
+    // The portal's own page for the story, at the end (taken away again if that page turns out blank).
+    let source = null;
     if (item.href) {
-      const source = el("a", "ppui-reader-source");
+      rememberStories([item]);
+      source = el("a", "ppui-reader-source");
       source.href = item.href;
       source.append(el("span", null, "Open full story"), icon("external"));
       page.appendChild(source);
@@ -1483,11 +1600,16 @@
 
     const show = (story) => {
       body.replaceChildren(...story.body.cloneNode(true).childNodes);
-      // Only the news list's preview came through: say so (the full page is linked below).
-      if (item.href && story.body === item.body && clean(item.body.textContent).length < 400) {
+      if (story.blank) {
+        // What is here is the whole story, so there is no fuller page to offer.
+        if (source) source.remove();
+      } else if (item.href && story.body === item.body && clean(item.body.textContent).length < 400) {
+        // Only the news list's preview came through: say so (the full page is linked below).
         body.appendChild(el("p", "ppui-reader-note", "This is the preview from the news list. The full story is on the portal's page."));
       }
-      if (!clean(body.textContent)) body.appendChild(el("p", "ppui-reader-note", "This story has no text in the news list."));
+      if (!clean(body.textContent)) {
+        body.appendChild(el("p", "ppui-reader-note", story.blank ? "This story is a headline only." : "This story has no text in the news list."));
+      }
     };
 
     // Show the list's copy at once, then the full story when it arrives (if the reader is still here).
@@ -1530,33 +1652,20 @@
     pin.setAttribute("aria-pressed", String(pinned));
     pin.title = pinned ? "Unpin" : "Pin to top";
     pin.setAttribute("aria-label", pin.title);
-    // Start fetching the next story so flicking forward feels instant.
-    if (!single) fullStory(stories[(reader.index + 1) % stories.length]);
+    // Fetch the next story ahead so flicking forward feels instant: once this one has arrived and the
+    // page is idle, so two hidden pages never load on top of the panel sliding in.
+    if (!single) {
+      const next = stories[(reader.index + 1) % stories.length];
+      fullStory(item).then(() => whenIdle(() => {
+        if (dialog.open && reader.stories[reader.index] === item) fullStory(next);
+      }));
+    }
   }
 
-  function closeReader() {
-    const { dialog } = reader;
-    if (!dialog.open || dialog.classList.contains("is-closing")) return;
-    const finish = () => {
-      dialog.classList.remove("is-closing");
-      dialog.close();
-      root.classList.remove("ppui-reading");
-    };
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return finish();
-    dialog.classList.add("is-closing");
-    // Wait for the panel's own exit (not a page's), with a timer in case it never fires.
-    const done = (e) => {
-      if (e && e.target !== dialog) return;
-      dialog.removeEventListener("animationend", done);
-      if (dialog.classList.contains("is-closing")) finish();
-    };
-    dialog.addEventListener("animationend", done);
-    setTimeout(done, 450);
-  }
+  const closeReader = () => closePanel(reader.dialog);
 
   function readerButton(className, label, iconName, onClick) {
-    const b = el("button", "ppui-reader-button " + className);
-    b.type = "button";
+    const b = button("ppui-reader-button " + className);
     b.setAttribute("aria-label", label);
     b.title = label;
     b.appendChild(icon(iconName));
@@ -1641,23 +1750,18 @@
   const NEWS_PREFS_KEY = "ppui-news";
   // The News page's address, remembered so early.js can hide the portal's list before it paints.
   const NEWS_PATH_KEY = "ppui-news-path";
-  const storyKey = (item) => item.title + "|" + item.dateText;
+  // A story's name in the saved lists (its title and date don't change, so it is worked out once).
+  const storyKey = (item) => item.storyKey || (item.storyKey = item.title + "|" + item.dateText);
 
   // Earlier versions called the trash "hidden"; read that too so nothing comes back unasked.
   function loadNewsPrefs() {
-    try {
-      const p = JSON.parse(localStorage.getItem(NEWS_PREFS_KEY) || "{}");
-      const list = (v) => (Array.isArray(v) ? v : []);
-      return { starred: [...new Set(list(p.starred))], pinned: [...new Set(list(p.pinned))], trash: [...new Set(list(p.trash).concat(list(p.hidden)))] };
-    } catch (e) {
-      return { starred: [], pinned: [], trash: [] };
-    }
+    const p = readJson(NEWS_PREFS_KEY, {});
+    const list = (v) => (Array.isArray(v) ? v : []);
+    return { starred: [...new Set(list(p.starred))], pinned: [...new Set(list(p.pinned))], trash: [...new Set(list(p.trash).concat(list(p.hidden)))] };
   }
 
   function saveNewsPrefs(prefs) {
-    try {
-      localStorage.setItem(NEWS_PREFS_KEY, JSON.stringify({ starred: prefs.starred.slice(-300), pinned: prefs.pinned.slice(-50), trash: prefs.trash.slice(-200) }));
-    } catch (e) {}
+    writeJson(NEWS_PREFS_KEY, { starred: prefs.starred.slice(-300), pinned: prefs.pinned.slice(-50), trash: prefs.trash.slice(-200) });
   }
 
   // A short message at the bottom of the window, with one action (Undo).
@@ -1673,8 +1777,7 @@
     }
     box.replaceChildren(el("span", "ppui-toast-text", text));
     if (actionLabel) {
-      const b = el("button", "ppui-toast-action", actionLabel);
-      b.type = "button";
+      const b = button("ppui-toast-action", actionLabel);
       b.addEventListener("click", () => {
         box.classList.remove("is-shown");
         onAction();
@@ -1689,8 +1792,7 @@
   }
 
   function storyButton(className, label, iconName, onClick) {
-    const b = el("button", "ppui-story-action " + className);
-    b.type = "button";
+    const b = button("ppui-story-action " + className);
     b.setAttribute("aria-label", label);
     b.title = label;
     b.appendChild(icon(iconName));
@@ -1712,17 +1814,26 @@
   // `render` runs after every change. Prefs are re-read first, so a change made in another tab isn't lost.
   function newsActions(getItems, render) {
     let prefs = loadNewsPrefs();
+    // The same lists as sets: every story is checked against them on each draw.
+    let trashed, starred, pinned;
+    const index = () => {
+      trashed = new Set(prefs.trash);
+      starred = new Set(prefs.starred);
+      pinned = new Set(prefs.pinned);
+    };
+    index();
     const change = (fn) => {
       prefs = loadNewsPrefs();
       fn();
+      index();
       saveNewsPrefs(prefs);
       render();
     };
     const actions = {
       view: "all",
-      isTrashed: (item) => prefs.trash.includes(storyKey(item)),
-      isStarred: (item) => prefs.starred.includes(storyKey(item)),
-      isPinned: (item) => prefs.pinned.includes(storyKey(item)),
+      isTrashed: (item) => trashed.has(storyKey(item)),
+      isStarred: (item) => starred.has(storyKey(item)),
+      isPinned: (item) => pinned.has(storyKey(item)),
       toggleStar(item) {
         const key = storyKey(item);
         change(() => {
@@ -1782,20 +1893,14 @@
   const NEWS_OPENED_KEY = "ppui-news-opened";
 
   function readKeys(key) {
-    try {
-      const v = JSON.parse(localStorage.getItem(key) || "null");
-      return Array.isArray(v) ? new Set(v) : null;
-    } catch (e) {
-      return null;
-    }
+    const v = readJson(key, null);
+    return Array.isArray(v) ? new Set(v) : null;
   }
 
   function markOpened(item) {
-    try {
-      const keys = [...(readKeys(NEWS_OPENED_KEY) || [])].filter((k) => k !== storyKey(item));
-      keys.push(storyKey(item));
-      localStorage.setItem(NEWS_OPENED_KEY, JSON.stringify(keys.slice(-300)));
-    } catch (e) {}
+    const keys = [...(readKeys(NEWS_OPENED_KEY) || [])].filter((k) => k !== storyKey(item));
+    keys.push(storyKey(item));
+    writeJson(NEWS_OPENED_KEY, keys.slice(-300));
   }
 
   // Midnight `back` days ago, and how many days ago a story's day was.
@@ -1806,7 +1911,7 @@
     return d.getTime();
   }
   const daysBack = (time) => Math.round((newsDay(0) - time) / 864e5);
-  const fullDayLabel = (time) => new Date(time).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" }).replace(",", "");
+  const fullDayLabel = (time) => shortDate(new Date(time)).replace(",", "");
 
   // Day sections: Today, Yesterday, each day of the past week by name, then "Last week", then months.
   function newsSection(time) {
@@ -1818,7 +1923,7 @@
     if (n < 14) return { key: "lw", name: "Last week" };
     const d = new Date(time);
     const year = d.getFullYear() === new Date().getFullYear() ? "" : " " + d.getFullYear();
-    return { key: "m" + d.getFullYear() + "-" + d.getMonth(), name: d.toLocaleDateString("en-AU", { month: "long" }) + year };
+    return { key: "m" + d.getFullYear() + "-" + d.getMonth(), name: monthName(d) + year };
   }
 
   // Text with the search words marked, built as nodes (story text is never parsed as HTML).
@@ -1869,7 +1974,9 @@
         let text = html ? clean(new DOMParser().parseFromString(html, "text/html").body.textContent) : "";
         if (title && text.toLowerCase().startsWith(title.toLowerCase())) text = text.slice(title.length).replace(/^[\s:.\-–—]+/, "");
         text = text.slice(0, 600);
-        out.push({ t: title, d: a.publish_date || "", dt: a.the_date || "", pk: a.article_pk || "", img: a.thumbnail || "", s: text });
+        // "preview" is the story's body; with none, the story's own page is blank (np: no page).
+        const np = typeof a.preview === "string" && a.preview.trim() ? 0 : 1;
+        out.push({ t: title, d: a.publish_date || "", dt: a.the_date || "", pk: a.article_pk || "", img: a.thumbnail || "", s: text, np });
       }
     }
     return out;
@@ -1881,7 +1988,7 @@
     const when = new Date(a.d);
     const ok = !isNaN(when);
     // The same text the portal's list shows ("Tue, Nov 17"), so pins and read marks match.
-    const dateText = ok ? when.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "2-digit" }) : String(a.dt || "");
+    const dateText = ok ? portalDate(when) : String(a.dt || "");
     const summary = String(a.s || "");
     const body = el("div");
     if (summary) body.appendChild(el("p", null, summary));
@@ -1895,6 +2002,7 @@
       summary: summary.slice(0, 220),
       searchText: summary,
       image: absUrl(a.img),
+      noPage: a.np === 1,
       href,
       frames: [],
       body,
@@ -1909,16 +2017,15 @@
     reader.newsHref = location.href;
     const pageCount = items.length;
     const actions = newsActions(() => items, render);
-    const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     // New since your last visit: stories that weren't in the list last time. (On a first visit
     // nothing is marked, rather than everything.) Then remember this visit's stories.
     const seenBefore = readKeys(NEWS_SEEN_KEY);
-    try {
-      localStorage.setItem(NEWS_SEEN_KEY, JSON.stringify(items.map(storyKey).slice(0, 300)));
-    } catch (e) {}
+    writeJson(NEWS_SEEN_KEY, items.map(storyKey).slice(0, 300));
     const isNew = (item) => !item.older && !!seenBefore && !seenBefore.has(storyKey(item));
-    const isUnreadNew = (item) => isNew(item) && !(readKeys(NEWS_OPENED_KEY) || new Set()).has(storyKey(item));
+    // Stories opened in the reader, read from storage once per draw.
+    let opened = new Set();
+    const isUnreadNew = (item) => isNew(item) && !opened.has(storyKey(item));
 
     const room = el("section", "ppui-newsroom");
     room.setAttribute("aria-label", "School news");
@@ -1932,8 +2039,7 @@
     const indicator = el("span", "ppui-room-tab-indicator");
     indicator.setAttribute("aria-hidden", "true");
     const tabButtons = NEWS_VIEWS.map(([view, label]) => {
-      const b = el("button", "ppui-room-tab");
-      b.type = "button";
+      const b = button("ppui-room-tab");
       b.id = "ppui-tab-" + view;
       b.dataset.view = view;
       b.setAttribute("role", "tab");
@@ -1957,10 +2063,7 @@
 
     // Search and sort. Sort is remembered; pinned stories stay on top in "All stories".
     const SORT_KEY = "ppui-news-sort";
-    let sort = "newest";
-    try {
-      if (localStorage.getItem(SORT_KEY) === "oldest") sort = "oldest";
-    } catch (e) {}
+    let sort = stored(SORT_KEY) === "oldest" ? "oldest" : "newest";
     let query = "";
     // One day picked in the Sort menu (null = every day).
     let dayFilter = null;
@@ -1988,16 +2091,13 @@
     bar.appendChild(searchBox);
 
     // Sort: one menu for the order (newest or oldest first) and which day to show.
-    const sortButton = el("button", "ppui-room-sort-button");
-    sortButton.type = "button";
+    const sortButton = button("ppui-room-sort-button");
     const sortLabel = el("span", "ppui-room-sort-label");
     sortButton.append(icon("sort"), sortLabel, icon("chevronDown"));
     bar.appendChild(sortButton);
     const setSort = (key) => {
       sort = key;
-      try {
-        localStorage.setItem(SORT_KEY, key);
-      } catch (e) {}
+      store(SORT_KEY, key);
       render();
     };
     const menuHeading = (menu, text) => {
@@ -2021,7 +2121,7 @@
       let month = null;
       for (const t of [...counts.keys()].sort((a, b) => b - a)) {
         const d = new Date(t);
-        const m = d.toLocaleDateString("en-AU", { month: "long", year: "numeric" });
+        const m = monthYear(d);
         if (m !== month) {
           month = m;
           menuHeading(menu, m);
@@ -2031,7 +2131,7 @@
         menuItem(menu, [el("span", null, name), el("span", "ppui-menu-count", String(n))], dayFilter === t, () => {
           dayFilter = t;
           render();
-          if (room.getBoundingClientRect().top < 0) room.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" });
+          if (room.getBoundingClientRect().top < 0) room.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "start" });
         });
       }
     });
@@ -2047,8 +2147,7 @@
     const SEARCH_PAGE = 40;
     let searchLimit = SEARCH_PAGE;
     const moreBox = el("div", "ppui-room-older");
-    const moreButton = el("button", "ppui-room-restore-all", "Show older news");
-    moreButton.type = "button";
+    const moreButton = button("ppui-room-restore-all", "Show older news");
     moreButton.addEventListener("click", () => {
       if (words.length) searchLimit += SEARCH_PAGE;
       else olderShown += OLDER_STEP;
@@ -2154,8 +2253,7 @@
       const text = el("div", "ppui-room-text");
       const headline = el("h2", "ppui-room-headline");
       headline.id = card.id + "-title";
-      const open = el("button", "ppui-room-open-story");
-      open.type = "button";
+      const open = button("ppui-room-open-story");
       open.setAttribute("aria-haspopup", "dialog");
       const openText = el("span", "ppui-room-open-text");
       openText.appendChild(markMatches(item.title, query));
@@ -2215,14 +2313,14 @@
         const leaves = input.checked ? actions.view === "all" && !actions.isStarred(item) && !actions.isPinned(item) : actions.view === "trash";
         input.disabled = true;
         // Let the tick and the line through the headline finish before the row goes.
-        setTimeout(() => (leaves ? leave(card, apply) : apply()), reduced() ? 0 : leaves ? 620 : 420);
+        setTimeout(() => (leaves ? leave(card, apply) : apply()), reducedMotion() ? 0 : leaves ? 620 : 420);
       });
       return box;
     }
 
     // A row leaving its tab (marked read, or back from "Read") fades and folds shut first.
     function leave(card, then) {
-      if (reduced()) return then();
+      if (reducedMotion()) return then();
       card.style.height = card.offsetHeight + "px";
       void card.offsetHeight;
       card.classList.add("is-leaving");
@@ -2236,7 +2334,7 @@
       list.classList.remove("is-switching");
       void list.offsetWidth;
       list.classList.add("is-switching");
-      if (room.getBoundingClientRect().top < 0) room.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" });
+      if (room.getBoundingClientRect().top < 0) room.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "start" });
     }
 
     function moveIndicator() {
@@ -2248,7 +2346,7 @@
     // Scroll a row to just under its sticky day heading, and light it up briefly.
     function goTo(card, instant) {
       const top = card.getBoundingClientRect().top + scrollY - 64;
-      scrollTo({ top, behavior: instant || reduced() ? "auto" : "smooth" });
+      scrollTo({ top, behavior: instant || reducedMotion() ? "auto" : "smooth" });
       card.focus({ preventScroll: true });
       card.classList.remove("is-glowing");
       void card.offsetWidth;
@@ -2265,8 +2363,7 @@
       filterNote.replaceChildren();
       if (dayFilter !== null) {
         const pill = el("span", "ppui-room-filter-pill", "Showing " + fullDayLabel(dayFilter));
-        const x = el("button", "ppui-room-filter-clear");
-        x.type = "button";
+        const x = button("ppui-room-filter-clear");
         x.setAttribute("aria-label", "Show every day");
         x.appendChild(icon("close"));
         x.addEventListener("click", () => {
@@ -2279,6 +2376,7 @@
     }
 
     function render() {
+      opened = readKeys(NEWS_OPENED_KEY) || new Set();
       const counts = actions.counts();
       for (const b of tabButtons) {
         const on = b.dataset.view === actions.view;
@@ -2293,8 +2391,7 @@
       tools.replaceChildren();
       if (actions.view === "trash" && counts.trash) {
         tools.appendChild(el("p", "ppui-room-tools-text", "Stories you've ticked. Untick one to put it back."));
-        const all = el("button", "ppui-room-restore-all", "Put all back");
-        all.type = "button";
+        const all = button("ppui-room-restore-all", "Put all back");
         all.prepend(icon("rotateCcw"));
         all.addEventListener("click", () => actions.restoreAll());
         tools.appendChild(all);
@@ -2315,8 +2412,7 @@
         let empty;
         if (inTab.length && query) {
           empty = emptyState("No stories match “" + search.value.trim() + "”.", "div");
-          const clear = el("button", "ppui-room-restore-all", "Clear search");
-          clear.type = "button";
+          const clear = button("ppui-room-restore-all", "Clear search");
           clear.addEventListener("click", () => {
             search.value = "";
             query = "";
@@ -2340,13 +2436,18 @@
       let sectionKey = null;
       const anyNew = sort === "newest" && actions.view === "all" && shown.some(isNew);
       let markedNew = false;
+      // Each story's section, and how many stories each section holds, worked out in one pass.
+      const pinsLead = actions.view === "all" && !words.length;
+      const sections = shown.map((item) => (pinsLead && actions.isPinned(item) ? { key: "pinned", name: "Pinned" } : newsSection(item.time)));
+      const sizes = new Map();
+      for (const s of sections) sizes.set(s.key, (sizes.get(s.key) || 0) + 1);
       shown.forEach((item, i) => {
-        const pinnedTop = actions.view === "all" && !words.length && actions.isPinned(item);
-        const s = pinnedTop ? { key: "pinned", name: "Pinned" } : newsSection(item.time);
+        const s = sections[i];
+        const pinnedTop = s.key === "pinned";
         if (s.key !== sectionKey) {
           sectionKey = s.key;
-          section = el("section", "ppui-room-section" + (s.today ? " is-today" : "") + (s.key === "pinned" ? " is-pinned" : ""));
-          const count = shown.filter((x) => (actions.view === "all" && !words.length && actions.isPinned(x) ? "pinned" : newsSection(x.time).key) === s.key).length;
+          section = el("section", "ppui-room-section" + (s.today ? " is-today" : "") + (pinnedTop ? " is-pinned" : ""));
+          const count = sizes.get(s.key);
           const h = el("h2", "ppui-room-section-head");
           h.append(el("span", "ppui-room-section-name", s.name));
           if (s.sub) h.append(el("span", "ppui-room-section-date", s.sub));
@@ -2393,6 +2494,7 @@
           // One of the page's own stories: borrow the text it was missing.
           if (!known.summary && item.summary) known.summary = item.summary;
           if (!known.searchText) known.searchText = item.searchText;
+          if (item.noPage) known.noPage = true;
           continue;
         }
         have.set(storyKey(item), item);
@@ -2458,7 +2560,7 @@
     if (iso === isoAfter(0)) return "Today";
     if (iso === isoAfter(1)) return "Tomorrow";
     if (iso === isoAfter(-1)) return "Yesterday";
-    return dayFromIso(iso).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" });
+    return shortDate(dayFromIso(iso));
   }
 
   // ---- Notes and reminders: saved in the student's Chrome account (chrome.storage.sync), one key per
@@ -2478,17 +2580,11 @@
         resolve(Object.keys(all || {}).filter((k) => k.startsWith(NOTE_PREFIX)).map((k) => all[k]).filter(validNote));
       }));
     }
-    try {
-      return Promise.resolve(Object.values(JSON.parse(localStorage.getItem(NOTES_LOCAL_KEY) || "{}")).filter(validNote));
-    } catch (e) {
-      return Promise.resolve([]);
-    }
+    return Promise.resolve(Object.values(readJson(NOTES_LOCAL_KEY, {})).filter(validNote));
   }
 
   function writeLocalNotes() {
-    try {
-      localStorage.setItem(NOTES_LOCAL_KEY, JSON.stringify(Object.fromEntries(noteStore.list.map((n) => [n.id, n]))));
-    } catch (e) {}
+    writeJson(NOTES_LOCAL_KEY, Object.fromEntries(noteStore.list.map((n) => [n.id, n])));
   }
 
   function notifyNotes() {
@@ -2505,7 +2601,16 @@
     noteStore.ready = reload();
     if (syncArea && chrome.storage.onChanged) {
       chrome.storage.onChanged.addListener((changes, area) => {
-        if (area === "sync" && Object.keys(changes).some((k) => k.startsWith(NOTE_PREFIX))) reload();
+        if (area !== "sync") return;
+        // A change this tab made itself is already on screen: only someone else's is read back.
+        const foreign = Object.keys(changes).filter((k) => {
+          if (!k.startsWith(NOTE_PREFIX)) return false;
+          const now = changes[k].newValue === undefined ? REMOVED : JSON.stringify(changes[k].newValue);
+          const mine = ownWrites.get(k) === now;
+          if (mine) ownWrites.delete(k);
+          return !mine;
+        });
+        if (foreign.length) reload();
       });
     } else {
       addEventListener("storage", (e) => {
@@ -2521,20 +2626,34 @@
     loadNotes().then(() => fn(noteStore.list));
   }
 
-  function saveNote(note) {
-    note.text = note.text.slice(0, NOTE_MAX);
-    const i = noteStore.list.findIndex((n) => n.id === note.id);
-    if (i >= 0) noteStore.list[i] = note;
-    else noteStore.list.push(note);
+  // What this tab last wrote under each key (as JSON, or REMOVED), so loadNotes can tell its own
+  // changes coming back from changes made elsewhere.
+  const ownWrites = new Map();
+  const REMOVED = "removed";
+
+  // Several notes at once are one write and one redraw.
+  function saveNotes(notes) {
+    const writes = {};
+    for (const note of notes) {
+      note.text = note.text.slice(0, NOTE_MAX);
+      const i = noteStore.list.findIndex((n) => n.id === note.id);
+      if (i >= 0) noteStore.list[i] = note;
+      else noteStore.list.push(note);
+      writes[NOTE_PREFIX + note.id] = note;
+      ownWrites.set(NOTE_PREFIX + note.id, JSON.stringify(note));
+    }
     notifyNotes();
-    if (syncArea) syncArea.set({ [NOTE_PREFIX + note.id]: note });
+    if (syncArea) syncArea.set(writes);
     else writeLocalNotes();
   }
+
+  const saveNote = (note) => saveNotes([note]);
 
   function removeNote(id) {
     const gone = noteStore.list.find((n) => n.id === id);
     noteStore.list = noteStore.list.filter((n) => n.id !== id);
     notifyNotes();
+    ownWrites.set(NOTE_PREFIX + id, REMOVED);
     if (syncArea) syncArea.remove(NOTE_PREFIX + id);
     else writeLocalNotes();
     if (gone) toast("Note deleted", "Undo", () => saveNote(gone));
@@ -2559,32 +2678,18 @@
   const dueSoon = () => openNotes().filter((n) => n.date && n.date <= isoAfter(1));
 
   // A steady tone per class (one of six shades mixed from the theme colour), so a class keeps its colour.
-  function toneFor(name) {
+  function nameHash(name) {
     let h = 2166136261;
     for (const c of name) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
-    return (h >>> 0) % 6;
+    return h >>> 0;
   }
+  const toneFor = (name) => nameHash(name) % 6;
 
   // ---- Things the home page knows, kept for every page: classes, school events, today's timetable ----
 
   const CLASSES_KEY = "ppui-classes";
   const EVENTS_KEY = "ppui-events";
   const TODAY_KEY = "ppui-today";
-
-  function readJson(key, fallback) {
-    try {
-      const v = JSON.parse(localStorage.getItem(key) || "null");
-      return v === null ? fallback : v;
-    } catch (e) {
-      return fallback;
-    }
-  }
-
-  function writeJson(key, value) {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch (e) {}
-  }
 
   const cachedClasses = () => readJson(CLASSES_KEY, []).filter((c) => c && typeof c.name === "string");
   const cachedEvents = () => readJson(EVENTS_KEY, []).filter((e) => e && typeof e.date === "string" && typeof e.title === "string");
@@ -2639,8 +2744,7 @@
 
   function menuItem(menu, label, checked, pick, extraClass) {
     const li = el("li");
-    const b = el("button", "ppui-menu-item" + (extraClass ? " " + extraClass : ""));
-    b.type = "button";
+    const b = button("ppui-menu-item" + (extraClass ? " " + extraClass : ""));
     if (checked !== null) {
       b.setAttribute("role", "menuitemradio");
       b.setAttribute("aria-checked", String(checked));
@@ -2704,8 +2808,7 @@
   }
 
   function chipButton(className, iconName, text) {
-    const b = el("button", "ppui-chip " + className);
-    b.type = "button";
+    const b = button("ppui-chip " + className);
     const label = el("span", "ppui-chip-label", text);
     b.append(icon(iconName), label);
     return b;
@@ -2721,8 +2824,7 @@
     tick.setAttribute("aria-label", (note.done ? "Mark not done: " : "Mark done: ") + note.text);
     tick.addEventListener("change", () => saveNote(Object.assign({}, note, { done: tick.checked })));
 
-    const text = el("button", "ppui-note-text", note.text);
-    text.type = "button";
+    const text = button("ppui-note-text", note.text);
     text.title = "Edit";
     text.addEventListener("click", () => {
       const input = el("input", "ppui-note-edit");
@@ -2777,8 +2879,7 @@
     const head = el("header", "ppui-notebook-head");
     const title = el("h2", "ppui-notebook-title", "Notebook");
     title.id = "ppui-notebook-title";
-    const filterChip = el("button", "ppui-chip ppui-notebook-filter");
-    filterChip.type = "button";
+    const filterChip = button("ppui-chip ppui-notebook-filter");
     filterChip.hidden = true;
     filterChip.addEventListener("click", () => {
       notebook.filter = null;
@@ -2887,6 +2988,9 @@
     if (!page.children.length) {
       page.appendChild(emptyState(notebook.filter ? "No notes for " + notebook.filter + " yet." : "Nothing written down yet. Add a note above.", "div"));
     }
+    // The menus of the rows just replaced go too, once any that was closing has finished.
+    clearTimeout(notebook.sweep);
+    notebook.sweep = setTimeout(sweepPopovers, 1000);
   }
 
   // Open the notebook, optionally starting a note for a day or a subject, or showing one subject.
@@ -2906,7 +3010,7 @@
     d.querySelector(".ppui-notebook-input").focus();
   }
 
-  // Slide-out close shared by the notebook (the reader has its own).
+  // Slide-out close, shared by the reader and the notebook.
   function closePanel(dialog) {
     if (!dialog.open || dialog.classList.contains("is-closing")) return;
     const finish = () => {
@@ -2914,8 +3018,9 @@
       dialog.close();
       if (!document.querySelector("dialog[open]")) root.classList.remove("ppui-reading");
     };
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return finish();
+    if (reducedMotion()) return finish();
     dialog.classList.add("is-closing");
+    // Wait for the panel's own exit (not that of something inside it), with a timer in case it never fires.
     const done = (e) => {
       if (e && e.target !== dialog) return;
       dialog.removeEventListener("animationend", done);
@@ -2940,30 +3045,46 @@
     raf: 0,
     cards: new Map(),
     step: 300,
+    // Parts of the dialog the wall touches on every frame, and the day its heading shows now.
+    stage: null,
+    heading: null,
+    monthButtons: [],
+    centre: null,
   };
 
   const calDays = CAL_BACK + CAL_AHEAD + 1;
   const calIso = (i) => isoAfter(i - CAL_BACK, cal.start);
-  const flatWall = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const flatWall = reducedMotion;
 
-  function dayCard(i) {
+  // What a day shows from storage (school events by day, today's timetable), read once per pass over
+  // the calendar rather than once per day.
+  function calendarData() {
+    const events = new Map();
+    for (const e of cachedEvents()) {
+      if (!events.has(e.date)) events.set(e.date, []);
+      events.get(e.date).push(e);
+    }
+    return { events, timetable: readJson(TODAY_KEY, null) };
+  }
+
+  function dayCard(i, data) {
     const iso = calIso(i);
     const date = dayFromIso(iso);
     const today = isoAfter(0);
     const card = el("article", "ppui-day" + (iso === today ? " is-today" : "") + (iso < today ? " is-past" : "") +
       (date.getDay() === 0 || date.getDay() === 6 ? " is-weekend" : ""));
     card.dataset.index = String(i);
-    card.setAttribute("aria-label", date.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" }));
+    card.setAttribute("aria-label", longDate(date));
 
     const top = el("header", "ppui-day-top");
-    top.append(el("span", "ppui-day-weekday", date.toLocaleDateString("en-AU", { weekday: "long" })));
+    top.append(el("span", "ppui-day-weekday", weekdayName(date)));
     const rel = iso === today ? "Today" : iso === isoAfter(1) ? "Tomorrow" : iso === isoAfter(-1) ? "Yesterday" : "";
     if (rel) top.appendChild(el("span", "ppui-day-rel", rel));
     card.append(top, el("div", "ppui-day-num", String(date.getDate())),
-      el("div", "ppui-day-month", date.toLocaleDateString("en-AU", { month: "long" })));
+      el("div", "ppui-day-month", monthName(date)));
 
     let empty = true;
-    const events = cachedEvents().filter((e) => e.date === iso);
+    const events = data.events.get(iso) || [];
     if (events.length) {
       empty = false;
       const s = el("section", "ppui-day-section");
@@ -2979,7 +3100,7 @@
       card.appendChild(s);
     }
 
-    const timetable = readJson(TODAY_KEY, null);
+    const timetable = data.timetable;
     if (iso === today && timetable && timetable.date === today && timetable.items && timetable.items.length) {
       empty = false;
       const s = el("section", "ppui-day-section");
@@ -3006,8 +3127,7 @@
     }
     if (empty) card.appendChild(el("p", "ppui-day-free", "Free day"));
 
-    const add = el("button", "ppui-day-add");
-    add.type = "button";
+    const add = button("ppui-day-add");
     add.append(icon("plus"), el("span", null, "Add note"));
     add.addEventListener("click", () => openNotebook({ date: iso }));
     card.appendChild(add);
@@ -3022,8 +3142,9 @@
   // Place each card for the current position: across, back into depth, and turned, so the
   // row of days bends away like a curved wall. Only cards near the middle exist at all.
   function layoutWall() {
-    const stage = cal.dialog.querySelector(".ppui-wall");
+    const stage = cal.stage;
     const flat = flatWall();
+    let data = null;
     const from = Math.max(0, Math.floor(cal.pos) - CAL_WINDOW);
     const to = Math.min(calDays - 1, Math.ceil(cal.pos) + CAL_WINDOW);
     for (const [i, card] of cal.cards) {
@@ -3035,7 +3156,7 @@
     for (let i = from; i <= to; i++) {
       let card = cal.cards.get(i);
       if (!card) {
-        card = dayCard(i);
+        card = dayCard(i, data || (data = calendarData()));
         cal.cards.set(i, card);
         stage.appendChild(card);
       }
@@ -3047,15 +3168,16 @@
       card.style.opacity = String(Math.max(0, Math.min(1, 1.15 - a / 5)));
       card.style.zIndex = String(100 - Math.round(a * 10));
       card.classList.toggle("is-centre", a < 0.5);
-      card.inert = a > 3.2;
+      if (card.inert !== a > 3.2) card.inert = a > 3.2;
     }
-    // Month strip marker and the heading follow the day in the middle.
-    if (cal.view === "month") return;
-    const iso = calIso(Math.round(cal.pos));
+    // Month strip marker and the heading follow the day in the middle (touched only when that day changes).
+    const centre = Math.round(cal.pos);
+    if (cal.view === "month" || centre === cal.centre) return;
+    cal.centre = centre;
+    const iso = calIso(centre);
     const month = iso.slice(0, 7);
-    cal.dialog.querySelectorAll(".ppui-cal-month").forEach((b) => b.classList.toggle("is-current", b.dataset.month === month));
-    cal.dialog.querySelector(".ppui-cal-heading").textContent =
-      dayFromIso(iso).toLocaleDateString("en-AU", { month: "long", year: "numeric" });
+    cal.monthButtons.forEach((b) => b.classList.toggle("is-current", b.dataset.month === month));
+    cal.heading.textContent = monthYear(dayFromIso(iso));
   }
 
   // Ease towards the target by time, not by frame, so it moves at the same pace on any screen.
@@ -3138,8 +3260,7 @@
     const bar = el("header", "ppui-cal-bar");
     const heading = el("h2", "ppui-cal-heading");
     const nav = el("div", "ppui-cal-nav");
-    const todayBtn = el("button", "ppui-cal-today", "Today");
-    todayBtn.type = "button";
+    const todayBtn = button("ppui-cal-today", "Today");
     todayBtn.addEventListener("click", () => {
       if (cal.view === "month") showMonth(isoAfter(0).slice(0, 7));
       else goToDay(CAL_BACK);
@@ -3159,15 +3280,13 @@
     views.setAttribute("role", "group");
     views.setAttribute("aria-label", "View");
     for (const [view, label, iconName] of [["days", "Days", "calendarClock"], ["month", "Month", "calendar"]]) {
-      const b = el("button", "ppui-cal-view");
-      b.type = "button";
+      const b = button("ppui-cal-view");
       b.dataset.view = view;
       b.append(icon(iconName), el("span", null, label));
       b.addEventListener("click", () => setCalView(view));
       views.appendChild(b);
     }
-    const notebookBtn = el("button", "ppui-cal-notebook");
-    notebookBtn.type = "button";
+    const notebookBtn = button("ppui-cal-notebook");
     notebookBtn.append(icon("notebook"), el("span", null, "Notebook"));
     notebookBtn.addEventListener("click", () => openNotebook());
     const tools = el("div", "ppui-cal-tools");
@@ -3182,8 +3301,7 @@
     for (let i = 0; i < calDays; i++) {
       const iso = calIso(i);
       if (i !== 0 && !iso.endsWith("-01")) continue;
-      const b = el("button", "ppui-cal-month", dayFromIso(iso).toLocaleDateString("en-AU", { month: "short" }));
-      b.type = "button";
+      const b = button("ppui-cal-month", monthShort(dayFromIso(iso)));
       b.dataset.month = iso.slice(0, 7);
       b.addEventListener("click", () => {
         if (cal.view === "month") showMonth(b.dataset.month);
@@ -3203,6 +3321,9 @@
       closeCalendar();
     });
     document.body.appendChild(dialog);
+    cal.stage = stage;
+    cal.heading = heading;
+    cal.monthButtons = [...months.children];
     addEventListener("resize", () => {
       if (dialog.open) measureWall();
     });
@@ -3280,18 +3401,17 @@
   }
 
   // A day of the month in one cell: its number (opens the day on the wall), what's on, and a quiet "+".
-  function monthCell(iso, inMonth) {
+  function monthCell(iso, inMonth, data) {
     const date = dayFromIso(iso);
     const today = isoAfter(0);
     const cell = el("div", "ppui-mday" + (inMonth ? "" : " is-other") + (iso === today ? " is-today" : "") +
       (iso < today ? " is-past" : "") + (date.getDay() === 0 || date.getDay() === 6 ? " is-weekend" : ""));
     cell.setAttribute("role", "gridcell");
 
-    const events = cachedEvents().filter((e) => e.date === iso);
+    const events = data.events.get(iso) || [];
     const notes = noteStore.list.filter((n) => n.date === iso).sort((a, b) => a.done - b.done || a.created - b.created);
-    const longName = date.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" });
-    const num = el("button", "ppui-mday-num", String(date.getDate()));
-    num.type = "button";
+    const longName = longDate(date);
+    const num = button("ppui-mday-num", String(date.getDate()));
     const counts = [events.length && events.length + (events.length === 1 ? " event" : " events"),
       notes.length && notes.length + (notes.length === 1 ? " note" : " notes")].filter(Boolean).join(", ");
     num.setAttribute("aria-label", longName + (counts ? ", " + counts : "") + ". Open this day");
@@ -3321,8 +3441,7 @@
       items.slice(0, MONTH_ITEMS).forEach((li) => ul.appendChild(li));
       if (items.length > MONTH_ITEMS) {
         const more = el("li", "ppui-mday-more");
-        const b = el("button", null, "+" + (items.length - MONTH_ITEMS) + " more");
-        b.type = "button";
+        const b = button(null, "+" + (items.length - MONTH_ITEMS) + " more");
         b.addEventListener("click", () => openDay(iso));
         more.appendChild(b);
         ul.appendChild(more);
@@ -3330,8 +3449,7 @@
       cell.appendChild(ul);
     }
 
-    const add = el("button", "ppui-mday-add");
-    add.type = "button";
+    const add = button("ppui-mday-add");
     add.setAttribute("aria-label", "Add note for " + longName);
     add.title = "Add note";
     add.appendChild(icon("plus"));
@@ -3362,9 +3480,10 @@
     const daysInMonth = new Date(y, m, 0).getDate();
     const weeks = Math.ceil((lead + daysInMonth) / 7);
 
+    const data = calendarData();
     const sheet = el("div", "ppui-month-sheet" + (dir > 0 ? " from-next" : dir < 0 ? " from-prev" : ""));
     sheet.setAttribute("role", "grid");
-    sheet.setAttribute("aria-label", first.toLocaleDateString("en-AU", { month: "long", year: "numeric" }));
+    sheet.setAttribute("aria-label", monthYear(first));
     const names = el("div", "ppui-month-names");
     names.setAttribute("role", "row");
     for (const name of ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]) {
@@ -3382,15 +3501,16 @@
       for (let c = 0; c < 7; c++) {
         const date = new Date(start);
         date.setDate(start.getDate() + w * 7 + c);
-        row.appendChild(monthCell(isoOf(date), date.getMonth() === m - 1));
+        row.appendChild(monthCell(isoOf(date), date.getMonth() === m - 1, data));
       }
       grid.appendChild(row);
     }
     sheet.appendChild(grid);
     pane.replaceChildren(sheet);
 
-    d.querySelector(".ppui-cal-heading").textContent = first.toLocaleDateString("en-AU", { month: "long", year: "numeric" });
-    d.querySelectorAll(".ppui-cal-month").forEach((b) => b.classList.toggle("is-current", b.dataset.month === cal.month));
+    cal.heading.textContent = monthYear(first);
+    cal.monthButtons.forEach((b) => b.classList.toggle("is-current", b.dataset.month === cal.month));
+    cal.centre = null;
   }
 
   // The overlay grows out of (or shrinks back into) a point: the button pressed, or the minimised pill.
@@ -3415,6 +3535,7 @@
     cal.cards.forEach((card) => card.remove());
     cal.cards.clear();
     cal.month = isoAfter(0).slice(0, 7);
+    cal.centre = null;
     loadNotes().then(() => {
       if (!cal.dialog.open) cal.dialog.showModal();
       root.classList.add("ppui-reading");
@@ -3459,8 +3580,7 @@
 
   function showPill() {
     if (!cal.pill) {
-      const pill = el("button", "ppui-cal-pill");
-      pill.type = "button";
+      const pill = button("ppui-cal-pill");
       pill.addEventListener("click", () => openCalendar(pill));
       document.body.appendChild(pill);
       cal.pill = pill;
@@ -3476,7 +3596,7 @@
     if (!cal.pill) return;
     const due = dueSoon().length;
     cal.pill.replaceChildren(icon("calendar"), el("span", "ppui-cal-pill-text", "Calendar"),
-      el("span", "ppui-cal-pill-date", dayFromIso(isoAfter(0)).toLocaleDateString("en-AU", { weekday: "short", day: "numeric" })));
+      el("span", "ppui-cal-pill-date", pillDate(dayFromIso(isoAfter(0)))));
     if (due) cal.pill.appendChild(el("span", "ppui-count", String(due)));
     cal.pill.setAttribute("aria-label", "Open calendar" + (due ? ", " + due + " reminders due" : ""));
   }
@@ -3488,8 +3608,7 @@
   // ---- Header buttons (every page): Calendar (with a count of what's due) and Notebook ----
 
   function buildCalendarButton() {
-    const btn = el("button", "ppui-bar-button ppui-cal-button");
-    btn.type = "button";
+    const btn = button("ppui-bar-button ppui-cal-button");
     btn.title = "Calendar";
     btn.setAttribute("aria-label", "Calendar");
     btn.appendChild(icon("calendar"));
@@ -3505,8 +3624,7 @@
   }
 
   function buildNotebookButton() {
-    const btn = el("button", "ppui-bar-button ppui-notebook-button");
-    btn.type = "button";
+    const btn = button("ppui-bar-button ppui-notebook-button");
     btn.title = "Notebook";
     btn.setAttribute("aria-label", "Notebook");
     btn.appendChild(icon("notebook"));
@@ -3540,22 +3658,19 @@
       setTimeout(() => banner.remove(), 300);
     };
     if (due.length === 1) {
-      const done = el("button", "ppui-due-button is-primary", "Done");
-      done.type = "button";
+      const done = button("ppui-due-button is-primary", "Done");
       done.addEventListener("click", () => {
         saveNote(Object.assign({}, due[0], { done: true, remindedOn: today }));
         dismiss();
       });
       actions.appendChild(done);
     }
-    const open = el("button", "ppui-due-button", "Open notebook");
-    open.type = "button";
+    const open = button("ppui-due-button", "Open notebook");
     open.addEventListener("click", () => {
       dismiss();
       openNotebook();
     });
-    const close = el("button", "ppui-due-close");
-    close.type = "button";
+    const close = button("ppui-due-close");
     close.setAttribute("aria-label", "Dismiss");
     close.appendChild(icon("close"));
     close.addEventListener("click", dismiss);
@@ -3563,7 +3678,7 @@
     banner.append(ul, actions, close);
     document.body.appendChild(banner);
     // Shown today: don't show these again until tomorrow.
-    due.forEach((n) => saveNote(Object.assign({}, n, { remindedOn: today })));
+    saveNotes(due.map((n) => Object.assign({}, n, { remindedOn: today })));
   }
 
   loadNotes().then(() => setTimeout(showDueBanner, 1200));
@@ -3590,9 +3705,7 @@
         try {
           root.classList.add("ppui-newspage");
           buildNewsPage();
-          try {
-            localStorage.setItem(NEWS_PATH_KEY, location.pathname);
-          } catch (e) {}
+          store(NEWS_PATH_KEY, location.pathname);
         } catch (e) {
           console.warn("[Pinehurst Dashboard] News page view failed; showing the portal's list.", e);
           root.classList.remove("ppui-newspage");
@@ -3612,6 +3725,25 @@
   const SECTION_NAMES = { overview: "Overview", "daily-schedule": "Schedule", "recent-updates": "Updates", "upcoming-assignments": "Assignments" };
   const DOC_ICONS = [[/academic/i, "fileText"], [/progress/i, "chart"], [/timetable/i, "clock"], [/attendance/i, "check"]];
   const COURSE_LISTS = [["active", "Current"], ["future", "Upcoming"], ["past", "Past"]];
+
+  // The portal's section tab bar as a row of pills (Overview, Messages and the native pages).
+  // Each tab's icon and name are looked up by the last part of its address; a tab with no name
+  // listed keeps the portal's.
+  function sectionNav(tabBar, label, icons, fallbackIcon, names = {}) {
+    const nav = el("nav", "ppui-ov-nav");
+    nav.setAttribute("aria-label", label);
+    for (const a of tabBar.querySelectorAll("a.vx-tab-bar__tab")) {
+      const href = sameOriginHref(a.getAttribute("href"));
+      if (!href) continue;
+      const key = new URL(href).pathname.split("/").filter(Boolean).pop();
+      const link = el("a", "ppui-ov-nav-link");
+      link.href = href;
+      link.append(icon(icons[key] || fallbackIcon), el("span", null, names[key] || clean(a.textContent)));
+      if (a.classList.contains("vx-tab-bar__tab--active")) link.setAttribute("aria-current", "page");
+      nav.appendChild(link);
+    }
+    return nav;
+  }
 
   function readOverviewCourse(node) {
     const text = (sel) => clean((node.querySelector(sel) || {}).textContent);
@@ -3684,19 +3816,7 @@
     head.appendChild(el("h1", "ppui-room-title", "Overview"));
     const tabBar = document.querySelector(".vx-tab-bar.my-children-nav");
     if (tabBar) {
-      const nav = el("nav", "ppui-ov-nav");
-      nav.setAttribute("aria-label", "Student sections");
-      for (const a of tabBar.querySelectorAll("a.vx-tab-bar__tab")) {
-        const href = sameOriginHref(a.getAttribute("href"));
-        if (!href) continue;
-        const key = new URL(href).pathname.split("/").filter(Boolean).pop();
-        const link = el("a", "ppui-ov-nav-link");
-        link.href = href;
-        link.append(icon(SECTION_ICONS[key] || "external"), el("span", null, SECTION_NAMES[key] || clean(a.textContent)));
-        if (a.classList.contains("vx-tab-bar__tab--active")) link.setAttribute("aria-current", "page");
-        nav.appendChild(link);
-      }
-      head.appendChild(nav);
+      head.appendChild(sectionNav(tabBar, "Student sections", SECTION_ICONS, "external", SECTION_NAMES));
       tabBar.classList.add("ppui-moved");
     }
     view.appendChild(head);
@@ -3755,8 +3875,7 @@
     const summary = el("p", "ppui-ov-summary");
     let shown = "active";
     const buttons = lists.map((l) => {
-      const b = el("button", "ppui-ov-switch-button");
-      b.type = "button";
+      const b = button("ppui-ov-switch-button");
       b.setAttribute("role", "tab");
       b.setAttribute("aria-controls", grid.id);
       b.append(el("span", null, l.label), el("span", "ppui-ov-switch-count", String(l.courses.length)));
@@ -3871,9 +3990,7 @@
   // Each sender keeps one colour, so a name is easy to spot down the list.
   function avatar(name) {
     const a = el("span", "ppui-inbox-avatar", initials(name));
-    let h = 2166136261;
-    for (const c of name) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
-    a.dataset.tone = String((h >>> 0) % AVATAR_TONES);
+    a.dataset.tone = String(nameHash(name) % AVATAR_TONES);
     a.setAttribute("aria-hidden", "true");
     return a;
   }
@@ -3934,19 +4051,7 @@
     head.appendChild(el("h1", "ppui-room-title", "Messages"));
     const tabBar = document.querySelector(".vx-tab-bar.my-children-nav");
     if (tabBar) {
-      const nav = el("nav", "ppui-ov-nav");
-      nav.setAttribute("aria-label", "Message views");
-      for (const a of tabBar.querySelectorAll("a.vx-tab-bar__tab")) {
-        const href = sameOriginHref(a.getAttribute("href"));
-        if (!href) continue;
-        const key = new URL(href).pathname.split("/").filter(Boolean).pop();
-        const link = el("a", "ppui-ov-nav-link");
-        link.href = href;
-        link.append(icon(MESSAGE_TABS[key] || "mail"), el("span", null, clean(a.textContent)));
-        if (a.classList.contains("vx-tab-bar__tab--active")) link.setAttribute("aria-current", "page");
-        nav.appendChild(link);
-      }
-      head.appendChild(nav);
+      head.appendChild(sectionNav(tabBar, "Message views", MESSAGE_TABS, "mail"));
       tabBar.classList.add("ppui-moved");
     }
     view.appendChild(head);
@@ -3963,8 +4068,7 @@
     let onlyUnread = false;
     const switcher = el("div", "ppui-ov-switch");
     const switchButtons = [["All", false], ["Unread", true]].map(([label, value]) => {
-      const b = el("button", "ppui-ov-switch-button");
-      b.type = "button";
+      const b = button("ppui-ov-switch-button");
       b.append(el("span", null, label));
       if (value) b.appendChild(el("span", "ppui-ov-switch-count"));
       b.addEventListener("click", () => {
@@ -3995,8 +4099,7 @@
     }
     const list = el("ul", "ppui-inbox-rows");
     list.setAttribute("aria-label", "Messages");
-    const more = el("button", "ppui-ov-link ppui-inbox-more");
-    more.type = "button";
+    const more = button("ppui-ov-link ppui-inbox-more");
     listPane.append(list, more);
     const reader = el("article", "ppui-inbox-reader");
     reader.tabIndex = -1;
@@ -4079,8 +4182,7 @@
     }
 
     function readerButton(label, iconName, onClick, className) {
-      const b = el("button", "ppui-inbox-icon-button" + (className ? " " + className : ""));
-      b.type = "button";
+      const b = button("ppui-inbox-icon-button" + (className ? " " + className : ""));
       b.title = label;
       b.setAttribute("aria-label", label);
       b.appendChild(icon(iconName));
@@ -4100,8 +4202,7 @@
       history.replaceState(null, "", "#message-" + m.id);
 
       const bar = el("div", "ppui-inbox-reader-bar");
-      const back = el("button", "ppui-ov-link ppui-inbox-back");
-      back.type = "button";
+      const back = button("ppui-ov-link ppui-inbox-back");
       back.append(icon("chevronLeft"), el("span", null, "All messages"));
       back.addEventListener("click", close);
       bar.appendChild(back);
@@ -4160,8 +4261,7 @@
         console.warn("[Pinehurst Dashboard] Couldn't load message", e);
         text.classList.remove("is-loading");
         text.removeAttribute("aria-busy");
-        const retry = el("button", "ppui-ov-link", "Try again");
-        retry.type = "button";
+        const retry = button("ppui-ov-link", "Try again");
         retry.addEventListener("click", () => open(m));
         const p = el("p", "ppui-inbox-note", "This message didn't load. Try again, or open it on the portal.");
         text.replaceChildren(p, retry);
@@ -4264,9 +4364,7 @@
     const app = document.querySelector(SEL.app);
     if (!route || !app || app.querySelector(".ppui-native-head")) return;
     // The News page has its own heading row.
-    try {
-      if (localStorage.getItem(NEWS_PATH_KEY) === location.pathname) return;
-    } catch (e) {}
+    if (stored(NEWS_PATH_KEY) === location.pathname) return;
     const toolbar = app.querySelector(":scope > .screen-toolbar");
     const tabBar = app.querySelector(".vx-tab-bar.my-children-nav");
     const title = NATIVE_TITLES[route] || clean(toolbar && toolbar.textContent);
@@ -4275,18 +4373,7 @@
     const head = el("header", "ppui-ov-head ppui-native-head");
     head.appendChild(el("h1", "ppui-room-title", title));
     if (tabBar) {
-      const nav = el("nav", "ppui-ov-nav");
-      nav.setAttribute("aria-label", "Student sections");
-      for (const a of tabBar.querySelectorAll("a.vx-tab-bar__tab")) {
-        const href = sameOriginHref(a.getAttribute("href"));
-        if (!href) continue;
-        const key = new URL(href).pathname.split("/").filter(Boolean).pop();
-        const link = el("a", "ppui-ov-nav-link");
-        link.href = href;
-        link.append(icon(SECTION_ICONS[key] || "external"), el("span", null, SECTION_NAMES[key] || clean(a.textContent)));
-        if (a.classList.contains("vx-tab-bar__tab--active")) link.setAttribute("aria-current", "page");
-        nav.appendChild(link);
-      }
+      const nav = sectionNav(tabBar, "Student sections", SECTION_ICONS, "external", SECTION_NAMES);
       if (nav.children.length) head.appendChild(nav);
       tabBar.classList.add("ppui-native-moved");
     }
@@ -4307,23 +4394,73 @@
     addEventListener("resize", fit);
   }
 
-  // A story page the portal sent empty: say so, and point to the News page, where it can be read.
-  function emptyStoryNote() {
+  // A story's own page holds the story and nothing else, so it gets a way back above it. The link is
+  // named for where it goes: the page the story was opened from (News, the dashboard) when there is
+  // one, and otherwise (a story opened in a tab of its own) the News page.
+  function buildStoryPage() {
     const article = document.querySelector(".detail-article");
-    if (!article || clean(article.textContent) || article.querySelector("img")) return;
-    let newsPath = "/pinehurst/student/pages/9-13-news";
-    try {
-      newsPath = localStorage.getItem(NEWS_PATH_KEY) || newsPath;
-    } catch (e) {}
-    const note = el("div", "ppui-article-empty");
-    note.append(
-      el("h1", null, "This story didn't load"),
-      el("p", null, "The portal sent this page with nothing in it. The story can still be read on the News page."),
-    );
-    const link = el("a", null, "Open News");
-    link.href = newsPath;
-    note.appendChild(link);
-    article.appendChild(note);
+    if (!article || document.querySelector(".ppui-story-nav")) return;
+    const newsPath = stored(NEWS_PATH_KEY) || "/pinehurst/student/pages/9-13-news";
+    // The page before this one in the tab's history, when it is a portal page (others are not listed).
+    const nav = window.navigation;
+    const before = nav && nav.currentEntry ? nav.entries()[nav.currentEntry.index - 1] : null;
+    const from = before && before.url ? new URL(before.url).pathname : "";
+    const back = el("a", "ppui-story-back");
+    back.href = from || newsPath;
+    back.append(icon("chevronLeft"), el("span", null, !from || from === newsPath ? "News" : HOME_PATH.test(from) ? "Home" : "Back"));
+    // Going back (not forward to the same address) keeps that page where it was scrolled to.
+    if (from) {
+      back.addEventListener("click", (e) => {
+        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        e.preventDefault();
+        history.back();
+      });
+    }
+    const row = el("nav", "ppui-story-nav");
+    row.setAttribute("aria-label", "Story");
+    row.appendChild(back);
+    article.before(row);
+    fillEmptyStory(article, newsPath);
+  }
+
+  // A story page the portal served blank (a story with no body text): show the story as the news list
+  // gave it (see rememberStories). A story we never linked to gets a short note and the way to News.
+  function fillEmptyStory(article, newsPath) {
+    if (clean(article.textContent) || article.querySelector("img")) return;
+    const pages = readJson(STORY_PAGES_KEY, {});
+    const story = pages && pages[location.pathname];
+    const known = !!story && typeof story.title === "string" && !!story.title;
+    const card = el("div", "ppui-article-empty");
+    if (known) {
+      card.classList.add("ppui-story-own");
+      card.appendChild(el("h1", null, story.title));
+      if (story.dateText) card.appendChild(el("p", "ppui-story-date", String(story.dateText)));
+      const image = absUrl(story.image);
+      if (image) {
+        const img = el("img", "ppui-story-picture");
+        img.alt = "";
+        img.addEventListener("error", () => img.remove());
+        img.src = image;
+        card.appendChild(img);
+      }
+      // The saved text is cleaned again on the way in (an inert template: nothing loads or runs).
+      const t = document.createElement("template");
+      t.innerHTML = typeof story.body === "string" ? story.body : "";
+      const body = cleanBody(t.content, () => false);
+      body.className = "ppui-story-text";
+      if (!clean(body.textContent) && story.summary) body.replaceChildren(el("p", null, String(story.summary)));
+      if (clean(body.textContent) || body.querySelector("img")) card.appendChild(body);
+      else if (!image) card.appendChild(el("p", "ppui-story-note", "This story is a headline only. There is no more to read."));
+    } else {
+      const link = el("a", "ppui-story-news", "Open News");
+      link.href = newsPath;
+      card.append(
+        el("h1", null, "Nothing more to this story"),
+        el("p", null, "The portal has no page text for this story. Its headline and summary are on the News page."),
+        link,
+      );
+    }
+    article.appendChild(card);
   }
 
   // ---- Timetable: the portal's printable timetable, inside a portal page ----
@@ -4371,8 +4508,7 @@
     switcher.setAttribute("role", "tablist");
     switcher.setAttribute("aria-label", "Timetable view");
     const modes = [["week", "Week"], ["pdf", "PDF"]].map(([id, label]) => {
-      const b = el("button", "ppui-ov-switch-button", label);
-      b.type = "button";
+      const b = button("ppui-ov-switch-button", label);
       b.setAttribute("role", "tab");
       b.dataset.mode = id;
       switcher.appendChild(b);
@@ -4463,7 +4599,7 @@
         addEventListener("hashchange", sync);
       }
       if (nativeRoute() === "planner") fitPlannerFrame();
-      if (nativeRoute() === "article") setTimeout(emptyStoryNote, 5000);
+      if (nativeRoute() === "article") buildStoryPage();
     } catch (e) {
       console.warn("[Pinehurst Dashboard] Page heading failed; keeping the portal's.", e);
     }
@@ -4622,7 +4758,7 @@
   // Everything is drawn at twice the screen's pixel density so it stays sharp when zoomed in.
   function startLiquid(bar) {
     const track = bar.querySelector(".ppui-progress-track");
-    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = reducedMotion();
     const liquid = el("canvas", "ppui-progress-liquid");
     const glow = el("canvas", "ppui-progress-glow");
     const drop = el("span", "ppui-progress-drop");
@@ -4632,8 +4768,13 @@
     const efield = document.createElement("canvas"); // where the liquid gives off light, same grid
     const ectx = efield.getContext("2d");
     const emit = document.createElement("canvas"); // that light, upscaled and kept to the filled shape
+    const lctx = liquid.getContext("2d");
+    const mctx = emit.getContext("2d");
+    const gctx = glow.getContext("2d");
     const GP = 30; // room around the track for the bloom
     const POUR_MS = 1300;
+    const FLOW_MS = 32; // the colour drifts slowly, so it is worked out about 30 times a second
+    const BLOOM = [[3, 0.8], [7, 0.6], [12, 0.4]]; // blur and strength: a tight halo out to a wide spill
 
     // Smooth value noise.
     const perm = new Uint8Array(512);
@@ -4653,9 +4794,14 @@
       const yi = Math.floor(y);
       const u = smooth(x - xi);
       const v = smooth(y - yi);
-      const h = (a, b) => perm[(perm[a & 255] + b) & 511] / 255;
-      const top = h(xi, yi) + (h(xi + 1, yi) - h(xi, yi)) * u;
-      const bottom = h(xi, yi + 1) + (h(xi + 1, yi + 1) - h(xi, yi + 1)) * u;
+      const left = perm[xi & 255];
+      const right = perm[(xi + 1) & 255];
+      const a = perm[(left + yi) & 511] / 255;
+      const b = perm[(right + yi) & 511] / 255;
+      const c = perm[(left + yi + 1) & 511] / 255;
+      const d = perm[(right + yi + 1) & 511] / 255;
+      const top = a + (b - a) * u;
+      const bottom = c + (d - c) * u;
       return top + (bottom - top) * v;
     }
 
@@ -4691,19 +4837,18 @@
       const p = 2 * l - q;
       return [f(p, q, h + 1 / 3) * 255, f(p, q, h) * 255, f(p, q, h - 1 / 3) * 255];
     }
+    // The hue stops as one flat run of r, g, b (the colour loop reads them without making arrays).
     let hues, deep, pale;
+    // Set when the size or the palette changes: the next frame redraws whatever the clock says.
+    let stale = true;
     function readPalette() {
       const cs = getComputedStyle(document.documentElement);
       const crest = rgb(cs.getPropertyValue("--ppui-crest"));
       const sky = rgb(cs.getPropertyValue("--ppui-sky"));
-      hues = [rotateHue(sky, -42), mix(crest, sky, 0.55), sky, rotateHue(sky, 34), rotateHue(sky, 62)];
+      hues = Float64Array.from([rotateHue(sky, -42), mix(crest, sky, 0.55), sky, rotateHue(sky, 34), rotateHue(sky, 62)].flat());
       deep = mix(crest, [8, 6, 30], 0.3);
       pale = mix(sky, [255, 255, 255], 0.78);
-    }
-    function hueAt(h) {
-      h = Math.min(Math.max(h, 0), 1) * (hues.length - 1);
-      const i = Math.min(Math.floor(h), hues.length - 2);
-      return mix(hues[i], hues[i + 1], h - i);
+      stale = true;
     }
 
     // Geometry.
@@ -4713,18 +4858,41 @@
     let W = 0;
     let H = 0;
     let dpr = 1;
+    // Pixel buffers for the two grids and one swell value per column, kept between frames.
+    let img = null;
+    let eimg = null;
+    let swells = null;
+    let gloss = null;
+    // Setting a canvas's size wipes it and makes a new backing store, so only do it on a real change.
+    function resize(canvas, w, h) {
+      if (canvas.width === w && canvas.height === h) return false;
+      canvas.width = w;
+      canvas.height = h;
+      return true;
+    }
     function layout() {
       W = track.clientWidth;
       H = track.clientHeight;
       if (!W || !H) return;
       dpr = Math.min((window.devicePixelRatio || 1) * 2, 6);
-      liquid.width = emit.width = Math.round(W * dpr);
-      liquid.height = emit.height = Math.round(H * dpr);
-      glow.width = Math.round((W + GP * 2) * dpr);
-      glow.height = Math.round((H + GP * 2) * dpr);
+      resize(liquid, Math.round(W * dpr), Math.round(H * dpr));
+      resize(emit, liquid.width, liquid.height);
+      resize(glow, Math.round((W + GP * 2) * dpr), Math.round((H + GP * 2) * dpr));
       rects = segs.map((s) => ({ x: s.el.offsetLeft, w: s.el.offsetWidth }));
-      efield.width = field.width = Math.max(Math.ceil(W / 1.5), 8);
-      efield.height = field.height = 12;
+      const fw = Math.max(Math.ceil(W / 1.5), 8);
+      const grew = resize(field, fw, 12);
+      if (resize(efield, fw, 12) || grew || !img) {
+        img = fctx.createImageData(fw, 12);
+        eimg = ectx.createImageData(fw, 12);
+        swells = new Float64Array(fw);
+      }
+      // Tube gloss: a lit upper lip, a soft lower shade.
+      gloss = lctx.createLinearGradient(0, 0, 0, H);
+      gloss.addColorStop(0, "rgba(255,255,255,.42)");
+      gloss.addColorStop(0.3, "rgba(255,255,255,.05)");
+      gloss.addColorStop(0.6, "rgba(255,255,255,0)");
+      gloss.addColorStop(1, "rgba(0,0,0,.16)");
+      stale = true;
     }
     // A fraction of the day to an x on the track, skipping the gaps.
     function dayToX(frac) {
@@ -4768,45 +4936,63 @@
     const pointer = { x: -999, on: 0, target: 0 };
     const ds = { x: 0, vx: 0, sx: 1, vsx: 0, lean: 0, vlean: 0, landed: true };
 
+    // The hot loop: every cell of both grids, with plain numbers only (nothing is allocated per cell).
     function drawField(t, edgeX) {
       const fw = field.width;
       const fh = field.height;
-      const img = fctx.createImageData(fw, fh);
       const d = img.data;
-      const eimg = ectx.createImageData(fw, fh);
       const e = eimg.data;
+      const span = Math.max(edgeX, 40);
+      const lastStop = hues.length / 3 - 1;
+      // The pointer's swell depends on the column only.
       const px = (pointer.x / W) * fw;
+      for (let x = 0; x < fw; x++) {
+        const dx = (x - px) / (fw * 0.08);
+        swells[x] = pointer.on ? Math.exp(-dx * dx) * pointer.on : 0;
+      }
+      let i = 0;
       for (let y = 0; y < fh; y++) {
         const yy = y / (fh - 1);
-        for (let x = 0; x < fw; x++) {
+        for (let x = 0; x < fw; x++, i += 4) {
           const u = (x / fw) * 3.4;
-          const along = ((x / fw) * W) / Math.max(edgeX, 40);
+          const along = ((x / fw) * W) / span;
           // Folded warp: the second layer feeds on the first so pools curl rather than slide.
           const w1 = noise(u * 0.7 + t * 0.09, yy * 0.9 + t * 0.05) * 2.4;
           const w2 = noise(u * 1.1 - t * 0.07 + w1 * 0.8 + 3.1, yy * 1.3 + w1 * 0.5) * 1.8;
           const hue = noise(u * 0.55 + w2 * 0.9 - t * 0.12 + 9.4, yy * 1.2 + w1 * 0.4) * 1.5 - 0.25;
-          let depth = noise(u * 0.9 + w1 - t * 0.16, yy * 1.4 + w2 * 0.6);
-          depth = ((depth - 0.25) / 0.5) * 0.75 + (along - 0.5) * 0.3 + 0.02;
           // The sheen: a ribbon crossing the bar on a slant, folding with the flow.
           const band = Math.sin((u * 0.9 + w2) * 1.9 - t * 0.55 + yy * 2.2);
-          const ridge = Math.pow(Math.max(0, 1 - Math.abs(band) * 1.7), 3);
-          const dx = (x - px) / (fw * 0.08);
-          const swell = Math.exp(-dx * dx) * pointer.on;
-          depth += swell * 0.3 + ridge * 0.18;
-          const base = hueAt(hue);
-          const c = depth < 0.5 ? mix(deep, base, Math.max(depth, 0) / 0.5) : mix(base, pale, Math.min((depth - 0.5) / 0.5, 1) * 0.6);
-          const i = (y * fw + x) * 4;
-          d[i] = c[0];
-          d[i + 1] = c[1];
-          d[i + 2] = c[2];
+          const lip = Math.max(0, 1 - Math.abs(band) * 1.7);
+          const ridge = lip * lip * lip;
+          const swell = swells[x];
+          const depth = ((noise(u * 0.9 + w1 - t * 0.16, yy * 1.4 + w2 * 0.6) - 0.25) / 0.5) * 0.75 +
+            (along - 0.5) * 0.3 + 0.02 + swell * 0.3 + ridge * 0.18;
+          // The hue, between two of the stops.
+          const h = Math.min(Math.max(hue, 0), 1) * lastStop;
+          const stop = Math.min(Math.floor(h), lastStop - 1);
+          const k = stop * 3;
+          const f = h - stop;
+          const r = hues[k] + (hues[k + 3] - hues[k]) * f;
+          const g = hues[k + 1] + (hues[k + 4] - hues[k + 1]) * f;
+          const b = hues[k + 2] + (hues[k + 5] - hues[k + 2]) * f;
+          // Shallow: up from the deep colour. Deeper: on toward the pale one.
+          if (depth < 0.5) {
+            const m = Math.max(depth, 0) / 0.5;
+            d[i] = deep[0] + (r - deep[0]) * m;
+            d[i + 1] = deep[1] + (g - deep[1]) * m;
+            d[i + 2] = deep[2] + (b - deep[2]) * m;
+          } else {
+            const m = Math.min((depth - 0.5) / 0.5, 1) * 0.6;
+            d[i] = r + (pale[0] - r) * m;
+            d[i + 1] = g + (pale[1] - g) * m;
+            d[i + 2] = b + (pale[2] - b) * m;
+          }
           d[i + 3] = 255;
           // Light given off: the sheen, the brightest pools and the pointer.
-          const light = Math.min(1, ridge * 0.85 + Math.max(depth - 0.7, 0) * 1.4 + swell * 0.5);
-          const g = mix(base, [255, 255, 255], 0.12);
-          e[i] = g[0];
-          e[i + 1] = g[1];
-          e[i + 2] = g[2];
-          e[i + 3] = light * 255;
+          e[i] = r + (255 - r) * 0.12;
+          e[i + 1] = g + (255 - g) * 0.12;
+          e[i + 2] = b + (255 - b) * 0.12;
+          e[i + 3] = Math.min(1, ridge * 0.85 + Math.max(depth - 0.7, 0) * 1.4 + swell * 0.5) * 255;
         }
       }
       fctx.putImageData(img, 0, 0);
@@ -4814,7 +5000,7 @@
     }
 
     function draw(edgeX) {
-      const ctx = liquid.getContext("2d");
+      const ctx = lctx;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
       ctx.imageSmoothingEnabled = true;
@@ -4831,18 +5017,12 @@
       ctx.filter = "none";
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "source-over";
-      // Tube gloss: a lit upper lip, a soft lower shade.
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "rgba(255,255,255,.42)");
-      g.addColorStop(0.3, "rgba(255,255,255,.05)");
-      g.addColorStop(0.6, "rgba(255,255,255,0)");
-      g.addColorStop(1, "rgba(0,0,0,.16)");
-      ctx.fillStyle = g;
+      ctx.fillStyle = gloss;
       ctx.fillRect(0, 0, W, H);
       ctx.restore();
 
       // The light, kept to the liquid's shape, then bloomed outward: a tight halo and a wider spill.
-      const ec = emit.getContext("2d");
+      const ec = mctx;
       ec.setTransform(dpr, 0, 0, dpr, 0, 0);
       ec.clearRect(0, 0, W, H);
       ec.imageSmoothingQuality = "high";
@@ -4851,11 +5031,11 @@
       ec.clip();
       ec.drawImage(efield, 0, 0, W, H);
       ec.restore();
-      const gc = glow.getContext("2d");
+      const gc = gctx;
       gc.setTransform(1, 0, 0, 1, 0, 0);
       gc.clearRect(0, 0, glow.width, glow.height);
       gc.globalCompositeOperation = "lighter";
-      for (const [blur, alpha] of [[3, 0.8], [7, 0.6], [12, 0.4]]) {
+      for (const [blur, alpha] of BLOOM) {
         gc.filter = "blur(" + blur * dpr + "px)";
         gc.globalAlpha = alpha;
         gc.drawImage(emit, GP * dpr, GP * dpr);
@@ -4877,7 +5057,6 @@
       const sx = ds.sx + Math.abs(ds.lean) * 0.12 + Math.sin(now / 900) * 0.025;
       const sy = 1 / Math.max(sx, 0.7);
       drop.style.transform = "translateX(" + (ds.x + ds.lean * 4).toFixed(2) + "px) scale(" + sx.toFixed(3) + ", " + sy.toFixed(3) + ")";
-      drop.hidden = edgeX < 1;
     }
     function springs(dt, edgeX) {
       ds.vx += ((edgeX - ds.x) * 260 - ds.vx * 18) * dt;
@@ -4895,23 +5074,43 @@
 
     let raf = 0;
     let last = 0;
-    let visible = true;
+    let flowed = -1e9;
+    let drawnEdge = -1;
+    // Frames keep coming only while the bar is on screen in a tab that is showing.
+    let onScreen = true;
+    const live = () => onScreen && !document.hidden;
     function frame(now) {
       raf = 0;
       if (!W || !segs.length) return;
+      const cost = window.__ppuiCost;
+      const costFrom = cost ? performance.now() : 0;
       const dt = Math.min(Math.max((now - last) / 1000, 0), 0.25);
       last = now;
       const p = reduced ? 1 : Math.min(Math.max((now - pourStart) / POUR_MS, 0), 1);
       reveal = pourFrom + (target - pourFrom) * (1 - Math.pow(1 - p, 3.2));
       pointer.on += (pointer.target - pointer.on) * Math.min(dt * 6, 1);
+      // Once the pointer's swell has faded past seeing, it is gone.
+      if (!pointer.target && pointer.on < 0.001) pointer.on = 0;
       const edgeX = dayToX(reveal);
-      drawField(reduced ? 3 : now / 1000, edgeX);
-      draw(edgeX);
-      if (reduced) {
-        drop.style.transform = "translateX(" + edgeX.toFixed(2) + "px)";
-        drop.hidden = edgeX < 1;
-      } else stepDrop(dt, edgeX, p < 1, now);
-      if (visible && !reduced && !bar.hidden) raf = requestAnimationFrame(frame);
+      // The colour is worked out at its own slow pace; the front and the droplet move every frame.
+      const flow = stale || reduced || now - flowed >= FLOW_MS;
+      if (flow) {
+        flowed = now;
+        drawField(reduced ? 3 : now / 1000, edgeX);
+      }
+      if (flow || edgeX !== drawnEdge) {
+        drawnEdge = edgeX;
+        draw(edgeX);
+      }
+      stale = false;
+      if (reduced) drop.style.transform = "translateX(" + edgeX.toFixed(2) + "px)";
+      else stepDrop(dt, edgeX, p < 1, now);
+      if (drop.hidden !== edgeX < 1) drop.hidden = edgeX < 1;
+      if (cost) {
+        cost.liquid = (cost.liquid || 0) + performance.now() - costFrom;
+        cost.liquidFrames = (cost.liquidFrames || 0) + 1;
+      }
+      if (live() && !reduced && !bar.hidden) raf = requestAnimationFrame(frame);
     }
     function kick() {
       if (raf) return;
@@ -4958,12 +5157,11 @@
       kick();
     });
     new IntersectionObserver(([entry]) => {
-      visible = entry.isIntersecting;
-      if (visible) kick();
+      onScreen = entry.isIntersecting;
+      if (onScreen) kick();
     }).observe(track);
     document.addEventListener("visibilitychange", () => {
-      visible = !document.hidden;
-      if (visible) kick();
+      if (live()) kick();
     });
     track.addEventListener("pointermove", (e) => {
       pointer.x = e.clientX - track.getBoundingClientRect().left;
@@ -5010,8 +5208,7 @@
 
   function buildTodayPanel() {
     const section = panel("ppui-today", "calendarClock", "Today", "Full schedule", SCHEDULE_URL);
-    const calButton = el("button", "ppui-head-button");
-    calButton.type = "button";
+    const calButton = button("ppui-head-button");
     calButton.title = "Open calendar";
     calButton.setAttribute("aria-label", "Open calendar");
     calButton.appendChild(icon("calendar"));
@@ -5024,17 +5221,35 @@
     list.append(el("li", "ppui-sr", "Loading schedule..."), ...skeleton(5));
     section.append(featured, progress, list);
 
-    async function load() {
+    // The rows are only rebuilt when they differ; what's on now and the day bar follow the clock.
+    let rowsShown = null;
+    function show(items) {
+      renderFeatured(featured, items);
+      renderProgress(progress, items);
+      const rows = JSON.stringify(items);
+      if (rows !== rowsShown) renderRows(list, items);
+      rowsShown = rows;
+      mark("today");
+    }
+
+    async function fetchSchedule() {
+      const res = await fetch(SCHEDULE_URL, { credentials: "same-origin" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.text();
+    }
+
+    // `early` is the request early.js started before the page had loaded (first load only).
+    async function load(early) {
       try {
-        const res = await fetch(SCHEDULE_URL, { credentials: "same-origin" });
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        const items = parseSchedule(await res.text());
+        const items = parseSchedule(await (early ? early.catch(fetchSchedule) : fetchSchedule()));
         if (!items) throw new Error("schedule markup not found");
-        writeJson(TODAY_KEY, { date: isoAfter(0), items: items.map((item) => ({ time: item.time, title: item.title })) });
-        renderFeatured(featured, items);
-        renderProgress(progress, items);
-        renderRows(list, items);
+        writeJson(TODAY_KEY, {
+          date: isoAfter(0),
+          items: items.map(({ start, time, title, subtitle }) => ({ start, time, title, subtitle })),
+        });
+        show(items);
       } catch (e) {
+        rowsShown = null;
         featured.hidden = true;
         progress.hidden = true;
         list.replaceChildren();
@@ -5047,11 +5262,33 @@
       }
     }
 
-    load();
+    // Today's timetable as last loaded shows at once; the fresh copy replaces it when it arrives.
+    const saved = savedSchedule();
+    if (saved) show(saved);
+    load(window.__ppuiSchedule);
+    window.__ppuiSchedule = null;
     setInterval(() => {
       if (document.visibilityState === "visible") load();
     }, REFRESH_MS);
     return section;
+  }
+
+  // The timetable saved by the last load, if that was today. The portal says which class is on now;
+  // a saved copy can't, so that is worked out from the clock (a class runs until the next one starts).
+  function savedSchedule() {
+    const saved = readJson(TODAY_KEY, null);
+    if (!saved || saved.date !== isoAfter(0) || !Array.isArray(saved.items)) return null;
+    const ok = (item) => item && typeof item.time === "string" && typeof item.title === "string" &&
+      typeof item.subtitle === "string" && (item.start === null || typeof item.start === "number");
+    if (!saved.items.every(ok)) return null;
+    const d = new Date();
+    const minutes = d.getHours() * 60 + d.getMinutes();
+    const timed = saved.items.filter((item) => item.start !== null);
+    return saved.items.map((item) => {
+      const i = timed.indexOf(item);
+      const end = i < 0 ? null : i + 1 < timed.length ? timed[i + 1].start : item.start + 50;
+      return { start: item.start, time: item.time, now: i >= 0 && item.start <= minutes && minutes < end, title: item.title, subtitle: item.subtitle };
+    });
   }
 
   function renderNews(list, items, newsHref, actions) {
@@ -5060,6 +5297,8 @@
       list.appendChild(emptyState(actions.emptyText));
       return;
     }
+    // Each row links to its story's own page (Ctrl or middle click goes there).
+    rememberStories(items.slice(0, NEWS_COUNT));
     // Day headings: Pinned, Today, Earlier this week, Older. Each day links to that day on the News page.
     let lastBucket = null;
     items.slice(0, NEWS_COUNT).forEach((item, i) => {
@@ -5117,7 +5356,7 @@
         tools.append(pin, star, storyButton("ppui-story-trash", "Mark as read", "check", () => {
           if (starred || pinned) return actions.trash(item);
           row.classList.add("is-leaving");
-          setTimeout(() => actions.trash(item), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 260);
+          setTimeout(() => actions.trash(item), reducedMotion() ? 0 : 260);
         }));
       }
       row.append(a, tools);
@@ -5135,8 +5374,7 @@
     const actions = newsActions(() => items, render);
 
     // Filter button in the card's heading: All stories / Starred / Read, with counts.
-    const filter = el("button", "ppui-filter");
-    filter.type = "button";
+    const filter = button("ppui-filter");
     filter.setAttribute("aria-label", "Filter news");
     filter.title = "Filter news";
     const filterLabel = el("span", "ppui-filter-label");
@@ -5149,8 +5387,7 @@
       const counts = actions.counts();
       for (const [value, label] of NEWS_VIEWS) {
         const li = el("li");
-        const b = el("button", "ppui-menu-item");
-        b.type = "button";
+        const b = button("ppui-menu-item");
         b.setAttribute("role", "menuitemradio");
         b.setAttribute("aria-checked", String(actions.view === value));
         b.disabled = value !== "all" && !counts[value];
@@ -5165,8 +5402,7 @@
       }
       if (counts.trash) {
         const li = el("li", "ppui-menu-sep");
-        const b = el("button", "ppui-menu-item", "Put everything back");
-        b.type = "button";
+        const b = button("ppui-menu-item", "Put everything back");
         b.setAttribute("role", "menuitem");
         b.addEventListener("click", () => {
           menu.hidePopover();
@@ -5191,8 +5427,18 @@
       filter.classList.toggle("is-active", actions.view !== "all");
       const shown = actions.visible();
       renderNews(list, shown, newsLink.href, actions);
+      if (shown.length) mark("news");
       // The lead story's picture often lives only on its own page: fetch it for the card (and remember it).
-      if (shown[0] && !shown[0].image) fullStory(shown[0]).then(() => shown[0].image && saveCachedNews(newsLink.href, items));
+      // Looked for in a quiet moment (it loads a whole hidden page), and at most once a day per story:
+      // a story with no picture isn't looked up again on every visit.
+      const lead = shown[0];
+      if (lead && !lead.image && !lead.pictureAsked && lead.pictureChecked !== isoAfter(0)) {
+        lead.pictureAsked = true;
+        whenIdle(() => fullStory(lead).then(() => {
+          lead.pictureChecked = isoAfter(0);
+          saveCachedNews(newsLink.href, items);
+        }));
+      }
     }
 
     // Last visit's stories show at once; the hidden frame then brings the list up to date.
@@ -5208,9 +5454,12 @@
         reader.newsHref = reader.newsHref || newsLink.href;
         const fresh = await loadArticles(newsLink.href);
         // Keep pictures already found for stories that haven't changed.
-        const known = new Map(items.map((item) => [storyKey(item), item.image]));
+        const known = new Map(items.map((item) => [storyKey(item), item]));
         fresh.forEach((item) => {
-          if (!item.image && known.get(storyKey(item))) item.image = known.get(storyKey(item));
+          const was = known.get(storyKey(item));
+          if (!was) return;
+          if (!item.image) item.image = was.image;
+          item.pictureChecked = was.pictureChecked;
         });
         const same = fresh.length === items.length && fresh.every((item, i) => storyKey(item) === storyKey(items[i]));
         if (same && items.length) {
@@ -5233,10 +5482,10 @@
     }
 
     // With stories already on screen, the (heavy) frame waits until the page is idle.
-    if (cached.length && window.requestIdleCallback) requestIdleCallback(load, { timeout: 2000 });
+    if (cached.length) whenIdle(load);
     else load();
     setInterval(() => {
-      if (document.visibilityState === "visible") load();
+      if (document.visibilityState === "visible") whenIdle(load);
     }, REFRESH_MS);
     return section;
   }
@@ -5249,7 +5498,7 @@
       href,
       items: items.map((item) => ({
         title: item.title, dateText: item.dateText, summary: item.summary, image: item.image, href: item.href,
-        body: item.body.innerHTML,
+        pictureChecked: item.pictureChecked, body: item.body.innerHTML,
       })),
     });
   }
@@ -5270,6 +5519,7 @@
         summary: c.summary || "",
         image: absUrl(c.image),
         href: c.href ? sameOriginHref(c.href) : null,
+        pictureChecked: typeof c.pictureChecked === "string" ? c.pictureChecked : undefined,
         frames: [],
         body: cleanBody(t.content, () => false),
       };
@@ -5335,8 +5585,7 @@
     }
     body.appendChild(name);
     if (course.teacher) body.appendChild(el("span", "ppui-meta", course.teacher));
-    const noteCount = el("button", "ppui-note-count");
-    noteCount.type = "button";
+    const noteCount = button("ppui-note-count");
     noteCount.hidden = true;
     noteCount.addEventListener("click", () => openNotebook({ filter: course.name }));
     body.appendChild(noteCount);
@@ -5350,8 +5599,7 @@
 
 
     {
-      const more = el("button", "ppui-more");
-      more.type = "button";
+      const more = button("ppui-more");
       more.setAttribute("aria-label", "More for " + course.name);
       more.appendChild(icon("ellipsis"));
       const menu = el("ul", "ppui-menu");
@@ -5362,8 +5610,7 @@
         ["Notes for this class", "notebook", () => openNotebook({ filter: course.name })],
       ]) {
         const li = el("li");
-        const b = el("button", "ppui-menu-item ppui-menu-note-item");
-        b.type = "button";
+        const b = button("ppui-menu-item ppui-menu-note-item");
         b.append(icon(iconName), el("span", null, label));
         b.addEventListener("click", () => {
           menu.hidePopover();
@@ -5471,28 +5718,26 @@
     const news = findNews();
     if (news) {
       news.comp.classList.add("ppui-moved");
-      try {
-        localStorage.setItem(NEWS_PATH_KEY, new URL(news.href).pathname);
-      } catch (e) {}
+      store(NEWS_PATH_KEY, new URL(news.href).pathname);
       dash.appendChild(buildNewsPanel(news));
     }
     grid.before(dash);
 
     const apps = harvestApps();
-    if (apps.length) saveApps(apps);
+    if (apps.length) writeJson(APPS_KEY, apps);
     const events = document.querySelector(SEL.eventsComponent);
     if (events) {
       try {
         harvestEvents(events);
       } catch (e) {}
-      const open = el("button", "ppui-events-open");
-      open.type = "button";
+      const open = button("ppui-events-open");
       open.append(icon("calendar"), el("span", null, "Open calendar"));
       open.addEventListener("click", () => openCalendar(open));
       events.prepend(open);
     }
     foldBlocks(grid, classesBuilt);
     showUnread();
+    mark("dash");
     reveal();
 
     // The class list can render after the first blocks (often in Firefox); add the Classes

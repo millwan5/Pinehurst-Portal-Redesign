@@ -11,16 +11,19 @@
   root.classList.add("ppui-look-pending");
   const done = () => root.classList.remove("ppui-look-pending");
   setTimeout(done, 400);
-  try {
-    chrome.storage.local.get("ppuiLook", (got) => {
-      const look = (got && got.ppuiLook) || {};
-      if (look.theme === "light" || look.theme === "dark") root.setAttribute("data-ppui-theme", look.theme);
-      if (/^(teal|forest|violet|rose|sunset|graphite)$/.test(look.palette || "")) {
-        root.setAttribute("data-ppui-palette", look.palette);
-      }
-      done();
-    });
-  } catch (e) {
+  // Read once; login.js takes the banner's colour from the same answer.
+  window.__ppuiLook = new Promise((resolve) => {
+    try {
+      chrome.storage.local.get("ppuiLook", (got) => resolve((got && got.ppuiLook) || {}));
+    } catch (e) {
+      resolve({});
+    }
+  });
+  window.__ppuiLook.then((look) => {
+    if (look.theme === "light" || look.theme === "dark") root.setAttribute("data-ppui-theme", look.theme);
+    if (/^(teal|forest|violet|rose|sunset|graphite)$/.test(look.palette || "")) {
+      root.setAttribute("data-ppui-palette", look.palette);
+    }
     done();
-  }
+  });
 })();
