@@ -477,6 +477,25 @@
     }
   });
 
+  // Class websites (classes.veracross.au) are another origin with no way to ask this page, so the
+  // look in use is mirrored to extension storage, where classes-early.js reads it.
+  function mirrorLook() {
+    try {
+      chrome.storage.local.set({
+        ppuiLook: {
+          theme: root.getAttribute("data-ppui-theme") || "light",
+          palette: root.getAttribute("data-ppui-palette") || "",
+        },
+      });
+    } catch (e) {}
+  }
+  mirrorLook();
+  // A new colour theme reaches open frames as well (a new light or dark is sent by applyTheme).
+  new MutationObserver((changes) => {
+    mirrorLook();
+    if (changes.some((c) => c.attributeName === "data-ppui-palette")) tellFrames(root.getAttribute("data-ppui-theme") || "light");
+  }).observe(root, { attributes: true, attributeFilter: ["data-ppui-theme", "data-ppui-palette"] });
+
   // Light, Dark or Auto (follow the system). Chosen under Customise > Appearance.
   function themeChoice() {
     return savedTheme() || "auto";
