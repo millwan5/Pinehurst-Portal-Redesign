@@ -238,23 +238,74 @@ html.ppui-class-page body {
   --e-text: #0b1e45;
   --e-muted: #5e6b82;
   --e-accent: #1446a0;
-  --e-accent-soft: rgba(20, 70, 160, 0.09);
+  --e-accent-soft: color-mix(in srgb, var(--e-accent) 10%, transparent);
   --e-line: rgba(11, 30, 69, 0.09);
   --e-crest: #1446a0;
   --e-high: #1b7f4b;
-  --e-good: #1446a0;
+  --e-good: var(--e-accent);
   --e-fair: #b26a00;
   --e-low: #b3261e;
+  /* The portal's bevels, hover and dropdown shadow (tokens.css), for the cards and buttons here. */
+  --e-hover-2: rgba(11, 30, 69, 0.1);
+  --e-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --e-bevel:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(11, 30, 69, 0.05),
+    0 1px 2px rgba(11, 30, 69, 0.05),
+    0 4px 14px -8px rgba(11, 30, 69, 0.12);
+  --e-bevel-btn:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -2px 0 rgba(11, 30, 69, 0.06),
+    0 1px 2px rgba(11, 30, 69, 0.1);
+  --e-bevel-press:
+    inset 0 1px 2px rgba(11, 30, 69, 0.12),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.6);
+  --e-pop-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 26px 50px -20px rgba(11, 30, 69, 0.34),
+    0 6px 16px -6px rgba(11, 30, 69, 0.12);
 }
 
 :root[data-ppui-theme="dark"] {
   --e-raised: #2c2c2e;
-  --e-accent-soft: rgba(10, 132, 255, 0.18);
+  --e-accent-soft: color-mix(in srgb, var(--e-accent) 20%, transparent);
   --e-crest: #1446a0;
   --e-high: #5fd08f;
-  --e-good: #79a7ff;
+  --e-good: var(--e-accent);
   --e-fair: #f0b45a;
   --e-low: #ff8a80;
+  --e-hover-2: rgba(255, 255, 255, 0.11);
+  --e-bevel:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.35),
+    0 6px 16px -8px rgba(0, 0, 0, 0.5);
+  --e-bevel-btn:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.4);
+  --e-bevel-press:
+    inset 0 1px 3px rgba(0, 0, 0, 0.45),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+  --e-pop-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 26px 50px -18px rgba(0, 0, 0, 0.85),
+    0 6px 16px -6px rgba(0, 0, 0, 0.5);
+}
+
+/* Dropdowns sit one step up in dark mode, like the portal's. */
+:root[data-ppui-theme="dark"] .ppui-pop {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: var(--e-raised);
+}
+
+:root[data-ppui-theme="dark"] .ppui-pop .ppui-field,
+:root[data-ppui-theme="dark"] .ppui-pop .ppui-seg {
+  background: var(--e-surface);
+}
+
+:root[data-ppui-theme="dark"] .ppui-pop .ppui-seg-btn[aria-checked="true"] {
+  background: var(--e-raised);
 }
 
 html.ppui-class-page,
@@ -381,8 +432,9 @@ html.ppui-class-page .class-list a:hover {
 
 html.ppui-class-page .class-list a.active {
   border-color: transparent !important;
-  background: var(--e-crest) !important;
-  color: #fff !important;
+  background: var(--e-accent) !important;
+  box-shadow: var(--e-bevel-btn) !important;
+  color: var(--e-surface) !important;
 }
 
 /* Title: "10BIO E: IG1 Biology E", teacher and class website underneath. */
@@ -494,8 +546,9 @@ html.ppui-class-page .section-toolbar a:hover {
 }
 
 html.ppui-class-page .left-controls a.active {
-  background: var(--e-crest) !important;
-  color: #fff !important;
+  background: var(--e-accent) !important;
+  box-shadow: var(--e-bevel-btn) !important;
+  color: var(--e-surface) !important;
 }
 
 html.ppui-class-page .right-controls label {
@@ -512,66 +565,1033 @@ html.ppui-class-page .right-controls a.active {
   color: var(--e-accent) !important;
 }
 
-/* Summary tiles (embed.js). */
-.ppui-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
-  margin: 0 0 8px;
+/* ---------- Final grade card (embed.js) ----------
+   Same parts as the portal pages: a 20px card with the bevel, round icon buttons, pill buttons,
+   a segmented switch and the shadowed dropdown. Colours come only from the theme tokens, so it
+   follows light/dark and the colour themes (--e-accent arrives from the top frame). Text on an
+   accent fill uses the surface colour, which reads on every theme's accent. */
+.ppui-final,
+.ppui-pop {
+  --g-tint: color-mix(in srgb, var(--e-accent) 13%, var(--e-surface));
+  --g-on-accent: var(--e-surface);
 }
 
-.ppui-summary-tile {
+.ppui-final [hidden],
+.ppui-pop [hidden],
+.ppui-pop[hidden],
+.ppui-final-delta:empty {
+  display: none !important;
+}
+
+.ppui-final {
+  display: grid;
+  gap: 14px;
+  margin: 0 0 10px;
+  padding: 18px 20px;
+  border: 1px solid var(--e-line);
+  border-radius: 20px;
+  background: var(--e-surface);
+  box-shadow: var(--e-bevel);
+  color: var(--e-text);
+}
+
+.ppui-final-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ppui-final-head {
   display: grid;
   gap: 2px;
-  padding: 14px 16px;
-  border: 1px solid var(--e-line);
-  border-radius: 12px;
-  background: var(--e-surface);
+  min-width: 0;
 }
 
-.ppui-summary-label {
+.ppui-final-name {
   color: var(--e-muted);
-  font-size: 11.5px;
-  font-weight: 750;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 13.5px;
+  font-weight: 650;
 }
 
-.ppui-summary-value {
-  color: var(--e-text);
-  font-size: 26px;
+.ppui-final-value-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ppui-final-value {
+  color: var(--band, var(--e-text));
+  font-size: 40px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  border-radius: 6px;
+}
+
+.ppui-final.is-empty .ppui-final-value {
+  color: var(--e-muted);
+}
+
+.ppui-final-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ppui-icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.85;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Round icon buttons and pill buttons, raised like the portal's. */
+.ppui-icon-btn,
+.ppui-new-btn,
+.ppui-btn {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  height: 36px;
+  margin: 0;
+  border: 1px solid var(--e-line);
+  border-radius: 999px;
+  background: var(--e-surface);
+  box-shadow: var(--e-bevel-btn);
+  color: var(--e-text);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: box-shadow 0.15s var(--e-ease), background-color 0.15s var(--e-ease), transform 0.15s var(--e-ease), color 0.15s;
+}
+
+.ppui-icon-btn {
+  width: 36px;
+  padding: 0;
+  color: var(--e-muted);
+}
+
+.ppui-new-btn,
+.ppui-btn {
+  padding: 0 16px;
+}
+
+.ppui-icon-btn:hover,
+.ppui-btn:hover:not(:disabled) {
+  color: var(--e-text);
+  background: color-mix(in srgb, var(--e-surface) 92%, var(--e-accent));
+}
+
+.ppui-icon-btn[aria-expanded="true"] {
+  background: var(--g-tint);
+  color: var(--e-accent);
+}
+
+.ppui-new-btn,
+.ppui-btn.is-primary {
+  border-color: transparent;
+  background: var(--e-accent);
+  color: var(--g-on-accent);
+}
+
+.ppui-new-btn:hover,
+.ppui-btn.is-primary:hover:not(:disabled) {
+  background: var(--e-accent);
+  color: var(--g-on-accent);
+  filter: brightness(1.08);
+}
+
+.ppui-icon-btn:active,
+.ppui-new-btn:active,
+.ppui-btn:active:not(:disabled) {
+  transform: scale(0.97);
+  box-shadow: var(--e-bevel-press);
+}
+
+.ppui-btn:disabled {
+  box-shadow: none;
+  color: var(--e-muted);
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* "+1.3%" after a reveal. */
+.ppui-final-delta {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  opacity: 0;
+  transform: translateY(6px) scale(0.8);
+  transition: opacity 0.3s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ppui-final-delta.is-shown {
+  opacity: 1;
+  transform: none;
+}
+
+.ppui-final-delta.is-up {
+  background: color-mix(in srgb, var(--e-high) 15%, var(--e-surface));
+  color: var(--e-high);
+}
+
+.ppui-final-delta.is-down {
+  background: color-mix(in srgb, var(--e-low) 15%, var(--e-surface));
+  color: var(--e-low);
+}
+
+.ppui-final-delta.is-flat {
+  background: var(--e-raised);
+  color: var(--e-muted);
+}
+
+/* The grade as liquid: the home page's day bar on one track (canvases from startLiquid in embed.js),
+   with your target as a small notch. */
+.ppui-liquid {
+  position: relative;
+  padding: 4px 0;
+}
+
+.ppui-liquid-track {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--e-hover-2);
+  box-shadow: inset 0 1px 2px rgba(11, 30, 69, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.5);
+  touch-action: pan-y;
+}
+
+:root[data-ppui-theme="dark"] .ppui-liquid-track {
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.ppui-liquid-fill,
+.ppui-liquid-glow {
+  position: absolute;
+  pointer-events: none;
+}
+
+.ppui-liquid-fill {
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+
+.ppui-liquid-glow {
+  inset: -30px;
+  width: calc(100% + 60px);
+  height: calc(100% + 60px);
+  opacity: 0.85;
+}
+
+:root[data-ppui-theme="dark"] .ppui-liquid-glow {
+  opacity: 1;
+  mix-blend-mode: plus-lighter;
+}
+
+/* The glass droplet on the front, as on the day bar. */
+.ppui-liquid-drop {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  z-index: 2;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.98) 0 14%, rgba(255, 255, 255, 0) 30%),
+    radial-gradient(circle at 62% 78%, rgba(255, 255, 255, 0.55) 0 8%, rgba(255, 255, 255, 0) 22%),
+    radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--e-drop-sky, var(--e-accent)) 8%, rgba(255, 255, 255, 0.55)) 0 45%, color-mix(in srgb, var(--e-drop-sky, var(--e-accent)) 45%, rgba(255, 255, 255, 0.35)) 78%, color-mix(in srgb, var(--e-drop-crest, var(--e-accent)) 55%, transparent) 100%);
+  box-shadow:
+    inset 0 -2px 3px color-mix(in srgb, var(--e-drop-crest, var(--e-accent)) 35%, transparent),
+    inset 0 1px 1px rgba(255, 255, 255, 0.9),
+    0 0 0 0.5px color-mix(in srgb, var(--e-drop-crest, var(--e-accent)) 30%, transparent),
+    0 2px 4px -1px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(1.5px) saturate(1.6) brightness(1.08);
+}
+
+.ppui-liquid-drop[hidden] {
+  display: none;
+}
+
+/* Target: a notch through the track. */
+.ppui-liquid-goal {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  width: 3px;
+  margin-left: -1.5px;
+  border-radius: 3px;
+  background: var(--e-text);
+  box-shadow: 0 0 0 2px var(--e-surface);
+  pointer-events: none;
+  transition: left 0.3s var(--e-ease);
+}
+
+/* The two groups on the left, your aim on the right. */
+.ppui-final-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 18px;
+  color: var(--e-muted);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.ppui-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+
+.ppui-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: default;
+}
+
+.ppui-group strong,
+.ppui-need strong {
+  color: var(--e-text);
+  font-weight: 750;
   font-variant-numeric: tabular-nums;
 }
 
-.ppui-summary-note {
+.ppui-group-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  box-sizing: border-box;
+  border: 2px solid var(--e-accent);
+  border-radius: 50%;
+}
+
+.ppui-group.is-eoy .ppui-group-dot {
+  background: var(--e-accent);
+}
+
+.ppui-group.is-off {
+  opacity: 0.45;
+}
+
+.ppui-need {
+  cursor: default;
+}
+
+.ppui-need.is-hard strong {
+  color: var(--e-low);
+}
+
+.ppui-need.is-safe {
+  color: var(--e-high);
+  font-weight: 750;
+}
+
+/* Settings dropdown rows. */
+.ppui-set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 38px;
+  padding: 0 4px 0 8px;
+  cursor: text;
+}
+
+.ppui-set-label {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.ppui-pct-field {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 12px 0 8px;
+  border: 1px solid var(--e-line);
+  border-radius: 999px;
+  background: var(--e-raised);
+  color: var(--e-muted);
+  font-size: 14px;
+  font-weight: 700;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ppui-pct-field:focus-within {
+  border-color: var(--e-accent);
+  box-shadow: 0 0 0 3px var(--g-tint);
+}
+
+.ppui-set-weight {
+  display: grid;
+  padding: 6px 8px 0;
+  border-top: 1px solid var(--e-line);
+}
+
+/* Target: typed straight into the card, with what the end of year needs beside it. */
+.ppui-aim {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+
+.ppui-final .ppui-target {
+  height: 32px;
+  padding: 0 12px;
+  cursor: text;
+}
+
+.ppui-target-label {
+  margin-right: 6px;
+  color: var(--e-muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+/* The last row: "+ Add score", your own scores, and the hidden work on the right. */
+.ppui-final-own {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--e-line);
+}
+
+.ppui-own {
+  display: contents;
+}
+
+.ppui-add-btn,
+.ppui-own-pill,
+.ppui-hidden-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 13px;
+  border: 1px solid var(--e-line);
+  border-radius: 999px;
+  background: var(--e-surface);
+  color: var(--e-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s, transform 0.15s var(--e-ease);
+}
+
+.ppui-add-btn .ppui-icon,
+.ppui-hidden-btn .ppui-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.ppui-add-btn {
+  padding-left: 10px;
+  border-color: transparent;
+  background: var(--g-tint);
+  color: var(--e-accent);
+  font-weight: 750;
+}
+
+.ppui-add-btn .ppui-icon {
+  stroke-width: 2.4;
+}
+
+.ppui-add-btn:hover,
+.ppui-add-btn[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--e-accent) 22%, var(--e-surface));
+}
+
+.ppui-own-pill {
+  max-width: 100%;
+  color: var(--e-muted);
+}
+
+.ppui-own-pill .ppui-own-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ppui-own-pill strong {
+  color: var(--e-text);
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.ppui-own-pill[data-bucket="eoy"] .ppui-group-dot {
+  background: var(--e-accent);
+}
+
+.ppui-own-pill:hover,
+.ppui-own-pill[aria-expanded="true"],
+.ppui-hidden-btn:hover {
+  border-color: color-mix(in srgb, var(--e-accent) 45%, var(--e-line));
+  background: var(--e-hover-2);
+}
+
+.ppui-hidden-btn {
+  margin-left: auto;
+  border-color: transparent;
+  background: transparent;
+  color: var(--e-muted);
+}
+
+.ppui-hidden-btn[aria-pressed="true"] {
+  background: var(--g-tint);
+  color: var(--e-accent);
+}
+
+.ppui-add-btn:active,
+.ppui-own-pill:active,
+.ppui-hidden-btn:active {
+  transform: scale(0.97);
+}
+
+/* In a form, the title lines up with the labels. */
+.ppui-pop-form > .ppui-pop-title {
+  padding: 2px 2px 0;
+}
+
+/* A label over its text box. */
+.ppui-label {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.ppui-label > span {
+  padding: 0 2px;
   color: var(--e-muted);
   font-size: 12.5px;
+  font-weight: 650;
 }
 
-.ppui-summary-tile.is-average .ppui-summary-value {
-  color: var(--band);
+/* Form buttons: a quiet one (Delete, Undo) on the left, the main one on the right. */
+.ppui-pop-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0;
+  padding: 4px 0 0;
 }
 
-/* The average's bar along the bottom of its tile. */
-.ppui-summary-tile.is-average {
-  position: relative;
+.ppui-pop-actions > .is-quiet {
+  margin-right: auto !important;
+}
+
+.ppui-btn {
+  grid-auto-flow: column;
+  gap: 6px;
+}
+
+.ppui-btn .ppui-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.ppui-btn.is-quiet {
+  padding: 0 12px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--e-muted);
+}
+
+.ppui-pop-list + .ppui-pop-list {
+  padding-top: 4px;
+  border-top: 1px solid var(--e-line);
+}
+
+.ppui-final-value:focus-visible,
+.ppui-icon-btn:focus-visible,
+.ppui-new-btn:focus-visible,
+.ppui-btn:focus-visible,
+.ppui-add-btn:focus-visible,
+.ppui-own-pill:focus-visible,
+.ppui-hidden-btn:focus-visible,
+.ppui-seg-btn:focus-visible,
+.ppui-pop-item:focus-visible,
+.ppui-range:focus-visible,
+html.ppui-class-page .assignment-header .ppui-more:focus-visible,
+html.ppui-class-page .assignment-header .ppui-mine:focus-visible,
+html.ppui-class-page .section-toolbar .ppui-sort:focus-visible,
+html.ppui-class-page .enrollment-title .class-website:focus-visible {
+  outline: 2px solid var(--e-accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Dropdowns: the portal's shadowed panel ---------- */
+.ppui-pop {
+  /* Fixed on screen; left/top come from place() in embed.js. The popover defaults (inset: 0,
+     margin: auto) are undone here so only those coordinates count. */
+  position: fixed;
+  inset: auto;
+  z-index: 2147483000;
+  margin: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  gap: 6px;
+  width: 270px;
+  max-width: calc(100vw - 16px);
+  box-sizing: border-box;
+  padding: 8px;
+  border: 1px solid var(--e-line);
+  border-radius: 20px;
+  background: var(--e-surface);
+  box-shadow: var(--e-pop-shadow);
+  color: var(--e-text);
+  font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif !important;
+  font-size: 14px;
+  animation: ppui-pop-in 0.2s var(--e-ease);
+}
+
+.ppui-pop * {
+  font-family: inherit !important;
+}
+
+@keyframes ppui-pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+}
+
+/* Opening above the button, it rises from it instead. */
+.ppui-pop[data-side="above"] {
+  animation-name: ppui-pop-up;
+}
+
+@keyframes ppui-pop-up {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+}
+
+.ppui-pop-title {
+  display: grid;
+  gap: 1px;
+  padding: 6px 8px 4px;
   overflow: hidden;
+  font-size: 14px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.ppui-summary-tile.is-average::after {
+.ppui-pop-sub {
+  color: var(--e-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.ppui-pop-form {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 4px;
+}
+
+.ppui-pop-row {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.ppui-pop > .ppui-pop-row {
+  padding: 0 4px 4px;
+}
+
+.ppui-field {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid var(--e-line);
+  border-radius: 12px;
+  outline: 0;
+  background: var(--e-raised);
+  color: var(--e-text);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ppui-field::placeholder {
+  color: var(--e-muted);
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.ppui-field:focus {
+  border-color: var(--e-accent);
+  box-shadow: 0 0 0 3px var(--g-tint);
+}
+
+.ppui-field[aria-invalid="true"] {
+  border-color: var(--e-low);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--e-low) 18%, transparent);
+}
+
+/* Segmented switch: the chosen side lifts. */
+.ppui-seg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 3px;
+  border: 1px solid var(--e-line);
+  border-radius: 999px;
+  background: var(--e-raised);
+}
+
+.ppui-seg-btn {
+  height: 32px;
+  margin: 0;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--e-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background-color 0.15s, box-shadow 0.15s, color 0.15s;
+}
+
+.ppui-seg-btn[aria-checked="true"] {
+  background: var(--e-surface);
+  box-shadow: var(--e-bevel-btn);
+  color: var(--e-text);
+}
+
+.ppui-pop-list {
+  display: grid;
+  gap: 2px;
+}
+
+.ppui-pop-row + .ppui-pop-list,
+.ppui-set-weight + .ppui-pop-list,
+.ppui-pop-title + .ppui-pop-list {
+  padding-top: 4px;
+  border-top: 1px solid var(--e-line);
+}
+
+.ppui-pop-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  min-height: 38px;
+  margin: 0;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 13px;
+  background: transparent;
+  color: var(--e-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s, transform 0.15s var(--e-ease);
+}
+
+.ppui-pop-item:hover,
+.ppui-pop-item:focus-visible {
+  background: var(--e-hover-2);
+}
+
+.ppui-pop-item:active {
+  transform: scale(0.97);
+}
+
+.ppui-pop-item[aria-checked="true"] {
+  color: var(--e-accent);
+  font-weight: 700;
+}
+
+/* A tick on the chosen one. */
+.ppui-pop-item .ppui-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--e-muted);
+}
+
+.ppui-pop-item[aria-checked="true"]::after {
+  content: "";
+  margin-left: auto !important;
+  width: 10px;
+  height: 5px;
+  margin: -3px 2px 0 0;
+  border: solid currentColor;
+  border-width: 0 0 2px 2px;
+  transform: rotate(-45deg);
+}
+
+.ppui-split-ends {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 4px 0;
+  color: var(--e-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ppui-split-ends strong {
+  color: var(--e-text);
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.ppui-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  margin: 10px 0;
+  border-radius: 6px;
+  background: linear-gradient(to right, var(--e-accent) var(--fill, 60%), var(--e-line) var(--fill, 60%));
+  cursor: pointer;
+}
+
+.ppui-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--e-line);
+  border-radius: 50%;
+  background: var(--e-surface);
+  box-shadow: var(--e-bevel-btn), 0 2px 6px color-mix(in srgb, #000 18%, transparent);
+}
+
+.ppui-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--e-line);
+  border-radius: 50%;
+  background: var(--e-surface);
+  box-shadow: 0 2px 6px color-mix(in srgb, #000 18%, transparent);
+}
+
+.ppui-range::-moz-range-track {
+  background: transparent;
+}
+
+/* "⋯" on each assignment: what it counts as. Shows when you point at the card (always on touch
+   screens), and stays when you've moved the assignment, with a dot. */
+html.ppui-class-page .assignment-header .ppui-more {
+  position: relative;
+  grid-column: 5;
+  grid-row: 1 / span 2;
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 50%;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--e-muted) !important;
+  cursor: pointer;
+  transition: opacity 0.15s, background-color 0.15s, color 0.15s;
+}
+
+/* A bigger target than it looks, so a near miss doesn't open the assignment. */
+html.ppui-class-page .assignment-header .ppui-more::before {
   content: "";
   position: absolute;
-  left: 0;
-  bottom: 0;
-  height: 4px;
-  width: calc(var(--pct, 0) * 1%);
-  background: var(--band);
+  inset: -8px;
+  border-radius: 50%;
 }
 
-.ppui-summary-tile.is-busy .ppui-summary-value {
-  color: var(--e-accent);
+html.ppui-class-page .assignment-header .ppui-more .ppui-icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 3.2;
+}
+
+html.ppui-class-page .assignment-header .ppui-more:hover,
+html.ppui-class-page .assignment-header .ppui-more[aria-expanded="true"] {
+  background: var(--e-hover-2) !important;
+  color: var(--e-text) !important;
+}
+
+html.ppui-class-page .assignment.is-moved .assignment-header .ppui-more::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--e-accent);
+}
+
+@media (hover: hover) {
+  html.ppui-class-page .assignment:not(.is-moved) .assignment-header .ppui-more:not([aria-expanded="true"]) {
+    opacity: 0.4;
+  }
+  html.ppui-class-page .assignment:hover .assignment-header .ppui-more,
+  html.ppui-class-page .assignment-header:focus-within .ppui-more {
+    opacity: 1 !important;
+  }
+}
+
+html.ppui-class-page .assignment.is-skipped .assignment-description,
+html.ppui-class-page .assignment.is-skipped .assignment-grade {
+  opacity: 0.45;
+}
+
+html.ppui-class-page .assignment.is-skipped .assignment-grade .ppui-pct {
+  text-decoration: line-through;
+}
+
+/* Unmarked work: "+ Score" in the mark's place; your own score there once you've typed it. */
+html.ppui-class-page .assignment-header .ppui-mine {
+  grid-row: 1;
+  grid-column: 1 / -1;
+  justify-self: end;
+  height: 28px;
+  padding: 0 12px !important;
+  border: 1px dashed color-mix(in srgb, var(--e-muted) 55%, transparent) !important;
+  border-radius: 999px;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--e-muted) !important;
+  font: inherit;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background-color 0.15s;
+}
+
+html.ppui-class-page .assignment-header .ppui-mine:hover {
+  border-color: var(--e-accent) !important;
+  color: var(--e-accent) !important;
+}
+
+html.ppui-class-page .assignment-header .ppui-mine[hidden] {
+  display: none !important;
+}
+
+/* Your own score: like a real one, with a dashed underline to say it's yours. */
+html.ppui-class-page .assignment-header .ppui-mine.is-set {
+  height: auto;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 4px;
+  color: var(--e-text) !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  font-variant-numeric: tabular-nums;
+  text-decoration: underline dashed color-mix(in srgb, var(--e-muted) 70%, transparent);
+  text-underline-offset: 5px;
+}
+
+html.ppui-class-page .assignment-header .ppui-mine-input {
+  grid-row: 1;
+  grid-column: 1 / -1;
+  justify-self: end;
+  width: 92px !important;
+  height: 32px !important;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  border: 1px solid var(--e-accent) !important;
+  border-radius: 10px !important;
+  outline: 0 !important;
+  background: var(--e-surface) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--e-accent) 18%, transparent) !important;
+  color: var(--e-text) !important;
+  font: inherit !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  text-align: right;
+}
+
+html.ppui-class-page .assignment-header .ppui-mine-input[aria-invalid="true"] {
+  border-color: var(--e-low) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--e-low) 18%, transparent) !important;
+}
+
+/* With your own score in, the "Upcoming" chip goes; it goes for "+ Score" too, since the date says it. */
+html.ppui-class-page .assignment-grade:has(.ppui-mine) .status {
+  display: none !important;
+}
+
+/* Phones: dropdowns become a sheet from the bottom, like the portal's. */
+/* Phones: as wide as the screen allows, still beside its button. */
+@media (max-width: 640px) {
+  .ppui-pop {
+    width: calc(100vw - 16px);
+  }
+}
+
+@media (max-width: 600px) {
+  .ppui-final {
+    gap: 12px;
+    padding: 16px;
+  }
+  .ppui-final-value {
+    font-size: 34px;
+  }
+}
+
+/* Windows high contrast: bars and dots keep a visible shape in system colours. */
+@media (forced-colors: active) {
+  .ppui-liquid-track,
+  .ppui-final,
+  .ppui-pop {
+    border: 1px solid CanvasText;
+  }
+  .ppui-liquid-fill,
+  .ppui-group.is-eoy .ppui-group-dot,
+  html.ppui-class-page .assignment-grade .ppui-pct::after {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+  .ppui-liquid-goal {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+  .ppui-range {
+    appearance: auto;
+    -webkit-appearance: auto;
+    background: none;
+  }
+  .ppui-seg-btn[aria-checked="true"] {
+    outline: 2px solid Highlight;
+  }
+  html.ppui-class-page .assignment-header .ppui-more {
+    opacity: 1 !important;
+  }
 }
 
 [data-band="high"] { --band: var(--e-high); }
@@ -627,10 +1647,11 @@ html.ppui-class-page .assignment.unread {
 
 html.ppui-class-page .assignment-header {
   display: grid !important;
-  grid-template-columns: 52px auto minmax(0, 1fr) auto;
+  grid-template-columns: 52px auto minmax(0, 1fr) auto 30px;
   grid-template-rows: auto auto;
   align-items: center;
   column-gap: 14px;
+  row-gap: 5px;
   padding: 12px 16px !important;
   cursor: pointer;
 }
@@ -662,6 +1683,7 @@ html.ppui-class-page .assignment-due-day {
 html.ppui-class-page .assignment-header .assignment-type {
   grid-column: 2;
   grid-row: 1 / span 2;
+  justify-self: start;
   padding: 3px 10px !important;
   border: 0 !important;
   border-radius: 999px;
@@ -689,45 +1711,34 @@ html.ppui-class-page .assignment-description {
   line-height: 1.35;
 }
 
-/* Score: "66 / 100" with its percentage and a small bar; letters and statuses as chips. */
+/* Score: the percentage large with a small bar under it, then "78/100 · worth 6%" in small type.
+   Letter grades show the letter large; statuses are chips. */
 html.ppui-class-page .assignment-grade {
   grid-column: 4;
   grid-row: 1 / span 2;
   display: grid !important;
-  grid-template-columns: auto auto;
+  grid-auto-flow: column;
+  grid-template-rows: auto auto;
   align-items: baseline;
+  justify-content: end;
   justify-items: end;
-  column-gap: 8px;
-  row-gap: 4px;
+  row-gap: 3px;
   min-width: 96px;
   color: var(--e-text) !important;
   text-align: right;
 }
 
-html.ppui-class-page .assignment-grade .raw-score {
+html.ppui-class-page .assignment-grade .ppui-pct {
+  grid-row: 1;
+  grid-column: 1 / span 3;
+  position: relative;
+  width: 96px !important;
+  padding-bottom: 9px !important;
   color: var(--band, var(--e-text)) !important;
   font-size: 18px !important;
   font-weight: 800 !important;
+  line-height: 1.1 !important;
   font-variant-numeric: tabular-nums;
-}
-
-html.ppui-class-page .assignment-grade .max-score {
-  color: var(--e-muted) !important;
-  font-size: 12.5px !important;
-}
-
-html.ppui-class-page .assignment-grade .max-score::before {
-  content: "/ ";
-}
-
-html.ppui-class-page .assignment-grade .ppui-pct {
-  grid-column: 1 / -1;
-  position: relative;
-  width: 96px !important;
-  padding-top: 8px !important;
-  color: var(--e-muted);
-  font-size: 12px;
-  font-weight: 700;
   text-align: right;
 }
 
@@ -735,7 +1746,7 @@ html.ppui-class-page .assignment-grade .ppui-pct::before,
 html.ppui-class-page .assignment-grade .ppui-pct::after {
   content: "";
   position: absolute;
-  top: 0;
+  bottom: 0;
   left: 0;
   height: 4px;
   border-radius: 4px;
@@ -749,6 +1760,55 @@ html.ppui-class-page .assignment-grade .ppui-pct::before {
 html.ppui-class-page .assignment-grade .ppui-pct::after {
   width: calc(var(--pct, 0) * 1%);
   background: var(--band);
+}
+
+/* "78/100", then how much it's worth. */
+html.ppui-class-page .assignment-grade .raw-score,
+html.ppui-class-page .assignment-grade .max-score,
+html.ppui-class-page .assignment-grade .ppui-share {
+  grid-row: 2;
+  color: var(--e-muted) !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+html.ppui-class-page .assignment-grade .raw-score {
+  grid-column: 1;
+}
+
+html.ppui-class-page .assignment-grade .max-score {
+  grid-column: 2;
+}
+
+html.ppui-class-page .assignment-grade .max-score::before {
+  content: "/";
+}
+
+html.ppui-class-page .assignment-grade .ppui-share {
+  grid-column: 3;
+}
+
+html.ppui-class-page .assignment-grade .ppui-share:empty {
+  display: none !important;
+}
+
+html.ppui-class-page .assignment-grade .raw-score ~ .ppui-share:not(:empty)::before {
+  content: "\0b7";
+  margin: 0 5px;
+}
+
+/* No percentage (a letter, "Complete"): the mark itself is the big one. */
+html.ppui-class-page .assignment-grade:not(:has(.ppui-pct)) .raw-score {
+  grid-row: 1;
+  color: var(--band, var(--e-text)) !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+}
+
+html.ppui-class-page .assignment-grade:has(.ppui-mine) .ppui-share {
+  grid-column: 1 / -1;
 }
 
 html.ppui-class-page .assignment-grade .status {
@@ -858,8 +1918,9 @@ html.ppui-class-page .new-feedback-button {
   padding: 0 16px !important;
   border: 0 !important;
   border-radius: 999px;
-  background: var(--e-crest) !important;
-  color: #fff !important;
+  background: var(--e-accent) !important;
+  box-shadow: var(--e-bevel-btn) !important;
+  color: var(--e-surface) !important;
   font-size: 13px !important;
   font-weight: 700 !important;
   cursor: pointer;
@@ -892,8 +1953,9 @@ html.ppui-class-page .new-feedback-button {
     justify-self: start;
   }
   html.ppui-class-page .assignment-description {
-    grid-column: 2 / -1;
+    grid-column: 2;
     grid-row: 2;
+    align-self: start;
   }
   html.ppui-class-page .assignment-grade {
     grid-column: 3;
@@ -901,7 +1963,21 @@ html.ppui-class-page .new-feedback-button {
     min-width: 0;
   }
   html.ppui-class-page .assignment-grade .ppui-pct {
+    width: auto !important;
+    padding-bottom: 0 !important;
+  }
+  html.ppui-class-page .assignment-grade .ppui-pct::before,
+  html.ppui-class-page .assignment-grade .ppui-pct::after {
     display: none;
+  }
+  html.ppui-class-page .assignment-grade .ppui-share {
+    display: none !important;
+  }
+  html.ppui-class-page .assignment-header .ppui-more {
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: end;
+    margin-right: -6px !important;
   }
   html.ppui-class-page .assignment.open .assignment-body {
     padding-left: 16px !important;
@@ -941,9 +2017,11 @@ html.ppui-class-page .assignment-header span.ppui-mystery {
   height: 40px !important;
   margin: -20px 0 0 !important;
   border-radius: 10px;
-  background: var(--e-crest) !important;
-  overflow: hidden !important;
-  color: #fff !important;
+  background: var(--e-accent) !important;
+  overflow: visible !important;
+  perspective: 120px;
+  box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--e-accent) 70%, transparent);
+  color: var(--e-surface) !important;
   font-family: "Playfair Display", Georgia, serif !important;
   font-size: 24px !important;
   font-style: italic;
@@ -965,7 +2043,9 @@ html.ppui-class-page .ppui-mystery::before {
   left: 0;
   right: 0;
   height: 9px;
-  background: rgba(0, 0, 0, 0.22);
+  border-radius: 10px 10px 0 0;
+  background: color-mix(in srgb, var(--e-accent) 70%, #000);
+  transform-origin: 0 100%;
   pointer-events: none;
 }
 
@@ -978,13 +2058,24 @@ html.ppui-class-page .ppui-mystery::after {
   height: 5px;
   margin-left: -5px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--e-surface) 75%, transparent);
   pointer-events: none;
 }
 
 html.ppui-class-page .assignment-header span.ppui-mystery {
   padding-top: 7px !important;
   box-sizing: border-box;
+}
+
+/* A sealed box breathes now and then, and jiggles on hover. */
+html.ppui-class-page .assignment.is-sealed .ppui-mystery {
+  animation: ppui-breathe 3.2s ease-in-out infinite;
+}
+
+@keyframes ppui-breathe {
+  0%, 80%, 100% { transform: none; }
+  86% { transform: translateY(-3px) rotate(-4deg); }
+  92% { transform: translateY(0) rotate(3deg); }
 }
 
 html.ppui-class-page .assignment.is-sealed .assignment-header:hover .ppui-mystery {
@@ -997,75 +2088,464 @@ html.ppui-class-page .assignment.is-sealed .assignment-header:hover .ppui-myster
   75% { transform: rotate(-4deg); }
 }
 
-/* Unboxing: shake, swell, burst away. */
-html.ppui-class-page .assignment.is-revealing .ppui-mystery {
-  animation: ppui-unbox 0.65s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+/* Unboxing: the box shakes harder and harder, glows in the score's colour, the lid flies off,
+   then the box drops away. (0.62s; embed.js opens the score at the end.) */
+html.ppui-class-page .assignment.is-revealing .assignment-header span.ppui-mystery {
+  animation: ppui-unbox 0.62s cubic-bezier(0.5, 0, 0.75, 0) forwards !important;
 }
 
 @keyframes ppui-unbox {
   0% { transform: none; }
-  15% { transform: rotate(-12deg) scale(1.05); }
-  30% { transform: rotate(12deg) scale(1.1); }
-  45% { transform: rotate(-8deg) scale(1.15); }
-  65% { transform: rotate(0) scale(1.35); opacity: 1; }
-  100% { transform: rotate(0) scale(2.2); opacity: 0; filter: blur(2px); }
+  10% { transform: translateX(-2px) rotate(-6deg); }
+  20% { transform: translateX(2px) rotate(6deg); }
+  30% { transform: translateX(-3px) rotate(-9deg) scale(1.04); }
+  40% { transform: translateX(3px) rotate(9deg) scale(1.08); }
+  50% { transform: rotate(0) scale(1.12); background: var(--e-accent); box-shadow: 0 0 0 0 transparent; }
+  70% { transform: scale(1.18); background: var(--band, var(--e-accent)); box-shadow: 0 0 22px 8px color-mix(in srgb, var(--band, var(--e-accent)) 55%, transparent); color: transparent; }
+  100% { transform: translateY(6px) scale(0.3); opacity: 0; background: var(--band, var(--e-accent)); box-shadow: 0 0 30px 14px transparent; color: transparent; }
 }
 
-/* Then the score pops in, a ring bursts out, and the bar fills. */
+html.ppui-class-page .assignment.is-revealing .ppui-mystery::before,
+html.ppui-class-page .assignment.is-revealing .ppui-mystery::after {
+  animation: ppui-lid 0.62s cubic-bezier(0.3, 0, 0.4, 1) forwards;
+}
+
+@keyframes ppui-lid {
+  0%, 48% { transform: none; opacity: 1; }
+  75% { transform: translate(6px, -16px) rotate(28deg); opacity: 1; }
+  100% { transform: translate(14px, -26px) rotate(55deg); opacity: 0; }
+}
+
+/* Then the score springs in and its bar fills (the numbers count up in embed.js). */
 html.ppui-class-page .assignment.is-revealed .raw-score,
 html.ppui-class-page .assignment.is-revealed .max-score {
   display: inline-block;
-  animation: ppui-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: ppui-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 html.ppui-class-page .assignment.is-revealed .max-score {
-  animation-delay: 0.08s;
+  animation-delay: 0.1s;
 }
 
 @keyframes ppui-pop {
-  from { transform: scale(0.2); opacity: 0; }
-}
-
-html.ppui-class-page .assignment.is-revealed .assignment-grade::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: 20px;
-  width: 40px;
-  height: 40px;
-  margin: -20px -20px 0 0;
-  border: 3px solid var(--band, var(--e-accent));
-  border-radius: 50%;
-  pointer-events: none;
-  animation: ppui-burst 0.7s ease-out forwards;
-}
-
-@keyframes ppui-burst {
-  from { transform: scale(0.4); opacity: 1; }
-  to { transform: scale(2.6); opacity: 0; }
+  from { transform: scale(0.3) translateY(6px); opacity: 0; }
 }
 
 html.ppui-class-page .assignment.is-revealed .ppui-pct::after {
-  animation: ppui-fill 0.9s 0.15s cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation: ppui-fill 0.8s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
 @keyframes ppui-fill {
   from { width: 0; }
 }
 
-/* "New" tile in the summary, while scores are still sealed. */
-.ppui-summary-tile.is-new {
-  border-color: var(--e-crest);
+/* The card gives a soft flash in the score's colour. */
+html.ppui-class-page .assignment.is-revealed {
+  animation: ppui-card-flash 1.2s ease-out;
 }
 
-.ppui-summary-tile.is-new .ppui-summary-value {
-  color: var(--e-accent);
+@keyframes ppui-card-flash {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--flash, var(--e-accent)) 0%, transparent); }
+  20% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--flash, var(--e-accent)) 45%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+html.ppui-class-page .assignment:has(.assignment-grade[data-band="high"]) { --flash: var(--e-high); }
+html.ppui-class-page .assignment:has(.assignment-grade[data-band="good"]) { --flash: var(--e-good); }
+html.ppui-class-page .assignment:has(.assignment-grade[data-band="fair"]) { --flash: var(--e-fair); }
+html.ppui-class-page .assignment:has(.assignment-grade[data-band="low"]) { --flash: var(--e-low); }
+
+/* Light and sparks, in a layer over the page (embed.js places it on the score). */
+.ppui-fx {
+  position: fixed;
+  z-index: 60;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.ppui-fx > span {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.ppui-fx-ring {
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border: 3px solid var(--c);
+  border-radius: 50%;
+  box-sizing: border-box;
+  animation: ppui-ring 0.8s ease-out forwards;
+}
+
+@keyframes ppui-ring {
+  from { transform: scale(0.3); opacity: 1; }
+  to { transform: scale(2.8); opacity: 0; }
+}
+
+.ppui-fx-rays {
+  width: 130px;
+  height: 130px;
+  margin: -65px 0 0 -65px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--c) 55%, transparent) 0deg 9deg, transparent 9deg 30deg);
+  -webkit-mask: radial-gradient(circle, #000 18%, transparent 68%);
+  mask: radial-gradient(circle, #000 18%, transparent 68%);
+  animation: ppui-rays 1.1s ease-out forwards;
+}
+
+@keyframes ppui-rays {
+  0% { transform: scale(0.2) rotate(0); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: scale(1.25) rotate(80deg); opacity: 0; }
+}
+
+.ppui-fx-p {
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: var(--c);
+  opacity: 0;
+  animation: ppui-spark 0.85s var(--d, 0ms) cubic-bezier(0.15, 0.7, 0.3, 1) forwards;
+}
+
+.ppui-fx-p:nth-child(even) {
+  border-radius: 2px;
+}
+
+.ppui-fx-p.is-star {
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 0;
+  background: #f5c542;
+  clip-path: polygon(50% 0, 61% 38%, 100% 50%, 61% 62%, 50% 100%, 39% 62%, 0 50%, 39% 38%);
+}
+
+@keyframes ppui-spark {
+  0% { transform: translate(0, 0) scale(var(--s)) rotate(0); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translate(var(--dx), calc(var(--dy) + 14px)) scale(calc(var(--s) * 0.4)) rotate(160deg); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ppui-mystery,
-  html.ppui-class-page .assignment.is-revealed * ,
-  html.ppui-class-page .assignment.is-revealed .assignment-grade::before {
+  .ppui-mystery::before,
+  .ppui-mystery::after,
+  html.ppui-class-page .assignment.is-sealed .ppui-mystery,
+  html.ppui-class-page .assignment.is-revealed,
+  html.ppui-class-page .assignment.is-revealed *,
+  .ppui-pop {
     animation: none !important;
   }
+  .ppui-liquid-fill,
+  .ppui-liquid-goal,
+  .ppui-final-delta,
+  .ppui-icon-btn,
+  .ppui-new-btn,
+  .ppui-btn,
+  .ppui-pop-item {
+    transition: none !important;
+  }
+}
+
+/* ---------- Guard: the old portal styles bare inputs and buttons (borders, glows, text shadows,
+   gradients) with selectors like input[type="text"] that outrank a class, so our controls restate
+   what matters with !important. ---------- */
+html.ppui-class-page .ppui-final button,
+html.ppui-class-page .ppui-pop button,
+html.ppui-class-page .assignment-header button,
+html.ppui-class-page .section-toolbar .ppui-sort,
+html.ppui-class-page .ppui-pop input:not([type="range"]),
+html.ppui-class-page .ppui-final input:not([type="range"]) {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  background-image: none !important;
+  text-shadow: none !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  vertical-align: middle;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+html.ppui-class-page .ppui-pop .ppui-field {
+  width: auto !important;
+  height: 40px !important;
+  padding: 0 12px !important;
+  border: 1px solid var(--e-line) !important;
+  border-radius: 12px !important;
+  outline: 0 !important;
+  background: var(--e-raised) !important;
+  box-shadow: none !important;
+  color: var(--e-text) !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  line-height: normal !important;
+}
+
+:root[data-ppui-theme="dark"] .ppui-pop .ppui-field {
+  background: var(--e-surface) !important;
+}
+
+html.ppui-class-page .ppui-pop .ppui-field:focus {
+  border-color: var(--e-accent) !important;
+  box-shadow: 0 0 0 3px var(--g-tint) !important;
+}
+
+html.ppui-class-page .ppui-pop .ppui-field[aria-invalid="true"] {
+  border-color: var(--e-low) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--e-low) 18%, transparent) !important;
+}
+
+html.ppui-class-page .ppui-pct-input {
+  width: 3.2ch !important;
+  height: auto !important;
+  padding: 0 2px 0 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--e-text) !important;
+  font: inherit !important;
+  font-size: 15px !important;
+  font-weight: 750 !important;
+  font-variant-numeric: tabular-nums;
+  line-height: normal !important;
+  text-align: right;
+}
+
+html.ppui-class-page .ppui-pct-input::placeholder {
+  color: var(--e-muted);
+}
+
+html.ppui-class-page .ppui-range {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 100% !important;
+  height: 6px !important;
+  margin: 14px 0 8px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: linear-gradient(to right, var(--e-accent) var(--fill, 60%), var(--e-line) var(--fill, 60%)) !important;
+}
+
+html.ppui-class-page .ppui-pop .ppui-seg-btn {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--e-muted) !important;
+}
+
+html.ppui-class-page .ppui-pop .ppui-seg-btn[aria-checked="true"] {
+  background: var(--e-surface) !important;
+  box-shadow: var(--e-bevel-btn) !important;
+  color: var(--e-text) !important;
+}
+
+:root[data-ppui-theme="dark"] .ppui-pop .ppui-seg-btn[aria-checked="true"] {
+  background: color-mix(in srgb, var(--e-text) 14%, var(--e-raised)) !important;
+}
+
+html.ppui-class-page .ppui-pop .ppui-pop-item {
+  min-height: 38px !important;
+  padding: 0 12px !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--e-text) !important;
+}
+
+html.ppui-class-page .ppui-pop .ppui-pop-item:hover,
+html.ppui-class-page .ppui-pop .ppui-pop-item:focus-visible {
+  background: var(--e-hover-2) !important;
+}
+
+html.ppui-class-page .ppui-pop .ppui-pop-item[aria-checked="true"] {
+  color: var(--e-accent) !important;
+}
+
+html.ppui-class-page .ppui-final .ppui-icon-btn,
+html.ppui-class-page .ppui-pop .ppui-btn {
+  border: 1px solid var(--e-line) !important;
+  background-color: var(--e-surface) !important;
+  box-shadow: var(--e-bevel-btn) !important;
+}
+
+html.ppui-class-page .ppui-final .ppui-icon-btn[aria-expanded="true"] {
+  background-color: var(--g-tint) !important;
+}
+
+html.ppui-class-page .ppui-final .ppui-new-btn,
+html.ppui-class-page .ppui-pop .ppui-btn.is-primary {
+  border-color: transparent !important;
+  background-color: var(--e-accent) !important;
+  color: var(--g-on-accent) !important;
+}
+
+html.ppui-class-page .ppui-final .ppui-icon-btn:active,
+html.ppui-class-page .ppui-final .ppui-new-btn:active,
+html.ppui-class-page .ppui-pop .ppui-btn:active {
+  box-shadow: var(--e-bevel-press) !important;
+}
+
+html.ppui-class-page .ppui-own-x {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html.ppui-class-page .ppui-own-x:hover {
+  background: var(--e-hover-2) !important;
+}
+
+html.ppui-class-page .ppui-final .ppui-add-btn {
+  border: 1px solid transparent !important;
+  background: var(--g-tint) !important;
+  box-shadow: none !important;
+  color: var(--e-accent) !important;
+}
+
+html.ppui-class-page .ppui-final .ppui-add-btn:hover,
+html.ppui-class-page .ppui-final .ppui-add-btn[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--e-accent) 22%, var(--e-surface)) !important;
+}
+
+html.ppui-class-page .ppui-final .ppui-own-pill {
+  border: 1px solid var(--e-line) !important;
+  background: var(--e-surface) !important;
+  box-shadow: none !important;
+  color: var(--e-muted) !important;
+}
+
+html.ppui-class-page .ppui-final .ppui-hidden-btn {
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--e-muted) !important;
+}
+
+html.ppui-class-page .ppui-final .ppui-own-pill:hover,
+html.ppui-class-page .ppui-final .ppui-own-pill[aria-expanded="true"],
+html.ppui-class-page .ppui-final .ppui-hidden-btn:hover {
+  border-color: color-mix(in srgb, var(--e-accent) 45%, var(--e-line)) !important;
+  background: var(--e-hover-2) !important;
+}
+
+html.ppui-class-page .ppui-final .ppui-hidden-btn[aria-pressed="true"] {
+  background: var(--g-tint) !important;
+  color: var(--e-accent) !important;
+}
+
+html.ppui-class-page .ppui-pop .ppui-btn.is-quiet {
+  border-color: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--e-muted) !important;
+}
+
+html.ppui-class-page .ppui-pop .ppui-btn.is-quiet:hover {
+  background-color: var(--e-hover-2) !important;
+  color: var(--e-text) !important;
+}
+
+/* Hidden work: gone from the list until you ask to see it, then dimmed. */
+html.ppui-class-page:not(.ppui-show-hidden) .assignment.is-hidden {
+  display: none !important;
+}
+
+html.ppui-class-page.ppui-show-hidden .assignment.is-hidden .assignment-header > :not(.ppui-more) {
+  opacity: 0.45;
+}
+
+/* ---------- Around the list: trimmed filters, one sort button, a slimmer title, week averages ---------- */
+html.ppui-class-page .section-toolbar .ppui-hide,
+html.ppui-class-page .right-controls.has-sort > :not(.ppui-sort) {
+  display: none !important;
+}
+
+html.ppui-class-page .section-toolbar .ppui-sort {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 7px;
+  height: 32px !important;
+  padding: 0 14px 0 11px !important;
+  border: 1px solid var(--e-line) !important;
+  border-radius: 999px;
+  background: var(--e-surface) !important;
+  box-shadow: var(--e-bevel-btn) !important;
+  color: var(--e-text) !important;
+  font: inherit;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  cursor: pointer;
+  transition: transform 0.15s var(--e-ease), box-shadow 0.15s;
+}
+
+html.ppui-class-page .section-toolbar .ppui-sort .ppui-icon {
+  width: 15px;
+  height: 15px;
+  color: var(--e-muted);
+}
+
+html.ppui-class-page .section-toolbar .ppui-sort:active {
+  transform: scale(0.97);
+  box-shadow: var(--e-bevel-press) !important;
+}
+
+/* Title: the class name with the website as a small round icon beside it; no teacher line. */
+html.ppui-class-page .enrollment-title .class-teacher {
+  display: none !important;
+}
+
+html.ppui-class-page .enrollment-title .class-description {
+  flex: 0 1 auto !important;
+  flex-basis: auto !important;
+}
+
+html.ppui-class-page .enrollment-title .class-website {
+  display: inline-grid !important;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0 !important;
+  font-size: 0 !important;
+  border: 1px solid var(--e-line) !important;
+  background: var(--e-surface) !important;
+  box-shadow: var(--e-bevel-btn);
+  color: var(--e-muted) !important;
+}
+
+html.ppui-class-page .enrollment-title .class-website:hover {
+  color: var(--e-accent) !important;
+}
+
+html.ppui-class-page .enrollment-title .class-website .ppui-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Week headings: the week's average on the right instead of a count. */
+html.ppui-class-page .group-count {
+  display: none !important;
+}
+
+html.ppui-class-page .group-header .ppui-week-avg {
+  margin-left: auto;
+  color: var(--band, var(--e-muted));
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+
+html.ppui-class-page .group-header .ppui-week-avg:empty {
+  display: none;
 }
