@@ -1,11 +1,11 @@
 // Class websites (classes.veracross.au) at document_start: take the portal's look (light or dark, and
 // the colour theme) from the first paint. The portal mirrors it to extension storage (content.js,
-// mirrorLook); until that arrives, the system setting stands in.
+// mirrorLook); until that arrives, and on first use, it is light and blue.
 (() => {
   const root = document.documentElement;
   const PALETTES = /^(teal|forest|violet|rose|sunset|graphite)$/;
   root.classList.add("ppui-classes");
-  root.setAttribute("data-ppui-theme", matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  root.setAttribute("data-ppui-theme", "light");
   try {
     chrome.storage.local.get("ppuiLook", (got) => {
       const look = got && got.ppuiLook;

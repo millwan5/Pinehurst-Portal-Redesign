@@ -8,7 +8,7 @@
   const PALETTES = /^(teal|forest|violet|rose|sunset|graphite)$/;
   const root = document.documentElement;
   root.classList.add("ppui-tt-embed");
-  root.setAttribute("data-ppui-theme", matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  root.setAttribute("data-ppui-theme", "light");
 
   let pdfUrl = null;
   let pdfFrame = null;

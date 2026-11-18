@@ -17,8 +17,8 @@
   // Embedded old-portal pages (portals-embed.veracross.au) live on another origin, so they
   // can't read the saved theme; the top frame sends it. No hiding or dashboard here.
   if (window !== window.top) {
-    const system = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    root.setAttribute("data-ppui-theme", system);
+    // Light until the portal says otherwise (its theme arrives by message just after).
+    root.setAttribute("data-ppui-theme", "light");
     addEventListener("message", (e) => {
       if (e.origin === PORTAL_ORIGIN && e.data && (e.data.ppuiTheme === "light" || e.data.ppuiTheme === "dark")) {
         root.setAttribute("data-ppui-theme", e.data.ppuiTheme);
@@ -31,12 +31,13 @@
     return;
   }
 
-  let theme = null;
+  // Light, Dark or Auto (follow the system); nothing chosen yet means Light.
+  let theme = "light";
   try {
     const v = localStorage.getItem("ppui-theme");
     if (v === "light" || v === "dark") theme = v;
+    else if (v === "auto") theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   } catch (e) {}
-  if (!theme) theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   root.setAttribute("data-ppui-theme", theme);
   // Colour theme (Customise > Colour) applies from the first paint too.
   try {

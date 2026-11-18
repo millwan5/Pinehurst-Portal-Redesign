@@ -425,13 +425,20 @@
   const THEME_KEY = "ppui-theme";
   const root = document.documentElement;
 
-  function savedTheme() {
+  // Light, Dark or Auto, as chosen under Customise > Appearance. Nothing chosen yet means Light.
+  function themeChoice() {
     try {
       const v = localStorage.getItem(THEME_KEY);
-      return v === "light" || v === "dark" ? v : null;
+      return v === "light" || v === "dark" || v === "auto" ? v : "light";
     } catch (e) {
-      return null;
+      return "light";
     }
+  }
+
+  // The theme in use now: the choice, with Auto resolved against the system setting.
+  function currentTheme() {
+    const choice = themeChoice();
+    return choice === "auto" ? systemTheme() : choice;
   }
 
   function systemTheme() {
@@ -496,15 +503,10 @@
     if (changes.some((c) => c.attributeName === "data-ppui-palette")) tellFrames(root.getAttribute("data-ppui-theme") || "light");
   }).observe(root, { attributes: true, attributeFilter: ["data-ppui-theme", "data-ppui-palette"] });
 
-  // Light, Dark or Auto (follow the system). Chosen under Customise > Appearance.
-  function themeChoice() {
-    return savedTheme() || "auto";
-  }
 
   function setThemeChoice(choice, from) {
     try {
-      if (choice === "auto") localStorage.removeItem(THEME_KEY);
-      else localStorage.setItem(THEME_KEY, choice);
+      localStorage.setItem(THEME_KEY, choice);
     } catch (e) {}
     const next = choice === "auto" ? systemTheme() : choice;
     if (next === root.getAttribute("data-ppui-theme")) return;
@@ -528,7 +530,7 @@
 
   // On Auto, follow the system as it changes.
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-    if (!savedTheme()) applyTheme(systemTheme());
+    if (themeChoice() === "auto") applyTheme(systemTheme());
   });
 
   // ---- Popovers (native Popover API: light dismiss, Esc and top layer for free) ----
@@ -1045,7 +1047,7 @@
     return header;
   }
 
-  applyTheme(savedTheme() || systemTheme());
+  applyTheme(currentTheme());
   // Lift the early.js cover once our UI is in place.
   function reveal() {
     root.classList.remove("ppui-booting");
