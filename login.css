@@ -81,11 +81,6 @@ html.ppui-look-pending .ae-container {
   border: 1px solid var(--ppui-hairline) !important;
   border-radius: 24px !important;
   box-shadow: var(--ppui-bevel), 0 40px 80px -30px rgba(0, 0, 0, 0.6) !important;
-  animation: ppui-enter 0.5s var(--ppui-ease) both;
-}
-
-@keyframes ppui-enter {
-  from { opacity: 0; transform: translateY(12px); }
 }
 
 /* Crest badge, half above the card, ringed in the card's colour so it reads as a cut-out. */
@@ -349,8 +344,4 @@ form footer {
     margin: 20px -22px -20px !important;
     border-radius: 0 0 20px 20px;
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ae-grid .card { animation: none; }
 }
