@@ -519,6 +519,16 @@
   }
 
   // Wire a <button> to open `pop`; onOpen runs each time it opens (fill or focus content).
+  // Popovers whose button has since been thrown away (re-rendered rows) are removed on the next open.
+  const popovers = new Map();
+  function sweepPopovers() {
+    for (const [pop, trigger] of popovers) {
+      if (trigger.isConnected || pop.matches(":popover-open")) continue;
+      pop.remove();
+      popovers.delete(pop);
+    }
+  }
+
   function popover(trigger, pop, onOpen) {
     pop.id = "ppui-pop-" + ++popoverCount;
     pop.popover = "auto";
@@ -526,8 +536,17 @@
     trigger.popoverTargetElement = pop;
     trigger.setAttribute("aria-controls", pop.id);
     trigger.setAttribute("aria-expanded", "false");
+    popovers.set(pop, trigger);
+    // A modal <dialog> (notebook, calendar) makes everything outside it inert, so a menu left in
+    // <body> shows but ignores clicks. Before it opens, move it into the dialog its button sits in.
+    trigger.addEventListener("click", () => {
+      const host = trigger.closest("dialog") || document.body;
+      if (pop.parentNode !== host && !pop.matches(":popover-open")) host.appendChild(pop);
+    });
     pop.addEventListener("beforetoggle", (e) => {
-      if (e.newState === "open" && onOpen) onOpen();
+      if (e.newState !== "open") return;
+      sweepPopovers();
+      if (onOpen) onOpen();
     });
     pop.addEventListener("toggle", (e) => {
       const open = e.newState === "open";
@@ -615,6 +634,48 @@
     return [...groups].filter(([, list]) => list.length);
   }
 
+  // Each class's Updates, Website and Calendar, saved from the home page's class list.
+  function classLinks() {
+    const out = [];
+    for (const c of cachedClasses()) {
+      const links = [];
+      const updates = c.updatesHref && sameOriginHref(c.updatesHref);
+      if (updates) links.push({ label: "Updates", iconName: "activity", href: updates });
+      for (const l of Array.isArray(c.links) ? c.links : []) {
+        const href = l && safeHref(l.href);
+        const label = l && clean(l.label);
+        if (!href || !label || /grade|assignment|update/i.test(label)) continue;
+        links.push({ label, iconName: /calendar/i.test(label) ? "calendar" : "globe", href });
+      }
+      if (links.length) out.push({ name: c.name, links });
+    }
+    return out;
+  }
+
+  // One row per class: its name, then a round button per link.
+  function classesGroup(classes) {
+    const group = el("section", "ppui-apps-group is-classes");
+    const heading = el("h3", "ppui-apps-title");
+    heading.append(icon("bookOpen"), document.createTextNode("Classes"));
+    group.appendChild(heading);
+    const ul = el("ul", "ppui-apps-list");
+    for (const c of classes) {
+      const li = el("li", "ppui-app-class");
+      li.appendChild(el("span", "ppui-app-class-name", c.name));
+      for (const link of c.links) {
+        const a = linkTo(el("a", "ppui-app-icon"), link.href);
+        const opens = a.target ? " (opens in new tab)" : "";
+        a.title = link.label + opens;
+        a.setAttribute("aria-label", c.name + " " + link.label + opens);
+        a.append(icon(link.iconName), el("span", "ppui-sr", link.label));
+        li.appendChild(a);
+      }
+      ul.appendChild(li);
+    }
+    group.appendChild(ul);
+    return group;
+  }
+
   function buildApps() {
     const btn = el("button", "ppui-bar-button ppui-apps-button");
     btn.type = "button";
@@ -659,7 +720,9 @@
         group.appendChild(ul);
         body.appendChild(group);
       }
-      if (!items.length) {
+      const classes = classLinks();
+      if (classes.length) body.appendChild(classesGroup(classes));
+      if (!items.length && !classes.length) {
         body.appendChild(el("p", "ppui-apps-empty", "Open the portal home page once to load your links here."));
       }
       filter();
@@ -688,7 +751,7 @@
       const first = [...body.querySelectorAll(".ppui-app")].find((a) => a.offsetParent !== null);
       if (first) first.click();
     });
-    arrowNav(pop, ".ppui-apps-search, .ppui-app");
+    arrowNav(pop, ".ppui-apps-search, .ppui-app, .ppui-app-icon");
 
     popover(btn, pop, () => {
       search.value = "";
@@ -891,9 +954,11 @@
     back.title = "Back";
     back.setAttribute("aria-label", "Back");
     back.appendChild(icon("chevronLeft"));
-    back.addEventListener("click", () => history.back());
-    // Nothing to go back to on a fresh tab.
-    back.hidden = history.length <= 1;
+    // Always shown; on a fresh tab with nothing to go back to it goes home instead.
+    back.addEventListener("click", () => {
+      if (history.length > 1) history.back();
+      else location.assign(HOME_URL);
+    });
     const homeLink = el("a", "ppui-bar-button ppui-home");
     homeLink.href = HOME_URL;
     homeLink.title = "Home";
@@ -905,13 +970,19 @@
 
     const pill = el("nav", "ppui-pill");
     pill.setAttribute("aria-label", "Portal tools");
-    const messages = buildMessages();
-    const account = buildAccount();
-    if (messages) pill.appendChild(messages);
     pill.append(buildCalendarButton(), buildNotebookButton(), buildApps());
     if (banner) pill.appendChild(buildCustomise(banner));
-    if (account) pill.appendChild(account);
     if (window.PPUIBanner) window.PPUIBanner.glass(pill);
+    // Messages and Account borrow the portal's top bar, which can hydrate after the header is up
+    // (or never, on pages the portal leaves bare). Add them when it turns up.
+    const addBarLinks = () => {
+      if (pill.querySelector(".ppui-messages, .ppui-avatar")) return;
+      const messages = buildMessages();
+      const account = buildAccount();
+      if (messages) pill.prepend(messages);
+      if (account) pill.appendChild(account);
+    };
+    whenReady(() => document.querySelector(SEL.navAccount), addBarLinks, NAV_WAIT_MS);
 
     const top = el("div", "ppui-header-top");
     top.append(navPill, pill);
@@ -949,9 +1020,10 @@
   function reveal() {
     root.classList.remove("ppui-booting");
   }
-  // The top bar hydrates late; wait for it so Messages and Account can borrow its links.
+  // Home waits for the page column (the hero goes inside it) and the top bar. Every other page gets
+  // its header, with Back and Home, straight away, even pages the portal leaves bare.
   whenReady(
-    () => document.querySelector(SEL.navAccount) && document.querySelector(SEL.app),
+    () => !HOME_PATH.test(location.pathname) || (document.querySelector(SEL.navAccount) && document.querySelector(SEL.app)),
     () => {
       if (!document.querySelector(".ppui-header")) buildHeader();
       if (HOME_PATH.test(location.pathname)) showUnread();
@@ -1670,7 +1742,7 @@
   }
 
   // ---- News page: tabs (All / Starred / Read), search and sort, a day picker, and the stories
-  // in day sections down a timeline, with a line where the stories new since your last visit end ----
+  // in day sections down a timeline, with a line heading the stories new since your last visit ----
 
   // Which stories were there last time you opened the News page (to mark what's new), and which
   // you've opened in the reader since (new ones lose their dot once read).
@@ -2229,12 +2301,13 @@
       }
 
       // Sections down the timeline: Pinned first (in "All stories"), then one per day or period.
-      // In newest-first order, a line marks where the stories new since your last visit end.
+      // In newest-first order on All stories, a "Since you last left" line heads the stories that are
+      // new since your last visit. Starred and Trash don't get one.
       const frag = document.createDocumentFragment();
       let section = null;
       let sectionKey = null;
-      const anyNew = sort === "newest" && shown.some(isNew);
-      let passedNew = false;
+      const anyNew = sort === "newest" && actions.view === "all" && shown.some(isNew);
+      let markedNew = false;
       shown.forEach((item, i) => {
         const pinnedTop = actions.view === "all" && !words.length && actions.isPinned(item);
         const s = pinnedTop ? { key: "pinned", name: "Pinned" } : newsSection(item.time);
@@ -2249,9 +2322,9 @@
           section.appendChild(h);
           frag.appendChild(section);
         }
-        if (anyNew && !pinnedTop && !isNew(item) && !passedNew) {
-          passedNew = true;
-          section.appendChild(el("div", "ppui-room-newline", "Older than your last visit"));
+        if (anyNew && !pinnedTop && isNew(item) && !markedNew) {
+          markedNew = true;
+          section.appendChild(el("div", "ppui-room-newline", "Since you last left"));
         }
         section.appendChild(storyRow(item, i));
       });
@@ -2448,12 +2521,12 @@
     }, fields);
   }
 
-  // A note's colour: the one picked, else its subject's, else crest blue.
+  // A note's colour: the one picked, else its subject's, else the theme colour.
   const noteTone = (note) => (note.tone !== null && note.tone !== undefined ? note.tone : note.subject ? toneFor(note.subject) : 0);
   const openNotes = () => noteStore.list.filter((n) => !n.done);
   const dueSoon = () => openNotes().filter((n) => n.date && n.date <= isoAfter(1));
 
-  // A steady tone per class (one of six blues and silvers from the crest), so a class keeps its colour.
+  // A steady tone per class (one of six shades mixed from the theme colour), so a class keeps its colour.
   function toneFor(name) {
     let h = 2166136261;
     for (const c of name) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
@@ -2585,7 +2658,8 @@
     if (!classes.length) menu.appendChild(el("li", "ppui-menu-note", "Open the portal home page once to load your classes."));
   }
 
-  const TONE_NAMES = ["Crest blue", "Sky", "Navy", "Silver", "Ice", "Steel"];
+  // Named by how they sit against the theme colour, since every tone is mixed from it (see styles.css).
+  const TONE_NAMES = ["Theme", "Bright", "Deep", "Grey", "Pale", "Slate"];
 
   function fillToneMenu(menu, current, pick) {
     menu.replaceChildren();
@@ -3532,22 +3606,24 @@
   function overviewCard(course) {
     const card = el("li", "ppui-ov-class" + (course.updates ? " has-updates" : ""));
     const top = el("div", "ppui-ov-class-top");
-    const tile = el("span", "ppui-subject");
+    // The subject tile and the name both open the class's grades.
+    const target = course.assignmentsHref || course.href;
+    const tile = el(target ? "a" : "span", "ppui-subject");
     tile.dataset.tone = String(toneFor(course.name));
     tile.appendChild(icon(subjectIcon(course.name)));
+    if (target) {
+      linkTo(tile, target);
+      tile.tabIndex = -1;
+      tile.setAttribute("aria-hidden", "true");
+    }
     const body = el("div", "ppui-ov-class-body");
-    const name = course.href ? linkTo(el("a", "ppui-ov-class-name", course.name), course.href) : el("span", "ppui-ov-class-name", course.name);
+    const name = target ? linkTo(el("a", "ppui-ov-class-name", course.name), target) : el("span", "ppui-ov-class-name", course.name);
     body.appendChild(name);
     const meta = [course.teacher, course.full !== course.name ? course.full : ""].filter(Boolean).join(" · ");
     if (meta) body.appendChild(el("span", "ppui-ov-class-meta", meta));
     top.append(tile, body);
-    // New updates lead (they need a look); otherwise the grade, when the portal shows one.
-    if (course.updates && course.updatesHref) {
-      const badge = el("a", "ppui-ov-updates", course.updates + " new");
-      badge.href = course.updatesHref;
-      badge.setAttribute("aria-label", course.updates + " new updates in " + course.name);
-      top.appendChild(badge);
-    } else if (course.grade) {
+    // The grade, when the portal shows one. Updates, Website and Calendar live in Apps and links.
+    if (course.grade) {
       const grade = el("span", "ppui-ov-grade", course.grade);
       grade.title = "Current grade";
       top.appendChild(grade);
@@ -3558,18 +3634,10 @@
     if (course.assignmentsHref) {
       const a = el("a", "ppui-ov-link is-main");
       a.href = course.assignmentsHref;
-      a.append(icon("list"), el("span", null, "Assignments"));
+      a.append(icon("list"), el("span", null, "Grades"));
       foot.appendChild(a);
     }
-    for (const link of course.links) {
-      // Website and Calendar as round icon buttons, so a card's links stay on one line.
-      const a = linkTo(el("a", "ppui-ov-link is-icon"), link.href);
-      a.title = link.label + " (opens in new tab)";
-      a.append(icon(/calendar/i.test(link.label) ? "calendar" : "globe"), el("span", "ppui-sr", link.label));
-      externalMark(a);
-      foot.appendChild(a);
-    }
-    card.appendChild(foot);
+    if (foot.children.length) card.appendChild(foot);
     return card;
   }
 
@@ -4650,11 +4718,10 @@
     const links = [...node.querySelectorAll(SEL.courseLinks)]
       .map((a) => ({ label: clean(a.textContent), href: safeHref(a.getAttribute("href")) }));
     const notes = node.querySelector(SEL.notificationsLink);
-    links.push({ label: "Assignments", href: href(node.querySelector(SEL.assignmentsLink)) });
-    links.push({ label: "Updates", href: href(notes) });
     return {
       name: shortName(nameLink && nameLink.textContent),
       href: href(nameLink),
+      gradesHref: href(node.querySelector(SEL.assignmentsLink)),
       teacher: text(SEL.courseTeacher),
       // Only used to order today's classes.
       period: period ? Number(period[1]) : null,
@@ -4666,14 +4733,24 @@
 
   function courseRow(course) {
     const row = el("li", "ppui-course");
-    const badgeIcon = el("span", "ppui-subject");
+    // The subject tile and the name both open the class's grades.
+    const target = course.gradesHref || course.href;
+    const badgeIcon = el(target ? "a" : "span", "ppui-subject");
     badgeIcon.dataset.tone = String(toneFor(course.name));
     badgeIcon.appendChild(icon(subjectIcon(course.name)));
+    if (target) {
+      badgeIcon.href = target;
+      badgeIcon.tabIndex = -1;
+      badgeIcon.setAttribute("aria-hidden", "true");
+    }
     row.appendChild(badgeIcon);
 
     const body = el("div", "ppui-body");
-    const name = el(course.href ? "a" : "span", "ppui-class", course.name);
-    if (course.href) name.href = course.href;
+    const name = el(target ? "a" : "span", "ppui-class", course.name);
+    if (target) {
+      name.href = target;
+      if (course.gradesHref) name.title = "Grades for " + course.name;
+    }
     body.appendChild(name);
     if (course.teacher) body.appendChild(el("span", "ppui-meta", course.teacher));
     const noteCount = el("button", "ppui-note-count");
@@ -4689,15 +4766,6 @@
     });
     row.appendChild(body);
 
-    if (course.updates && course.updatesHref) {
-      const badge = el("a", "ppui-badge", String(course.updates));
-      badge.href = course.updatesHref;
-      badge.title = course.updates + " new updates";
-      badge.setAttribute("aria-label", course.updates + " new updates in " + course.name);
-      row.appendChild(badge);
-    } else {
-      row.appendChild(el("span"));
-    }
 
     {
       const more = el("button", "ppui-more");
@@ -4722,13 +4790,6 @@
         li.appendChild(b);
         menu.appendChild(li);
       }
-      for (const link of course.links) {
-        const li = el("li");
-        const a = linkTo(el("a", "ppui-menu-item", link.label), link.href);
-        externalMark(a);
-        li.appendChild(a);
-        menu.appendChild(li);
-      }
       arrowNav(menu, ".ppui-menu-item");
       popover(more, menu);
       menu.addEventListener("toggle", (e) => {
@@ -4742,7 +4803,8 @@
   function buildClassesPanel(listComp, classesHref) {
     const courses = [...listComp.querySelectorAll(SEL.course)].map(readCourse).filter((c) => c.name);
     if (!courses.length) return null;
-    writeJson(CLASSES_KEY, courses.map((c) => ({ name: c.name })));
+    // Kept for every page: names for the notebook, and each class's links for Apps and links.
+    writeJson(CLASSES_KEY, courses.map((c) => ({ name: c.name, updatesHref: c.updatesHref, links: c.links })));
     const today = courses.filter((c) => c.period).sort((a, b) => a.period - b.period);
     const later = courses.filter((c) => !c.period);
 

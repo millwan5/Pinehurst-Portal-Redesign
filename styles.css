@@ -923,6 +923,60 @@ html :focus-visible {
   opacity: 0.5;
 }
 
+/* Apps and links > Classes: a class's name, then round buttons for Updates, Website and Calendar. */
+.ppui-apps-group.is-classes {
+  column-span: all;
+}
+
+.ppui-apps-group.is-classes .ppui-apps-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  column-gap: 12px;
+}
+
+.ppui-app-class {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 38px;
+  padding: 0 4px 0 12px;
+}
+
+.ppui-app-class-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ppui-text);
+  font-size: 14px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ppui-app-icon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: var(--ppui-muted) !important;
+  text-decoration: none !important;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ppui-app-icon .ppui-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.ppui-app-icon:hover,
+.ppui-app-icon:focus-visible {
+  outline: none;
+  background: var(--ppui-accent-soft);
+  color: var(--ppui-accent) !important;
+}
+
 .ppui-apps-empty {
   margin: 0;
   padding: 16px 8px;
@@ -1562,11 +1616,15 @@ a.ppui-class:hover {
 /* Classes card */
 .ppui-course {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto 28px;
+  grid-template-columns: 34px minmax(0, 1fr) 28px;
   align-items: center;
   gap: 12px;
   min-height: 50px;
   padding: 6px 0;
+}
+
+a.ppui-subject {
+  text-decoration: none !important;
 }
 
 /* Subject tiles: six tones from the crest, picked per class in content.js. */
@@ -1596,7 +1654,7 @@ a.ppui-class:hover {
 .ppui-subject .ppui-icon {
   width: 18px;
   height: 18px;
-  stroke-width: 2;
+  stroke-width: 2.4;
 }
 
 .ppui-badge {
@@ -5811,6 +5869,10 @@ html.ppui-inbox-page .ppui-moved {
   border: 0;
 }
 
+.ppui-inbox-rows > li + li:not(.ppui-inbox-group) {
+  margin-top: 3px;
+}
+
 /* Long mailboxes: skip layout and paint for rows that are off screen (group headings are short, left alone). */
 .ppui-inbox-rows > li:not(.ppui-inbox-group) {
   content-visibility: auto;
@@ -5818,7 +5880,7 @@ html.ppui-inbox-page .ppui-moved {
 }
 
 .ppui-inbox-group {
-  padding: 14px 10px 6px;
+  padding: 18px 12px 8px;
   color: var(--ppui-muted);
   font-size: 12.5px;
   font-weight: 700;
@@ -5832,8 +5894,8 @@ html.ppui-inbox-page .ppui-moved {
   position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 10px;
+  gap: 14px;
+  padding: 13px 12px;
   border-radius: 10px;
   color: var(--ppui-text) !important;
   text-decoration: none !important;
@@ -5890,7 +5952,7 @@ html.ppui-inbox-page .ppui-moved {
   display: grid;
   flex: 1;
   min-width: 0;
-  gap: 2px;
+  gap: 4px;
 }
 
 .ppui-inbox-row-top {
