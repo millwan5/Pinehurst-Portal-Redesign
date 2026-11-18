@@ -574,6 +574,12 @@
         origin = new URL(f.src, location.href).origin;
       } catch (e) {}
       if (!FRAME_ORIGINS.includes(origin)) return;
+      // src is only where the frame started: the embed page sends some links on to the portal itself,
+      // and then the frame holds a page on our own origin. One we can read is ours, so it's skipped
+      // (reading a frame on another origin throws, and that's the one that gets the message).
+      try {
+        if (f.contentWindow.location.href) return;
+      } catch (e) {}
       try {
         f.contentWindow.postMessage(message, origin);
       } catch (e) {}
