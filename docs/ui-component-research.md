@@ -1,4 +1,4 @@
-# UI component research (PinehurstPortalUI)
+# UI component research (Pinehurst Portal Redesign)
 
 Goal: cleaner, more intuitive, better-looking, cheap. Vanilla CSS/JS only, `--ppui-*` tokens.
 Already in styles.css (skip): popover + `::backdrop`, `interpolate-size`, `::details-content` height anim, `:has()` grid, skeleton shimmer, view-transition theme circle, scroll-timeline progress bar, `color-mix`, `text-wrap: balance`, `overscroll-behavior`, `accent-color`, reduced-motion gating, global `:focus-visible` 2px sky outline.

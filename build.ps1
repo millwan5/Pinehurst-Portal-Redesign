@@ -1,4 +1,4 @@
-# Packs the extension into dist\pinehurst-dashboard-<version>.zip, ready to upload to
+# Packs the extension into dist\pinehurst-portal-redesign-<version>.zip, ready to upload to
 # addons.mozilla.org for signing (Firefox) or to load in any Chromium browser.
 # Entries use forward slashes; Compress-Archive on Windows PowerShell writes backslashes,
 # which addons.mozilla.org rejects.
@@ -9,7 +9,7 @@ $root = $PSScriptRoot
 $version = (Get-Content "$root\manifest.json" -Raw | ConvertFrom-Json).version
 $dist = Join-Path $root "dist"
 New-Item -ItemType Directory -Force $dist | Out-Null
-$out = Join-Path $dist "pinehurst-dashboard-$version.zip"
+$out = Join-Path $dist "pinehurst-portal-redesign-$version.zip"
 if (Test-Path $out) { Remove-Item $out }
 
 $include = @("manifest.json", "*.js", "*.css", "fonts", "icons", "assets")

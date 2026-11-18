@@ -1,4 +1,4 @@
-# Pinehurst Dashboard
+# Pinehurst Portal Redesign
 
 A browser extension that gives the Pinehurst student portal (Veracross) a cleaner look: today's timetable, classes and news at a glance.
 

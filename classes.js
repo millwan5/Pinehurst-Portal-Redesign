@@ -90,7 +90,7 @@
     // Some tabs fill in after load (calendar, posts).
     setTimeout(markEmpty, 1500);
   } catch (e) {
-    console.warn("[Pinehurst Dashboard] Class website header failed.", e);
+    console.warn("[Pinehurst Portal Redesign] Class website header failed.", e);
   } finally {
     root.classList.add("ppui-classes-ready");
   }

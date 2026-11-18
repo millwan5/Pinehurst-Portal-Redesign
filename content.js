@@ -1,4 +1,4 @@
-// Pinehurst Dashboard: replaces the portal's top bar with a slim header (logo, greeting, one control pill)
+// Pinehurst Portal Redesign: replaces the portal's top bar with a slim header (logo, greeting, one control pill)
 // and lays today's timetable, classes and news out as a dashboard on the home page.
 // Runs only on the signed-in student's own portal and reads only same-origin pages.
 
@@ -2412,7 +2412,7 @@
         archive.done = true;
         render();
       }).catch((e) => {
-        console.warn("[Pinehurst Dashboard] Couldn't load older news.", e);
+        console.warn("[Pinehurst Portal Redesign] Couldn't load older news.", e);
         archive.done = items.length > pageCount;
         render();
       });
@@ -3594,7 +3594,7 @@
             localStorage.setItem(NEWS_PATH_KEY, location.pathname);
           } catch (e) {}
         } catch (e) {
-          console.warn("[Pinehurst Dashboard] News page view failed; showing the portal's list.", e);
+          console.warn("[Pinehurst Portal Redesign] News page view failed; showing the portal's list.", e);
           root.classList.remove("ppui-newspage");
           document.querySelectorAll(".ppui-moved").forEach((n) => n.classList.remove("ppui-moved"));
           document.querySelector(".ppui-newsroom")?.remove();
@@ -3813,7 +3813,7 @@
         root.classList.add("ppui-overview-page");
         buildOverview();
       } catch (e) {
-        console.warn("[Pinehurst Dashboard] Overview view failed; showing the portal's page.", e);
+        console.warn("[Pinehurst Portal Redesign] Overview view failed; showing the portal's page.", e);
         root.classList.remove("ppui-overview-page");
         document.querySelectorAll(".ppui-moved").forEach((n) => n.classList.remove("ppui-moved"));
         document.querySelector(".ppui-overview")?.remove();
@@ -4157,7 +4157,7 @@
         }
       } catch (e) {
         if (token !== openToken) return;
-        console.warn("[Pinehurst Dashboard] Couldn't load message", e);
+        console.warn("[Pinehurst Portal Redesign] Couldn't load message", e);
         text.classList.remove("is-loading");
         text.removeAttribute("aria-busy");
         const retry = el("button", "ppui-ov-link", "Try again");
@@ -4191,7 +4191,7 @@
         nextHref = page.next;
         renderList();
       } catch (e) {
-        console.warn("[Pinehurst Dashboard] Couldn't load older messages", e);
+        console.warn("[Pinehurst Portal Redesign] Couldn't load older messages", e);
         more.disabled = false;
         more.replaceChildren(el("span", null, "Couldn't load. Try again"));
       }
@@ -4239,7 +4239,7 @@
         buildInbox();
       }
     } catch (e) {
-      console.warn("[Pinehurst Dashboard] Messages view failed; showing the portal's page.", e);
+      console.warn("[Pinehurst Portal Redesign] Messages view failed; showing the portal's page.", e);
       root.classList.remove("ppui-inbox-page");
       document.querySelectorAll(".ppui-moved").forEach((n) => n.classList.remove("ppui-moved"));
       document.querySelector(".ppui-inbox")?.remove();
@@ -4465,7 +4465,7 @@
       if (nativeRoute() === "planner") fitPlannerFrame();
       if (nativeRoute() === "article") setTimeout(emptyStoryNote, 5000);
     } catch (e) {
-      console.warn("[Pinehurst Dashboard] Page heading failed; keeping the portal's.", e);
+      console.warn("[Pinehurst Portal Redesign] Page heading failed; keeping the portal's.", e);
     }
   }
 
